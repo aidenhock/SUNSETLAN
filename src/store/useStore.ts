@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 
 export type QualityTier = 'high' | 'low'
+export type CameraMode = 'pointerLock' | 'orbit'
 
 interface AppState {
   /** Interactable the player is standing near, if any. */
@@ -11,12 +12,18 @@ interface AppState {
   qualityTier: QualityTier
   /** True once the player has moved for the first time (hides the intro hint). */
   hasMoved: boolean
+  /** True while the browser pointer lock is held by the canvas. */
+  pointerLocked: boolean
+  /** Visitor-tunable settings; state only, no localStorage assumptions. */
+  settings: { cameraMode: CameraMode }
   setNearby: (id: string | null) => void
   openModal: (id: string) => void
   closeModal: () => void
   setMuted: (muted: boolean) => void
   setQualityTier: (tier: QualityTier) => void
   markMoved: () => void
+  setPointerLocked: (locked: boolean) => void
+  setCameraMode: (mode: CameraMode) => void
 }
 
 export const useStore = create<AppState>((set) => ({
@@ -25,10 +32,14 @@ export const useStore = create<AppState>((set) => ({
   muted: true,
   qualityTier: 'high',
   hasMoved: false,
+  pointerLocked: false,
+  settings: { cameraMode: 'pointerLock' },
   setNearby: (id) => set({ nearbyId: id }),
   openModal: (id) => set({ openModalId: id }),
   closeModal: () => set({ openModalId: null }),
   setMuted: (muted) => set({ muted }),
   setQualityTier: (qualityTier) => set({ qualityTier }),
   markMoved: () => set({ hasMoved: true }),
+  setPointerLocked: (pointerLocked) => set({ pointerLocked }),
+  setCameraMode: (cameraMode) => set({ settings: { cameraMode } }),
 }))
