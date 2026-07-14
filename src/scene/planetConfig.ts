@@ -32,19 +32,38 @@ export interface ScatterProp {
   scale: number
 }
 
-/** Blockout scatter — also the source of the blocker list. */
+/** Decorative scatter — also feeds the blocker list. */
 export const scatterProps: ScatterProp[] = [
   { lat: 72, long: 150, kind: 'palm', scale: 1 },
   { lat: 68, long: 205, kind: 'palm', scale: 1.2 },
   { lat: 55, long: 170, kind: 'palm', scale: 0.9 },
   { lat: 48, long: 320, kind: 'palm', scale: 1.1 },
+  { lat: 42, long: 65, kind: 'palm', scale: 1 },
+  { lat: 58, long: 275, kind: 'palm', scale: 1 },
   { lat: 62, long: 40, kind: 'rock', scale: 1 },
   { lat: 40, long: 220, kind: 'rock', scale: 1.4 },
   { lat: 33, long: 120, kind: 'rock', scale: 1 },
-  { lat: 58, long: 275, kind: 'palm', scale: 1 },
+  { lat: 30, long: 145, kind: 'rock', scale: 1.2 },
 ]
 
-export const blockers: Blocker[] = scatterProps.map((p) => ({
-  unit: latLongToUnit(p.lat, p.long),
-  radius: p.kind === 'palm' ? 1.0 : 1.4,
-}))
+/** Landmark obstacles (world-design props that should not be walked through). */
+const landmarkBlockers: { lat: number; long: number; radius: number }[] = [
+  { lat: 84, long: 180, radius: 1.0 }, // campfire
+  { lat: 83.5, long: 186, radius: 0.9 }, // log bench
+  { lat: 55, long: 302.5, radius: 1.6 }, // big tree trunk
+  { lat: 45, long: 358, radius: 1.2 }, // palapa desk
+  { lat: 35, long: 135.8, radius: 0.9 }, // TV crate
+  { lat: 24, long: 91, radius: 0.5 }, // mailbox post
+  { lat: 20, long: 200, radius: 1.6 }, // beached rowboat
+]
+
+export const blockers: Blocker[] = [
+  ...scatterProps.map((p) => ({
+    unit: latLongToUnit(p.lat, p.long),
+    radius: p.kind === 'palm' ? 1.0 : 1.4 * p.scale,
+  })),
+  ...landmarkBlockers.map((b) => ({
+    unit: latLongToUnit(b.lat, b.long),
+    radius: b.radius,
+  })),
+]
