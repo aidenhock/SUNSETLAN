@@ -23,6 +23,12 @@ export function LoadingScreen({ ready }: { ready: boolean }) {
       <p className="mt-4 font-display text-lg tabular-nums" role="status">
         {percent}%
       </p>
+      <a
+        href="/classic"
+        className="mt-8 text-sm text-sand/70 underline focus-visible:outline-2 focus-visible:outline-lagoon"
+      >
+        View classic site
+      </a>
     </div>
   )
 }

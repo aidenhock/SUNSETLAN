@@ -48,8 +48,8 @@ export const scatterProps: ScatterProp[] = [
 
 /** Landmark obstacles (world-design props that should not be walked through). */
 const landmarkBlockers: { lat: number; long: number; radius: number }[] = [
-  { lat: 84, long: 180, radius: 1.0 }, // campfire
-  { lat: 83.5, long: 186, radius: 0.9 }, // log bench
+  { lat: 84, long: 186, radius: 1.0 }, // campfire (kept off the spawn-forward path)
+  { lat: 83.5, long: 191, radius: 0.9 }, // log bench
   { lat: 55, long: 302.5, radius: 1.6 }, // big tree trunk
   { lat: 45, long: 358, radius: 1.2 }, // palapa desk
   { lat: 35, long: 135.8, radius: 0.9 }, // TV crate

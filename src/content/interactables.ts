@@ -31,7 +31,7 @@ export const interactables: InteractableDef[] = [
     id: 'music',
     label: 'Music',
     prompt: 'Pick up the ukulele',
-    position: place(83, 175, 0.55),
+    position: place(83.5, 178, 0.55),
     rotation: [0, Math.PI / 6, 0],
     modal: 'music',
     contentKey: 'music',

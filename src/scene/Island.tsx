@@ -36,7 +36,7 @@ export function Island({ registerCollision }: { registerCollision: RegisterColli
       </mesh>
 
       {/* Spawn beach: campfire + log bench (ukulele interactable sits beside). */}
-      <SurfaceGroup lat={84} long={180} altitude={0.55}>
+      <SurfaceGroup lat={84} long={186} altitude={0.55}>
         <mesh position={[0, 0.3, 0]}>
           <coneGeometry args={[0.45, 0.9, 6]} />
           <meshStandardMaterial color="#ffb870" emissive="#ff8c42" emissiveIntensity={0.6} flatShading />
@@ -51,7 +51,7 @@ export function Island({ registerCollision }: { registerCollision: RegisterColli
           </mesh>
         ))}
       </SurfaceGroup>
-      <SurfaceGroup lat={83.5} long={186} altitude={0.55} yaw={0.6}>
+      <SurfaceGroup lat={83.5} long={191} altitude={0.55} yaw={0.6}>
         <mesh position={[0, 0.3, 0]} rotation-z={Math.PI / 2}>
           <cylinderGeometry args={[0.28, 0.28, 2.2, 7]} />
           {wood}
