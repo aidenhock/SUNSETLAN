@@ -5,3 +5,4 @@ dist-ssr
 .vercel
 .DS_Store
 *.tsbuildinfo
+.claude/
