@@ -3,38 +3,21 @@ import { interactables } from '../content/interactables'
 import { useStore } from '../store/useStore'
 import { PromptE } from './PromptE'
 
-const MOVEMENT_CODES = new Set([
-  'KeyW',
-  'KeyA',
-  'KeyS',
-  'KeyD',
-  'ArrowUp',
-  'ArrowDown',
-  'ArrowLeft',
-  'ArrowRight',
-])
-
 export function Hud({ isTouch }: { isTouch: boolean }) {
   const nearbyId = useStore((s) => s.nearbyId)
   const openModalId = useStore((s) => s.openModalId)
   const hasMoved = useStore((s) => s.hasMoved)
 
+  // hasMoved is set from player displacement in Player.tsx; this handler only
+  // covers the interact key.
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.repeat) return
-      const { nearbyId, openModalId, hasMoved, openModal, markMoved } = useStore.getState()
-      if (MOVEMENT_CODES.has(e.code) && !hasMoved) markMoved()
+      const { nearbyId, openModalId, openModal } = useStore.getState()
       if (e.code === 'KeyE' && nearbyId && !openModalId) openModal(nearbyId)
     }
-    const onTouchMove = () => {
-      if (!useStore.getState().hasMoved) useStore.getState().markMoved()
-    }
     window.addEventListener('keydown', onKeyDown)
-    window.addEventListener('touchmove', onTouchMove)
-    return () => {
-      window.removeEventListener('keydown', onKeyDown)
-      window.removeEventListener('touchmove', onTouchMove)
-    }
+    return () => window.removeEventListener('keydown', onKeyDown)
   }, [])
 
   const nearby = interactables.find((i) => i.id === nearbyId)

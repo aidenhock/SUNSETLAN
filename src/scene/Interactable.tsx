@@ -13,7 +13,12 @@ export function Interactable({ def }: { def: InteractableDef }) {
     <group position={def.position} rotation={def.rotation}>
       <RigidBody type="fixed" colliders="cuboid">
         <mesh
-          onClick={() => openModal(def.id)}
+          onClick={(e) => {
+            // Ignore camera-orbit drags that happen to end on the mesh.
+            if (e.delta > 5) return
+            document.body.style.cursor = 'auto'
+            openModal(def.id)
+          }}
           onPointerOver={() => (document.body.style.cursor = 'pointer')}
           onPointerOut={() => (document.body.style.cursor = 'auto')}
         >

@@ -72,7 +72,7 @@ export function CardModal({ def }: { def: InteractableDef }) {
           ref={closeButtonRef}
           type="button"
           onClick={closeModal}
-          className="mt-6 rounded-lg bg-lagoon px-4 py-2 font-display font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-deepwater"
+          className="mt-6 touch-manipulation rounded-lg bg-lagoon px-4 py-2 font-display font-semibold text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-deepwater"
         >
           Close
         </button>

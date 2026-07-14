@@ -1,6 +1,6 @@
 import { Canvas } from '@react-three/fiber'
 import { Physics } from '@react-three/rapier'
-import { EcctrlJoystick } from 'ecctrl'
+import { EcctrlJoystick, useJoystickControls } from 'ecctrl'
 import { Suspense, useEffect, useMemo, useState } from 'react'
 import { interactables } from './content/interactables'
 import { Interactable } from './scene/Interactable'
@@ -23,6 +23,16 @@ export default function App() {
   const [sceneReady, setSceneReady] = useState(false)
   const isTouch = useMemo(() => window.matchMedia('(pointer: coarse)').matches, [])
 
+  // If a modal opens mid-touch, the joystick never gets its touchend — clear
+  // any in-flight input so the avatar doesn't auto-walk when the modal closes.
+  useEffect(() => {
+    if (modalOpen && isTouch) {
+      const joystick = useJoystickControls.getState()
+      joystick.resetJoystick()
+      joystick.releaseAllButtons()
+    }
+  }, [modalOpen, isTouch])
+
   return (
     <div className="h-full w-full">
       <LoadingScreen ready={sceneReady} />
@@ -30,8 +40,9 @@ export default function App() {
         <color attach="background" args={['#ffe3bd']} />
         <Suspense fallback={null}>
           <Lighting />
-          {/* Player controls are disabled inside <Player /> while a modal is open. */}
-          <Physics timeStep="vary">
+          {/* Paused physics freezes the avatar in place while a modal is open;
+              disableControl on Ecctrl additionally blocks input impulses. */}
+          <Physics paused={modalOpen} timeStep="vary">
             <Player />
             <Island />
             {interactables.map((def) => (
@@ -41,7 +52,13 @@ export default function App() {
           <SceneReady onReady={() => setSceneReady(true)} />
         </Suspense>
       </Canvas>
-      {isTouch && !modalOpen && <EcctrlJoystick buttonNumber={1} />}
+      {/* Hidden (not unmounted) while a modal is open so in-flight touches still
+          deliver touchend to the joystick and WebGL contexts aren't churned. */}
+      {isTouch && (
+        <div style={{ display: modalOpen ? 'none' : undefined }}>
+          <EcctrlJoystick buttonNumber={1} />
+        </div>
+      )}
       <Hud isTouch={isTouch} />
       <ModalRoot />
     </div>

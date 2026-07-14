@@ -24,9 +24,18 @@ export function Player() {
   useFrame(() => {
     const rb = body.current?.group
     if (!rb) return
-    if (rb.translation().y < FALL_RESET_Y) {
+    const t = rb.translation()
+    if (t.y < FALL_RESET_Y) {
       rb.setTranslation({ x: SPAWN[0], y: SPAWN[1], z: SPAWN[2] }, true)
       rb.setLinvel({ x: 0, y: 0, z: 0 }, true)
+      return
+    }
+    // hasMoved comes from actual displacement so it works for every input
+    // method (keyboard, joystick, future gamepad) without event plumbing.
+    if (!useStore.getState().hasMoved) {
+      const dx = t.x - SPAWN[0]
+      const dz = t.z - SPAWN[2]
+      if (dx * dx + dz * dz > 0.25) useStore.getState().markMoved()
     }
   })
 
