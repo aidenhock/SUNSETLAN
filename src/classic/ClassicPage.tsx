@@ -12,7 +12,7 @@ import { videos } from '../content/videos'
 export default function ClassicPage() {
   const about = cards.about
   return (
-    <div className="min-h-full bg-sand/30 text-ink">
+    <div className="min-h-screen bg-sand text-ink">
       <div className="mx-auto max-w-3xl px-6 py-12">
         <header>
           <h1 className="font-display text-4xl font-bold">Aiden</h1>
