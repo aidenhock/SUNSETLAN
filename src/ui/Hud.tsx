@@ -29,9 +29,9 @@ export function Hud({ isTouch }: { isTouch: boolean }) {
   }, [])
 
   const nearby = interactables.find((i) => i.id === nearbyId)
-  // Suppressed while the interact prompt is up — they share the bottom-center slot.
-  const showLookHint =
-    !isTouch && cameraMode === 'pointerLock' && !pointerLocked && !openModalId && !nearby
+  // Also shown right after a modal closes ("click to resume", per the brief);
+  // stacks above the interact prompt when both occupy bottom-center.
+  const showLookHint = !isTouch && cameraMode === 'pointerLock' && !pointerLocked && !openModalId
 
   return (
     <div className="pointer-events-none fixed inset-0 z-30">
@@ -43,7 +43,9 @@ export function Hud({ isTouch }: { isTouch: boolean }) {
         </p>
       )}
       {showLookHint && (
-        <p className="fixed bottom-6 left-1/2 -translate-x-1/2 rounded-lg bg-ink/70 px-3 py-1.5 text-center font-display text-xs text-sand/90 shadow">
+        <p
+          className={`fixed ${nearby ? 'bottom-24' : 'bottom-6'} left-1/2 -translate-x-1/2 rounded-lg bg-ink/85 px-3 py-1.5 text-center font-display text-xs text-sand shadow`}
+        >
           {everLocked.current
             ? 'Click to resume looking around'
             : 'Click to look around · Esc frees your cursor'}

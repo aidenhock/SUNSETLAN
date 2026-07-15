@@ -19,7 +19,7 @@ export function MusicModal() {
             ) : track.audioSrc ? (
               <audio controls src={track.audioSrc} className="mt-2 w-full" preload="none" />
             ) : (
-              <p className="text-sm text-ink/60">Recording coming soon.</p>
+              <p className="text-sm text-ink/70">Recording coming soon.</p>
             )}
           </li>
         ))}

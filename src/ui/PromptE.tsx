@@ -9,9 +9,9 @@ export function PromptE({ def, isTouch }: { def: InteractableDef; isTouch: boole
       <button
         type="button"
         onClick={() => openModal(def.id)}
-        // bottom-56 keeps the button clear of ecctrl's 200px-tall bottom-right
-        // button canvas, which sits at z-index 9999 and swallows taps under it.
-        className="pointer-events-auto fixed right-6 bottom-56 z-40 flex h-20 w-20 touch-manipulation items-center justify-center rounded-full bg-lagoon font-display text-sm font-bold text-ink shadow-lg active:scale-95"
+        // Mirrors the joystick (bottom-6 left-6) in the thumb zone; sits above
+        // the canvas so taps land here instead of starting an orbit drag.
+        className="pointer-events-auto fixed right-6 bottom-8 z-40 flex h-20 w-20 touch-manipulation items-center justify-center rounded-full bg-lagoon font-display text-sm font-bold text-ink shadow-lg active:scale-95"
       >
         {def.label}
       </button>

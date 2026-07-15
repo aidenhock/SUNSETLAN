@@ -1,11 +1,12 @@
 import * as THREE from 'three'
 import {
+  GRASS_ALTITUDE,
   GRASS_POLAR_DEG,
   ISLAND_POLAR_DEG,
   PLANET_RADIUS,
+  SAND_ALTITUDE,
   scatterProps,
 } from './planetConfig'
-import type { RegisterCollision } from './SurfaceGroup'
 import { SurfaceGroup } from './SurfaceGroup'
 
 const ISLAND_THETA = THREE.MathUtils.degToRad(ISLAND_POLAR_DEG)
@@ -16,22 +17,27 @@ const stone = <meshStandardMaterial color="#b9b3a5" flatShading />
 const leaf = <meshStandardMaterial color="#55a05f" flatShading />
 
 /**
- * The island polar cap, blocked out with primitives. The sand and grass caps
- * double as the walkable collision meshes (they are low-poly primitives, not
- * scatter props — props are never raycast). Blocking radii for the landmark
- * props live in planetConfig.landmarkBlockers.
+ * The island polar cap, blocked out with primitives. Walkable heights are
+ * analytic (usePlanetController.groundHeightAt) using the same altitude
+ * constants as the cap radii here. Blocking radii for the landmark props
+ * live in planetConfig.landmarkBlockers.
  */
-export function Island({ registerCollision }: { registerCollision: RegisterCollision }) {
+export function Island() {
   return (
     <>
-      {/* Beach: sand cap down to the water line. */}
-      <mesh ref={registerCollision}>
-        <sphereGeometry args={[PLANET_RADIUS + 0.35, 64, 32, 0, Math.PI * 2, 0, ISLAND_THETA]} />
-        <meshStandardMaterial color="#e8d5a3" flatShading />
+      {/* Beach: sand cap down to the water line. DoubleSide closes the open
+          rim edge that is visible from the wade zone past the beach line. */}
+      <mesh>
+        <sphereGeometry
+          args={[PLANET_RADIUS + SAND_ALTITUDE, 64, 32, 0, Math.PI * 2, 0, ISLAND_THETA]}
+        />
+        <meshStandardMaterial color="#e8d5a3" flatShading side={THREE.DoubleSide} />
       </mesh>
       {/* Inner grass rise. */}
-      <mesh ref={registerCollision}>
-        <sphereGeometry args={[PLANET_RADIUS + 0.55, 48, 24, 0, Math.PI * 2, 0, GRASS_THETA]} />
+      <mesh>
+        <sphereGeometry
+          args={[PLANET_RADIUS + GRASS_ALTITUDE, 48, 24, 0, Math.PI * 2, 0, GRASS_THETA]}
+        />
         <meshStandardMaterial color="#55a05f" flatShading />
       </mesh>
 

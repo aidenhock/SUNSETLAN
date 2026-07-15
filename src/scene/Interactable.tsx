@@ -24,6 +24,9 @@ export function Interactable({ def }: { def: InteractableDef }) {
         <mesh
           position={[0, 0.75, 0]}
           onClick={(e) => {
+            // While pointer-locked, clicks raycast from the stale pre-lock
+            // cursor position — never open from those.
+            if (document.pointerLockElement) return
             // Ignore camera-orbit drags that happen to end on the mesh.
             if (e.delta > 5) return
             document.body.style.cursor = 'auto'

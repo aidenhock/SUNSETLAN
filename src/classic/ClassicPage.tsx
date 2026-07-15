@@ -49,7 +49,7 @@ export default function ClassicPage() {
               <li key={project.title} className="rounded-xl border border-ink/10 bg-white p-4">
                 <h3 className="font-display text-lg font-semibold">{project.title}</h3>
                 <p className="mt-1 leading-relaxed">{project.blurb}</p>
-                <p className="mt-2 text-sm text-ink/60">{project.tech.join(' · ')}</p>
+                <p className="mt-2 text-sm text-ink/70">{project.tech.join(' · ')}</p>
                 {(project.link || project.repo) && (
                   <p className="mt-2 flex gap-3 text-sm font-semibold">
                     {project.link && (
@@ -82,7 +82,7 @@ export default function ClassicPage() {
                   loading="lazy"
                   className="aspect-[4/3] w-full rounded-lg object-cover"
                 />
-                {photo.caption && <p className="mt-1 text-xs text-ink/60">{photo.caption}</p>}
+                {photo.caption && <p className="mt-1 text-xs text-ink/70">{photo.caption}</p>}
               </li>
             ))}
           </ul>
@@ -101,7 +101,7 @@ export default function ClassicPage() {
                 ) : track.audioSrc ? (
                   <audio controls src={track.audioSrc} className="mt-1 w-full" preload="none" />
                 ) : (
-                  <p className="text-sm text-ink/60">Recording coming soon.</p>
+                  <p className="text-sm text-ink/70">Recording coming soon.</p>
                 )}
               </li>
             ))}
@@ -159,7 +159,7 @@ export default function ClassicPage() {
           </ul>
         </section>
 
-        <footer className="mt-16 border-t border-ink/10 pt-6 text-sm text-ink/50">
+        <footer className="mt-16 border-t border-ink/10 pt-6 text-sm text-ink/70">
           <p>Classic view — the same portfolio, no WebGL required.</p>
         </footer>
       </div>

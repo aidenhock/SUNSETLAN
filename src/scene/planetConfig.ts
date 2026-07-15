@@ -17,6 +17,16 @@ export const MAX_POLAR_RAD = THREE.MathUtils.degToRad(ISLAND_POLAR_DEG) + 2.5 / 
 /** Island crossing = 2·75° of arc ≈ 183 m → ~46 s at 4 m/s. */
 export const MOVE_SPEED = 4
 export const INTERACT_ARC_M = 2.5
+/** Hysteresis: once nearby, stay nearby until past this radius (no flicker). */
+export const INTERACT_EXIT_ARC_M = 3.0
+
+/** Cap heights above sea level — shared by Island.tsx geometry and the
+ * controller's analytic ground height so they can never drift apart. */
+export const SAND_ALTITUDE = 0.35
+export const GRASS_ALTITUDE = 0.55
+
+/** Walkable dock deck: a strip along its meridian; top = altitude + half thickness. */
+export const DOCK = { longDeg: 90, latMinDeg: 14, latMaxDeg: 23, halfWidthM: 1, topAltitude: 0.69 }
 
 export interface Blocker {
   /** Planet-local unit direction of the obstacle. */

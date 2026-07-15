@@ -1,10 +1,6 @@
 import { useMemo } from 'react'
-import * as THREE from 'three'
 import { latLongToUnit, surfaceQuaternion } from '../controls/planetMath'
 import { PLANET_RADIUS } from './planetConfig'
-
-/** Callback for meshes that should be part of the walkable collision set. */
-export type RegisterCollision = (mesh: THREE.Mesh | null) => void
 
 /** Positions children on the sphere surface, local +Y = surface normal. */
 export function SurfaceGroup({

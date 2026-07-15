@@ -1,10 +1,29 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { photos } from '../../content/photos'
 import { ModalShell } from './ModalShell'
 
 /** Responsive grid + lightbox with arrow-key nav and lazy images. */
 export function GalleryModal() {
   const [lightbox, setLightbox] = useState<number | null>(null)
+  const figureRef = useRef<HTMLElement>(null)
+  const gridRef = useRef<HTMLUListElement>(null)
+  const lastViewed = useRef(0)
+  const wasInLightbox = useRef(false)
+
+  // Swapping grid <-> lightbox unmounts the focused element; without this,
+  // focus falls to <body> and escapes the modal's trap.
+  useEffect(() => {
+    if (lightbox !== null) lastViewed.current = lightbox
+  }, [lightbox])
+  const inLightbox = lightbox !== null
+  useEffect(() => {
+    if (inLightbox) {
+      wasInLightbox.current = true
+      figureRef.current?.focus()
+    } else if (wasInLightbox.current) {
+      gridRef.current?.querySelectorAll('button')[lastViewed.current]?.focus()
+    }
+  }, [inLightbox])
 
   // Lightbox keys run in the capture phase so Esc closes the lightbox first
   // (stopPropagation keeps it from reaching ModalShell's close handler).
@@ -29,7 +48,7 @@ export function GalleryModal() {
   return (
     <ModalShell title="Photos" wide>
       {current ? (
-        <figure>
+        <figure ref={figureRef} tabIndex={-1}>
           <img src={current.src} alt={current.alt} className="max-h-[55vh] w-full rounded-lg object-contain" />
           <figcaption className="mt-2 text-sm text-ink/70">
             {current.caption ?? current.alt}
@@ -60,7 +79,7 @@ export function GalleryModal() {
           </div>
         </figure>
       ) : (
-        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <ul ref={gridRef} className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {photos.map((photo, i) => (
             <li key={i}>
               <button

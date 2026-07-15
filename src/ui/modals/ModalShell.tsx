@@ -18,10 +18,13 @@ export function ModalShell({
   const closeModal = useStore((s) => s.closeModal)
   const dialogRef = useRef<HTMLDivElement>(null)
   const closeButtonRef = useRef<HTMLButtonElement>(null)
+  const downOnBackdrop = useRef(false)
 
   useEffect(() => {
     const previouslyFocused = document.activeElement as HTMLElement | null
     closeButtonRef.current?.focus()
+    // The E-key open path never fires onPointerOut on the hovered mesh.
+    document.body.style.cursor = 'auto'
 
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -35,6 +38,12 @@ export function ModalShell({
       if (focusables.length === 0) return
       const first = focusables[0]
       const last = focusables[focusables.length - 1]
+      // If modal content unmounted the focused node, recapture before cycling.
+      if (!dialogRef.current.contains(document.activeElement)) {
+        e.preventDefault()
+        ;(e.shiftKey ? last : first).focus()
+        return
+      }
       if (e.shiftKey && document.activeElement === first) {
         e.preventDefault()
         last.focus()
@@ -54,7 +63,14 @@ export function ModalShell({
   return (
     <div
       className="fixed inset-0 z-40 flex items-center justify-center bg-ink/60 p-4"
-      onClick={closeModal}
+      // Close only when the interaction both starts and ends on the backdrop —
+      // a text-selection drag out of the panel must not dismiss the modal.
+      onPointerDown={(e) => {
+        downOnBackdrop.current = e.target === e.currentTarget
+      }}
+      onClick={(e) => {
+        if (downOnBackdrop.current && e.target === e.currentTarget) closeModal()
+      }}
     >
       <div
         ref={dialogRef}

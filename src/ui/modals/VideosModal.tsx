@@ -14,6 +14,9 @@ export function VideosModal() {
             <h3 className="mb-2 font-display font-semibold">{video.title}</h3>
             {playing === video.youtubeId ? (
               <iframe
+                // The Play button unmounts on swap; focus the player so
+                // keyboard focus stays inside the modal.
+                ref={(el) => el?.focus()}
                 src={`https://www.youtube-nocookie.com/embed/${video.youtubeId}?autoplay=1`}
                 title={video.title}
                 className="aspect-video w-full rounded-lg border-0"

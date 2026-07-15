@@ -40,7 +40,8 @@ export const interactables: InteractableDef[] = [
     id: 'photos',
     label: 'Photos',
     prompt: 'Look through the camera',
-    position: place(14, 90, 0.5),
+    // 0.7 ≈ the dock deck top so the tripod stands on the boards.
+    position: place(14, 90, 0.7),
     rotation: [0, -Math.PI / 2, 0],
     modal: 'gallery',
     contentKey: 'photos',
