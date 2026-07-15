@@ -70,7 +70,7 @@ export function Island() {
         new THREE.SphereGeometry(
           PLANET_RADIUS + SAND_ALTITUDE, 96, 48, 0, Math.PI * 2, 0, ISLAND_THETA,
         ),
-        { baseColor: '#e8d5a3', patchColor: '#d9c28b', patchSize: 5, speckle: 0.07 },
+        { baseColor: '#e8d5a3', patchColor: '#ddc994', patchSize: 6, patchStrength: 0.4, speckle: 0.04 },
       ),
     [],
   )
@@ -80,7 +80,14 @@ export function Island() {
         new THREE.SphereGeometry(
           PLANET_RADIUS + GRASS_ALTITUDE, 96, 48, 0, Math.PI * 2, 0, GRASS_THETA,
         ),
-        { baseColor: '#55a05f', patchColor: '#47945e', patchSize: 8, patchStrength: 0.65, speckle: 0.09 },
+        {
+          baseColor: '#55a05f',
+          patchColor: '#4c9a63',
+          patchSize: 11,
+          patchStrength: 0.35,
+          speckle: 0.03,
+          poleFadeRad: 0.28, // clean turf around spawn; character further out
+        },
       ),
     [],
   )
@@ -149,12 +156,13 @@ export function Island() {
           <icosahedronGeometry args={[2.2, 0]} />
           {leaf}
         </mesh>
-        <mesh position={[-1.1, 3, 0]} rotation-z={0.5}>
-          <cylinderGeometry args={[0.12, 0.12, 1.6, 5]} />
+        {/* Branch long enough to clear the canopy; rings hang from its tip. */}
+        <mesh position={[-1.5, 2.9, 0]} rotation-z={0.8}>
+          <cylinderGeometry args={[0.12, 0.12, 2.1, 5]} />
           {wood}
         </mesh>
-        {[-1.6, -1.2].map((x, i) => (
-          <mesh key={i} position={[x, 2.2, 0]}>
+        {[-2.2, -1.8].map((x, i) => (
+          <mesh key={i} position={[x, 2.35, 0]}>
             <torusGeometry args={[0.16, 0.035, 6, 12]} />
             {stone}
           </mesh>
@@ -169,13 +177,8 @@ export function Island() {
         </mesh>
       </SurfaceGroup>
 
-      {/* Mailbox post at the dock entrance. */}
-      <SurfaceGroup lat={MAP.mailbox.lat} long={MAP.mailbox.long}>
-        <mesh position={[0, 0.6, 0]}>
-          <cylinderGeometry args={[0.06, 0.06, 1.2, 5]} />
-          {wood}
-        </mesh>
-      </SurfaceGroup>
+      {/* (The Contact cube at the dock entrance IS the mailbox placeholder —
+          a decorative post would just poke through it until real props land.) */}
 
       {/* Beached rowboat. */}
       <SurfaceGroup lat={MAP.rowboat.lat} long={MAP.rowboat.long} yaw={0.9}>

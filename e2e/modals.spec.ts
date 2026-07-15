@@ -16,7 +16,7 @@ test('every modal type opens from data; gallery lightbox and lite-embed work', a
   const dialog = page.getByRole('dialog')
 
   for (const [id, heading] of CASES) {
-    await page.evaluate((mid) => window.__store.getState().openModal(mid), id)
+    await page.evaluate((mid) => window.__store!.getState().openModal(mid), id)
     await expect(dialog).toBeVisible({ timeout: 2000 })
     await expect(page.getByRole('heading', { name: heading, exact: false })).toBeVisible()
 
@@ -43,7 +43,7 @@ test('every modal type opens from data; gallery lightbox and lite-embed work', a
       })
     }
 
-    await page.evaluate(() => window.__store.getState().closeModal())
+    await page.evaluate(() => window.__store!.getState().closeModal())
     await expect(dialog).toBeHidden()
   }
 

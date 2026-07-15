@@ -23,9 +23,10 @@ export interface InteractableDef {
   contentKey: string
 }
 
-/** Placement rule 1: altitude comes from the analytic ground, minus sink. */
-const place = (lat: number, long: number) =>
-  latLongToPosition(lat, long, PLANET_RADIUS, groundAltitudeAt(lat, long) - SINK_M)
+/** Placement rule 1: altitude comes from the analytic ground, minus sink.
+ *  `extra` raises objects that stand on furniture (e.g. the TV on its crate). */
+const place = (lat: number, long: number, extra = 0) =>
+  latLongToPosition(lat, long, PLANET_RADIUS, groundAltitudeAt(lat, long) - SINK_M + extra)
 
 export const interactables: InteractableDef[] = [
   {
@@ -68,7 +69,8 @@ export const interactables: InteractableDef[] = [
     id: 'about',
     label: 'About',
     prompt: 'Grab the rings',
-    position: place(MAP.tree.lat, MAP.tree.long),
+    // Beside the trunk, under the rings' branch — not inside the tree.
+    position: place(MAP.tree.lat, MAP.tree.long - 2.5),
     rotation: [0, 0, 0],
     modal: 'card',
     contentKey: 'about',
@@ -77,7 +79,8 @@ export const interactables: InteractableDef[] = [
     id: 'videos',
     label: 'Videos',
     prompt: 'Turn on the TV',
-    position: place(MAP.tv.lat, MAP.tv.long),
+    // "CRT TV on crate": the cube sits on the crate top (0.7 + sink back).
+    position: place(MAP.tv.lat, MAP.tv.long + 0.8, 0.8),
     rotation: [0, Math.PI / 3, 0],
     modal: 'videos',
     contentKey: 'videos',

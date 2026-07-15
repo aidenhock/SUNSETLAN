@@ -44,7 +44,7 @@ export function Water() {
     const foam = foamRef.current
     if (foam) {
       const mat = foam.material as THREE.MeshBasicMaterial
-      mat.opacity = 0.28 + 0.16 * Math.sin(state.clock.elapsedTime * 1.4)
+      mat.opacity = 0.42 + 0.18 * Math.sin(state.clock.elapsedTime * 1.4)
       foam.scale.setScalar(1 + 0.0012 * Math.sin(state.clock.elapsedTime * 0.7))
     }
   })
@@ -52,15 +52,16 @@ export function Water() {
   const foamTheta = THREE.MathUtils.degToRad(ISLAND_POLAR_DEG)
   return (
     <>
-      <mesh material={waterMaterial}>
+      <mesh material={waterMaterial} renderOrder={1}>
         <sphereGeometry args={[PLANET_RADIUS, 96, 48]} />
       </mesh>
-      {/* Foam band hugging the waterline just above the wave crests' reach. */}
-      <mesh ref={foamRef}>
+      {/* Foam band on the water side of the beach line, above wave crests
+          (±0.12) but tucked under the sand cap edge (+0.35). */}
+      <mesh ref={foamRef} renderOrder={2}>
         <sphereGeometry
-          args={[PLANET_RADIUS + 0.16, 96, 2, 0, Math.PI * 2, foamTheta - 0.012, 0.028]}
+          args={[PLANET_RADIUS + 0.28, 96, 2, 0, Math.PI * 2, foamTheta + 0.002, 0.02]}
         />
-        <meshBasicMaterial color="#ffffff" transparent opacity={0.35} depthWrite={false} />
+        <meshBasicMaterial color="#ffffff" transparent opacity={0.5} depthWrite={false} />
       </mesh>
     </>
   )
