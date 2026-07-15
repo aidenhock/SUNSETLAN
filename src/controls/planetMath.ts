@@ -88,6 +88,26 @@ export function surfaceQuaternion(unit: THREE.Vector3): THREE.Quaternion {
 }
 
 /**
+ * Yaw correction (radians) to apply after surfaceQuaternion so local +Z
+ * points north along the meridian (toward the pole / island center).
+ * setFromUnitVectors gives an arbitrary twist; long objects like the dock
+ * must be aligned from the real tangent basis, not that accident.
+ */
+export function meridianYaw(latDeg: number, longDeg: number): number {
+  const polar = THREE.MathUtils.degToRad(90 - latDeg)
+  const long = THREE.MathUtils.degToRad(longDeg)
+  // North tangent = -d(position)/d(polar): toward decreasing polar angle.
+  const north = new THREE.Vector3(
+    -Math.cos(polar) * Math.sin(long),
+    Math.sin(polar),
+    -Math.cos(polar) * Math.cos(long),
+  )
+  const unit = latLongToUnit(latDeg, longDeg)
+  const northLocal = north.applyQuaternion(surfaceQuaternion(unit).invert())
+  return Math.atan2(northLocal.x, northLocal.z)
+}
+
+/**
  * Camera-relative move direction in the world XZ plane from raw input.
  * `ix` = right(+)/left(-), `iz` = forward(+)/back(-); `azimuth` is the
  * camera's yaw around the avatar (0 = camera on +Z looking toward -Z).

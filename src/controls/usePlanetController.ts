@@ -5,41 +5,47 @@ import * as THREE from 'three'
 import { interactables } from '../content/interactables'
 import {
   blockers,
-  DOCK,
-  GRASS_ALTITUDE,
-  GRASS_POLAR_DEG,
   INTERACT_ARC_M,
   INTERACT_EXIT_ARC_M,
-  ISLAND_POLAR_DEG,
   MAX_POLAR_RAD,
   MOVE_SPEED,
   PLANET_RADIUS,
-  SAND_ALTITUDE,
+  SPRINT_JOY_THRESHOLD,
+  SPRINT_SPEED,
 } from '../scene/planetConfig'
 import { useStore } from '../store/useStore'
 import {
   applyStep,
   cameraRelativeMoveDir,
+  latLongToUnit,
   poleInPlanetSpace,
   rotationStep,
 } from './planetMath'
+import { groundHeightAt } from './terrain'
 
 /**
- * Mutable per-frame input shared between the control hooks without causing
- * React renders. The camera hook writes `azimuth`; TouchJoystick writes the
- * joystick vector.
+ * Mutable per-frame state shared between the control hooks without causing
+ * React renders. The camera hook writes `azimuth` (initial π: the spawn view
+ * faces long 0 — sun over the water and the dock); TouchJoystick writes the
+ * joystick vector; the controller stamps `wadeRippleTime` when the avatar
+ * crosses the waterline so the ripple effect can react.
  */
 export const controlsRuntime = {
   joyX: 0,
   joyY: 0,
-  azimuth: 0,
+  azimuth: Math.PI,
+  /** Set to snap the camera heading next frame (consumed once) — used by the
+   * e2e suites and, later, the intro swoop. */
+  azimuthOverride: null as number | null,
+  /** Teleport: put this lat/long under the avatar next frame (consumed once). */
+  poseOverride: null as { lat: number; long: number } | null,
+  wadeRippleTime: 0,
 }
 
 const JUMP_V0 = 4.5
 const JUMP_G = 12
 const MAX_DT = 0.05
-const GRASS_THETA = THREE.MathUtils.degToRad(GRASS_POLAR_DEG)
-const ISLAND_THETA = THREE.MathUtils.degToRad(ISLAND_POLAR_DEG)
+const SEA_LEVEL = PLANET_RADIUS
 
 interface ControllerRefs {
   planetRef: React.RefObject<THREE.Group | null>
@@ -47,32 +53,9 @@ interface ControllerRefs {
 }
 
 /**
- * Analytic ground height under the avatar. The walkable surfaces are
- * concentric sphere caps plus the dock strip, so height is a pure function
- * of where the world pole sits in planet space — no raycasting needed.
- */
-export function groundHeightAt(poleLocal: THREE.Vector3): number {
-  const polar = Math.acos(THREE.MathUtils.clamp(poleLocal.y, -1, 1))
-  let ground = PLANET_RADIUS
-  if (polar < GRASS_THETA) ground = PLANET_RADIUS + GRASS_ALTITUDE
-  else if (polar < ISLAND_THETA) ground = PLANET_RADIUS + SAND_ALTITUDE
-
-  const latDeg = 90 - THREE.MathUtils.radToDeg(polar)
-  if (latDeg >= DOCK.latMinDeg && latDeg <= DOCK.latMaxDeg) {
-    const longDeg = THREE.MathUtils.radToDeg(Math.atan2(poleLocal.x, poleLocal.z))
-    const dLong = ((longDeg - DOCK.longDeg + 540) % 360) - 180
-    const crossTrackM =
-      Math.abs(THREE.MathUtils.degToRad(dLong)) * Math.sin(polar) * PLANET_RADIUS
-    if (crossTrackM <= DOCK.halfWidthM) {
-      ground = Math.max(ground, PLANET_RADIUS + DOCK.topAltitude)
-    }
-  }
-  return ground
-}
-
-/**
  * The planet controller. The avatar is kinematic at the world pole; input
- * rotates the planet group's quaternion. See planetMath.ts for the math.
+ * rotates the planet group's quaternion. See planetMath.ts for the math and
+ * terrain.ts for the analytic ground.
  */
 export function usePlanetController({ planetRef, avatarRef }: ControllerRefs) {
   const [, getKeys] = useKeyboardControls()
@@ -82,6 +65,7 @@ export function usePlanetController({ planetRef, avatarRef }: ControllerRefs) {
   const jumpT = useRef<number | null>(null) // seconds since jump start, null = grounded
   const yaw = useRef(0)
   const targetYaw = useRef(0)
+  const lastGroundY = useRef(PLANET_RADIUS)
 
   const interactableUnits = useMemo(
     () =>
@@ -102,22 +86,33 @@ export function usePlanetController({ planetRef, avatarRef }: ControllerRefs) {
     [interactableUnits],
   )
 
-  useFrame((_, rawDt) => {
+  useFrame((state, rawDt) => {
     const planet = planetRef.current
     const avatar = avatarRef.current
     if (!planet || !avatar) return
     const dt = Math.min(rawDt, MAX_DT)
     const store = useStore.getState()
 
+    if (controlsRuntime.poseOverride) {
+      const { lat, long } = controlsRuntime.poseOverride
+      controlsRuntime.poseOverride = null
+      // q·unit = up puts (lat, long) under the avatar.
+      quat.current.setFromUnitVectors(latLongToUnit(lat, long), new THREE.Vector3(0, 1, 0))
+    }
+
     // ---- input --------------------------------------------------------
     const keys = getKeys()
     let ix = (keys.rightward ? 1 : 0) - (keys.leftward ? 1 : 0)
     let iz = (keys.forward ? 1 : 0) - (keys.backward ? 1 : 0)
+    let sprinting = Boolean(keys.run)
     if (controlsRuntime.joyX !== 0 || controlsRuntime.joyY !== 0) {
       ix = controlsRuntime.joyX
       iz = controlsRuntime.joyY
+      // Full joystick deflection sprints — phones have no Shift key.
+      sprinting = Math.hypot(ix, iz) >= SPRINT_JOY_THRESHOLD
     }
     const inputActive = (ix !== 0 || iz !== 0) && !store.openModalId
+    const speed = sprinting ? SPRINT_SPEED : MOVE_SPEED
 
     const poleBefore = poleInPlanetSpace(quat.current)
     const polarBefore = Math.acos(THREE.MathUtils.clamp(poleBefore.y, -1, 1))
@@ -141,7 +136,7 @@ export function usePlanetController({ planetRef, avatarRef }: ControllerRefs) {
       const moveDir = cameraRelativeMoveDir(mx, mz, controlsRuntime.azimuth)
       if (moveDir.lengthSq() === 0) return false
       const inputMag = Math.min(1, Math.hypot(mx, mz))
-      const angle = (MOVE_SPEED * inputMag * dt) / PLANET_RADIUS
+      const angle = (speed * inputMag * dt) / PLANET_RADIUS
       const candidate = applyStep(quat.current, rotationStep(moveDir, angle))
       if (!stepAllowed(poleInPlanetSpace(candidate))) return false
       quat.current.copy(candidate)
@@ -199,7 +194,15 @@ export function usePlanetController({ planetRef, avatarRef }: ControllerRefs) {
       }
     }
 
-    avatar.position.y = groundHeightAt(poleAfter) + jumpOffset
+    const groundY = groundHeightAt(poleAfter)
+    // Any transition to or from sea level is a waterline crossing (wading in
+    // from the sand, back out, or stepping off the dock end) → ripple.
+    if ((groundY === SEA_LEVEL) !== (lastGroundY.current === SEA_LEVEL)) {
+      controlsRuntime.wadeRippleTime = state.clock.elapsedTime
+    }
+    lastGroundY.current = groundY
+
+    avatar.position.y = groundY + jumpOffset
     avatar.rotation.y = yaw.current
   })
 }

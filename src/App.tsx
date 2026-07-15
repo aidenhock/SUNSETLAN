@@ -15,6 +15,7 @@ const keyboardMap = [
   { name: 'leftward', keys: ['ArrowLeft', 'KeyA'] },
   { name: 'rightward', keys: ['ArrowRight', 'KeyD'] },
   { name: 'jump', keys: ['Space'] },
+  { name: 'run', keys: ['ShiftLeft', 'ShiftRight'] },
 ]
 
 /** Signals that the Suspense subtree has mounted. */

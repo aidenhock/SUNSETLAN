@@ -7,6 +7,7 @@ import { Avatar } from './Avatar'
 import { Interactable } from './Interactable'
 import { Island } from './Island'
 import { PLANET_RADIUS } from './planetConfig'
+import { WadeRipple } from './WadeRipple'
 import { Water } from './Water'
 
 /**
@@ -37,6 +38,7 @@ export function PlanetScene({ isTouch }: { isTouch: boolean }) {
         ))}
       </group>
       <Avatar ref={avatarRef} />
+      <WadeRipple />
     </>
   )
 }

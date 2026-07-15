@@ -2,10 +2,14 @@ import { lazy, StrictMode, Suspense } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 
-// Test hook: `?e2e` exposes the store so browser smoke tests can drive state.
+// Test hook: `?e2e` exposes the store and the controls runtime so the e2e
+// suites can drive state and set walk headings deterministically.
 if (new URLSearchParams(window.location.search).has('e2e')) {
   import('./store/useStore').then((m) => {
     ;(window as unknown as { __store: unknown }).__store = m.useStore
+  })
+  import('./controls/usePlanetController').then((m) => {
+    ;(window as unknown as { __controls: unknown }).__controls = m.controlsRuntime
   })
 }
 

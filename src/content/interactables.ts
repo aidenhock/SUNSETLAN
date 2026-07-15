@@ -1,5 +1,6 @@
 import { latLongToPosition } from '../controls/planetMath'
-import { PLANET_RADIUS } from '../scene/planetConfig'
+import { groundAltitudeAt } from '../controls/terrain'
+import { MAP, PLANET_RADIUS, SINK_M } from '../scene/planetConfig'
 
 export type ModalKind =
   | 'gallery'
@@ -15,23 +16,23 @@ export interface InteractableDef {
   prompt: string
   /** Absent during the gray-box phase — placeholder geometry is used instead. */
   modelPath?: string
-  /** Planet-local position (use latLongToPosition; lat 90 = spawn pole). */
+  /** Planet-local position (lat 90 = spawn pole). */
   position: [number, number, number]
   rotation: [number, number, number]
   modal: ModalKind
   contentKey: string
 }
 
-/** Altitude 0.55 = on the grass cap, 0.35 = on sand, 0.5 = on the dock. */
-const place = (lat: number, long: number, altitude: number) =>
-  latLongToPosition(lat, long, PLANET_RADIUS, altitude)
+/** Placement rule 1: altitude comes from the analytic ground, minus sink. */
+const place = (lat: number, long: number) =>
+  latLongToPosition(lat, long, PLANET_RADIUS, groundAltitudeAt(lat, long) - SINK_M)
 
 export const interactables: InteractableDef[] = [
   {
     id: 'music',
     label: 'Music',
     prompt: 'Pick up the ukulele',
-    position: place(83.5, 178, 0.55),
+    position: place(MAP.musicUkulele.lat, MAP.musicUkulele.long),
     rotation: [0, Math.PI / 6, 0],
     modal: 'music',
     contentKey: 'music',
@@ -40,9 +41,8 @@ export const interactables: InteractableDef[] = [
     id: 'photos',
     label: 'Photos',
     prompt: 'Look through the camera',
-    // 0.7 ≈ the dock deck top so the tripod stands on the boards.
-    position: place(14, 90, 0.7),
-    rotation: [0, -Math.PI / 2, 0],
+    position: place(MAP.tripod.lat, MAP.tripod.long),
+    rotation: [0, Math.PI, 0], // faces the sun, out over the water
     modal: 'gallery',
     contentKey: 'photos',
   },
@@ -50,8 +50,8 @@ export const interactables: InteractableDef[] = [
     id: 'contact',
     label: 'Contact',
     prompt: 'Open the mailbox',
-    position: place(24, 90, 0.35),
-    rotation: [0, -Math.PI / 2, 0],
+    position: place(MAP.mailbox.lat, MAP.mailbox.long),
+    rotation: [0, Math.PI, 0],
     modal: 'contact',
     contentKey: 'contact',
   },
@@ -59,8 +59,8 @@ export const interactables: InteractableDef[] = [
     id: 'projects',
     label: 'Projects',
     prompt: 'Check the monitor',
-    position: place(45, 0, 0.55),
-    rotation: [0, Math.PI, 0],
+    position: place(MAP.palapa.lat, MAP.palapa.long),
+    rotation: [0, 0, 0],
     modal: 'projects',
     contentKey: 'projects',
   },
@@ -68,7 +68,7 @@ export const interactables: InteractableDef[] = [
     id: 'about',
     label: 'About',
     prompt: 'Grab the rings',
-    position: place(55, 300, 0.55),
+    position: place(MAP.tree.lat, MAP.tree.long),
     rotation: [0, 0, 0],
     modal: 'card',
     contentKey: 'about',
@@ -77,7 +77,7 @@ export const interactables: InteractableDef[] = [
     id: 'videos',
     label: 'Videos',
     prompt: 'Turn on the TV',
-    position: place(35, 135, 0.35),
+    position: place(MAP.tv.lat, MAP.tv.long),
     rotation: [0, Math.PI / 3, 0],
     modal: 'videos',
     contentKey: 'videos',

@@ -30,7 +30,8 @@ export function usePointerLockCamera({
   const modalOpen = useStore((s) => s.openModalId !== null)
   const cameraMode = useStore((s) => s.settings.cameraMode)
 
-  const azimuth = useRef(0)
+  // Initial azimuth π: the spawn view faces long 0 (dock and sunset water).
+  const azimuth = useRef(Math.PI)
   const pitch = useRef(0.35)
   const target = useRef(new THREE.Vector3())
 
@@ -154,6 +155,10 @@ export function usePointerLockCamera({
   useFrame(() => {
     const avatar = avatarRef.current
     if (!avatar) return
+    if (controlsRuntime.azimuthOverride !== null) {
+      azimuth.current = controlsRuntime.azimuthOverride
+      controlsRuntime.azimuthOverride = null
+    }
     target.current.set(0, avatar.position.y + HEAD_HEIGHT, 0)
     const cp = Math.cos(pitch.current)
     camera.position.set(
