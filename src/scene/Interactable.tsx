@@ -1,9 +1,11 @@
-import { useEffect, useMemo } from 'react'
+import { useFrame } from '@react-three/fiber'
+import { useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { meridianYaw, surfaceQuaternion } from '../controls/planetMath'
 import type { InteractableDef, PropKind } from '../content/interactables'
 import { useStore } from '../store/useStore'
 import { buildMailbox, buildTripod, type PropPart } from './props'
+import { skyRuntime } from './useSkyState'
 
 const PROP_BUILDERS: Record<PropKind, () => PropPart[]> = {
   tripod: buildTripod,
@@ -54,20 +56,58 @@ export function Interactable({ def }: { def: InteractableDef }) {
         {def.prop ? (
           <PropBody kind={def.prop} isNearby={isNearby} onClick={onClick} hover={hover} />
         ) : (
-          <mesh position={[0, 0.75, 0]} onClick={onClick} {...hover}>
-            <boxGeometry args={[1.5, 1.5, 1.5]} />
-            {/* Pastel lagoon placeholder (the old #1d6e73 read as a dark
-                off-palette slab against the bright bible colors). */}
-            <meshLambertMaterial
-              color={isNearby ? '#5ecec7' : '#35a7a0'}
-              emissive={isNearby ? '#5ecec7' : '#000000'}
-              emissiveIntensity={0.25}
-              flatShading
-            />
-          </mesh>
+          <PlaceholderBody def={def} isNearby={isNearby} onClick={onClick} hover={hover} />
         )}
       </group>
     </group>
+  )
+}
+
+/**
+ * Placeholder cube in pastel lagoon (the old #1d6e73 read as a dark
+ * off-palette slab). The Videos cube is the CRT stand-in: its screen glow
+ * ramps with nightMix — pale blue emissive + a weak point light — so the
+ * TV reads at night per the 3B spec.
+ */
+function PlaceholderBody({
+  def,
+  isNearby,
+  onClick,
+  hover,
+}: {
+  def: InteractableDef
+  isNearby: boolean
+  onClick: (e: { delta: number }) => void
+  hover: { onPointerOver: () => void; onPointerOut: () => void }
+}) {
+  const matRef = useRef<THREE.MeshLambertMaterial>(null)
+  const lightRef = useRef<THREE.PointLight>(null)
+  const isTv = def.id === 'videos'
+
+  useFrame(() => {
+    if (!isTv) return
+    const glow = skyRuntime.nightMix * 0.9
+    const mat = matRef.current
+    if (mat && !isNearby) {
+      mat.emissive.setRGB(0.75 * glow, 0.88 * glow, 1.0 * glow)
+      mat.emissiveIntensity = 1
+    }
+    const light = lightRef.current
+    if (light) light.intensity = glow * 2.2
+  })
+
+  return (
+    <mesh position={[0, 0.75, 0]} onClick={onClick} {...hover}>
+      <boxGeometry args={[1.5, 1.5, 1.5]} />
+      <meshLambertMaterial
+        ref={matRef}
+        color={isNearby ? '#5ecec7' : '#35a7a0'}
+        emissive={isNearby ? '#5ecec7' : '#000000'}
+        emissiveIntensity={isNearby ? 0.25 : 1}
+        flatShading
+      />
+      {isTv && <pointLight ref={lightRef} position={[0, 0.3, 1.2]} distance={7} intensity={0} color="#bfe0ff" />}
+    </mesh>
   )
 }
 

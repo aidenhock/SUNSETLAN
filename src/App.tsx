@@ -54,6 +54,12 @@ export default function App() {
   const flags = useMemo(() => new URLSearchParams(window.location.search), [])
   const showPerf = flags.has('perf')
   const probeInfo = showPerf || flags.has('e2e')
+  // The swoop is skipped for e2e/measure runs (they need instant control) and
+  // for prefers-reduced-motion (the loading screen's fade is the entrance).
+  const intro = useMemo(
+    () => !flags.has('e2e') && !window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+    [flags],
+  )
   const qualityTier = useStore((s) => s.qualityTier)
 
   return (
@@ -94,7 +100,7 @@ export default function App() {
             {/* Lights live in SkyRig (inside PlanetScene): useSkyState drives
                 them, the fog color, and this background per frame. */}
             <KeyboardControls map={keyboardMap}>
-              <PlanetScene isTouch={isTouch} />
+              <PlanetScene isTouch={isTouch} intro={intro} />
             </KeyboardControls>
             <SceneReady onReady={() => setSceneReady(true)} />
             {showPerf && <Perf position="top-left" />}

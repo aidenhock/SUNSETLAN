@@ -7,6 +7,7 @@ export function Hud({ isTouch }: { isTouch: boolean }) {
   const nearbyId = useStore((s) => s.nearbyId)
   const openModalId = useStore((s) => s.openModalId)
   const hasMoved = useStore((s) => s.hasMoved)
+  const introDone = useStore((s) => s.introDone)
   const pointerLocked = useStore((s) => s.pointerLocked)
   const cameraMode = useStore((s) => s.settings.cameraMode)
   const setCameraMode = useStore((s) => s.setCameraMode)
@@ -31,11 +32,13 @@ export function Hud({ isTouch }: { isTouch: boolean }) {
   const nearby = interactables.find((i) => i.id === nearbyId)
   // Also shown right after a modal closes ("click to resume", per the brief);
   // stacks above the interact prompt when both occupy bottom-center.
-  const showLookHint = !isTouch && cameraMode === 'pointerLock' && !pointerLocked && !openModalId
+  // Hints stay hidden during the intro swoop — no chrome over the cinematic.
+  const showLookHint =
+    introDone && !isTouch && cameraMode === 'pointerLock' && !pointerLocked && !openModalId
 
   return (
     <div className="pointer-events-none fixed inset-0 z-30">
-      {!hasMoved && (
+      {introDone && !hasMoved && (
         <p className="fixed top-6 left-1/2 -translate-x-1/2 rounded-lg bg-ink/85 px-4 py-2 text-center font-display text-sm text-sand shadow-lg">
           {isTouch
             ? 'Drag the joystick to move — walk up to things and tap the button.'

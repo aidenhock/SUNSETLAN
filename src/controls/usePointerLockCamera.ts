@@ -155,6 +155,8 @@ export function usePointerLockCamera({
   useFrame(() => {
     const avatar = avatarRef.current
     if (!avatar) return
+    // The intro swoop owns the camera until it finishes (useIntroSwoop).
+    if (!useStore.getState().introDone) return
     if (controlsRuntime.azimuthOverride !== null) {
       azimuth.current = controlsRuntime.azimuthOverride
       controlsRuntime.azimuthOverride = null

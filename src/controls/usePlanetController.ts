@@ -132,7 +132,7 @@ export function usePlanetController({ planetRef, avatarRef }: ControllerRefs) {
       // Full joystick deflection sprints — phones have no Shift key.
       sprinting = Math.hypot(ix, iz) >= SPRINT_JOY_THRESHOLD
     }
-    const inputActive = (ix !== 0 || iz !== 0) && !store.openModalId
+    const inputActive = (ix !== 0 || iz !== 0) && !store.openModalId && store.introDone
     const speed = sprinting ? SPRINT_SPEED : MOVE_SPEED
 
     poleInPlanetSpace(quat.current, _poleBefore)

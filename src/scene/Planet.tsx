@@ -1,5 +1,6 @@
 import { useRef } from 'react'
 import * as THREE from 'three'
+import { useIntroSwoop } from '../controls/useIntroSwoop'
 import { usePlanetController } from '../controls/usePlanetController'
 import { usePointerLockCamera } from '../controls/usePointerLockCamera'
 import { interactables } from '../content/interactables'
@@ -18,12 +19,13 @@ import { Water } from './Water'
  * usePlanetController) — nothing here is raycast. The touch joystick is a DOM
  * overlay owned by App.
  */
-export function PlanetScene({ isTouch }: { isTouch: boolean }) {
+export function PlanetScene({ isTouch, intro }: { isTouch: boolean; intro: boolean }) {
   const planetRef = useRef<THREE.Group>(null)
   const avatarRef = useRef<THREE.Group>(null)
 
   usePlanetController({ planetRef, avatarRef })
   usePointerLockCamera({ avatarRef, isTouch })
+  useIntroSwoop({ enabled: intro })
 
   return (
     <>
