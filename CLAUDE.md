@@ -92,11 +92,22 @@ Palette adds night tokens: `midnight` #1B2033, `moonlight` #9FB4FF, `starlight` 
 - Opening a media modal (Videos/Music) ducks music to 0.2; restore on close.
 - **Waves ambience**: quiet loop whose gain rises near the waterline.
 
-## Player avatar (new)
-The capsule becomes **Aiden**: low-poly guy, **blonde hair, glasses** (simple frame + lens-less rims parented to the head), casual outfit; animations idle / walk / **run** / jump (run plays when sprinting). Route A: Quaternius CC0 animated character, recolor + glasses mesh. Route B (fallback if retargeting fights us): hand-built primitive character with procedural walk/run cycles — it matches the art style anyway. Blob shadow stays.
+## Player avatar (3A.2 — implement now)
+The capsule becomes **Aiden**: a Quaternius CC0 animated low-poly character, materials recolored in code (blonde hair, casual outfit), simple glasses (thin rims + bridge, no lenses) attached to the head bone. Clips wired to the controller: idle when still, walk at `MOVE_SPEED`, run when sprinting, jump on Space — ~0.15 s crossfades. Draco-compressed, under ~1 MB. Route B fallback stands: hand-built primitive character with procedural cycles if retargeting fights us. Blob shadow stays.
 
 ## Unchanged systems
-Interaction flow, content model, modals, `/classic` (add night-token styling only if trivial), assets pipeline (draco every glb, models < 4 MB total), meta/OG in Phase 4.
+Interaction flow, content model, modals, `/classic` (add night-token styling only if trivial), meta/OG in Phase 4.
+
+## Asset pipeline (3A.2 pivot: real packs over hand-built primitives)
+
+Landmark props and scatter come from **CC0 low-poly packs** (Kenney, Quaternius, Poly Pizza); the code-built primitives stay in the tree as the fallback for anything without a good kit part.
+
+- **Licenses**: CC0 or CC-BY only. Credit every pack in `CREDITS.md` even when CC0.
+- **Style gate**: must match the flat-shaded low-poly look — no textures beyond flat/vertex colors, no PBR gloss. Recolor materials in code to the palette when needed.
+- **Compression**: every model runs `npx gltf-transform optimize <in> <out> --compress draco`. Total models **< 4 MB** (avatar within it, ~1 MB).
+- **Instancing**: repeated models (palms, rocks, shells, crates, dock parts) render as instanced meshes, same as the primitive era.
+- **Placement unchanged**: the world map table + `groundAltitudeAt` − sink drive every placement; blocker radii updated to the real model footprints.
+- **Critters**: may be imported if a suitable tiny animated model exists; otherwise stay code-animated primitives per Ambient life.
 
 ## Performance budgets (3A.1)
 - **Triangles**: island caps + water + ocean floor ≤ **60k**; whole scene ≤ **150k**.
