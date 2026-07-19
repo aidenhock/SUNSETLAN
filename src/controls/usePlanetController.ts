@@ -47,6 +47,11 @@ export const controlsRuntime = {
   airborne: false,
   /** Camera distance override (meters); null = default follow distance. */
   camDist: null as number | null,
+  /** Set to snap the camera pitch next frame (consumed once) — e2e/sweep. */
+  pitchOverride: null as number | null,
+  /** The live planet orientation, published per frame for the camera's
+   * ground-floor clamp (read-only elsewhere). */
+  planetQuaternion: new THREE.Quaternion(),
 }
 
 const JUMP_V0 = 4.5
@@ -184,6 +189,7 @@ export function usePlanetController({ planetRef, avatarRef }: ControllerRefs) {
 
     planet.quaternion.copy(quat.current)
     planet.updateMatrixWorld()
+    controlsRuntime.planetQuaternion.copy(quat.current)
 
     // ---- proximity triggers with hysteresis ----------------------------
     poleInPlanetSpace(quat.current, _poleAfter)

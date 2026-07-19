@@ -2,14 +2,24 @@ import { useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 import { useStore } from '../store/useStore'
+import { groundHeightAt } from './terrain'
 import { controlsRuntime } from './usePlanetController'
 
 const SENSITIVITY = 0.0025
 const TOUCH_SENSITIVITY = 0.006
-const PITCH_MIN = 0.08
+/** v3.2 look-up: pitch runs below horizontal; negative pitch drops the
+ * camera low behind the avatar while LOOK_LIFT raises the target so the
+ * sky/zenith fills the frame (avatar silhouetted at the bottom). */
+const PITCH_MIN = -0.85
 const PITCH_MAX = 1.25
+const LOOK_LIFT_M = 12
+/** The camera never goes below the analytic ground + this clearance. */
+const CAM_GROUND_CLEAR = 0.4
 const CAM_DIST = 7
 const HEAD_HEIGHT = 1.2
+
+const _camLocal = new THREE.Vector3()
+const _qInv = new THREE.Quaternion()
 
 /**
  * Third-person follow camera. Desktop default is pointer-lock mouse look
@@ -161,6 +171,10 @@ export function usePointerLockCamera({
       azimuth.current = controlsRuntime.azimuthOverride
       controlsRuntime.azimuthOverride = null
     }
+    if (controlsRuntime.pitchOverride !== null) {
+      pitch.current = THREE.MathUtils.clamp(controlsRuntime.pitchOverride, PITCH_MIN, PITCH_MAX)
+      controlsRuntime.pitchOverride = null
+    }
     target.current.set(0, avatar.position.y + HEAD_HEIGHT, 0)
     const cp = Math.cos(pitch.current)
     const dist = controlsRuntime.camDist ?? CAM_DIST
@@ -169,6 +183,21 @@ export function usePointerLockCamera({
       target.current.y + Math.sin(pitch.current) * dist,
       target.current.z + Math.cos(azimuth.current) * cp * dist,
     )
+    // Radial ground floor: clamp against the analytic ground under the
+    // CAMERA's footprint (curvature-correct — world y would drift ~0.4 m
+    // at follow distance). planetQuaternion is published by the controller.
+    const len = camera.position.length()
+    _camLocal
+      .copy(camera.position)
+      .applyQuaternion(_qInv.copy(controlsRuntime.planetQuaternion).invert())
+      .normalize()
+    const minLen = groundHeightAt(_camLocal) + CAM_GROUND_CLEAR
+    if (len < minLen) camera.position.multiplyScalar(minLen / len)
+    // Negative pitch lifts the gaze toward the zenith (eased).
+    if (pitch.current < 0) {
+      const t = pitch.current / PITCH_MIN
+      target.current.y += t * t * LOOK_LIFT_M
+    }
     camera.lookAt(target.current)
     controlsRuntime.azimuth = azimuth.current
   })
