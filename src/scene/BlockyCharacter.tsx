@@ -5,6 +5,7 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js'
 import type { CharacterConfig } from '../content/characters'
 import { tintGeometry } from './geometryUtils'
+import { normalizeForMerge } from './props'
 
 /**
  * BlockyCharacter — the style bible's chibi rig (playbook §1–2): oversized
@@ -51,12 +52,13 @@ const SQUASH = { xz: 1.09, y: 0.85 }
 const LAND_S = 0.18
 const BLEND_TAU = 0.15
 
-function rounded(w: number, h: number, d: number, r: number): RoundedBoxGeometry {
-  return new RoundedBoxGeometry(w, h, d, 2, Math.min(r, w / 2, h / 2, d / 2))
+/** seg 1 = chamfered box (chunky, cheap); seg 2 only for the hero head. */
+function rounded(w: number, h: number, d: number, r: number, seg = 1): RoundedBoxGeometry {
+  return new RoundedBoxGeometry(w, h, d, seg, Math.min(r, w / 2, h / 2, d / 2))
 }
 
-/** Build the four merged node geometries from a config. */
-function buildNodes(config: CharacterConfig) {
+/** Build the four merged node geometries from a config (exported for tests). */
+export function buildNodes(config: CharacterConfig) {
   const { height: H, headsTall, build, colors } = config
   const headH = H / headsTall
   const legLen = H * 0.22
@@ -83,10 +85,14 @@ function buildNodes(config: CharacterConfig) {
     pos: [number, number, number],
     rot?: [number, number, number],
   ) => {
-    tintGeometry(geo, color)
-    if (rot) geo.applyMatrix4(new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(...rot)))
-    geo.applyMatrix4(new THREE.Matrix4().makeTranslation(...pos))
-    parts[bucket].push(geo)
+    // Normalize BEFORE tinting so the color attribute matches the final
+    // vertex count (mixed index-ness makes mergeGeometries return null).
+    const g = normalizeForMerge(geo)
+    geo.dispose()
+    tintGeometry(g, color)
+    if (rot) g.applyMatrix4(new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(...rot)))
+    g.applyMatrix4(new THREE.Matrix4().makeTranslation(...pos))
+    parts[bucket].push(g)
   }
 
   // Torso: tee over shorts (local origin at the hips / leg tops).
@@ -94,9 +100,9 @@ function buildNodes(config: CharacterConfig) {
   add('torso', rounded(torsoW + 0.015, torsoH * 0.36, torsoD + 0.015, 0.04), colors.bottom, [0, torsoH * 0.18, 0])
 
   // Head node (local origin at the neck). Oversized rounded box + flat eyes.
-  add('head', rounded(headW, headH, headD, 0.09), colors.skin, [0, headH / 2, 0])
+  add('head', rounded(headW, headH, headD, 0.09, 2), colors.skin, [0, headH / 2, 0])
   const eyeGeo = () =>
-    new THREE.SphereGeometry(headH * 0.082, 12, 8).applyMatrix4(
+    new THREE.SphereGeometry(headH * 0.082, 8, 6).applyMatrix4(
       new THREE.Matrix4().makeScale(1, 1.5, 0.45),
     )
   for (const sx of [-1, 1]) {
@@ -115,7 +121,7 @@ function buildNodes(config: CharacterConfig) {
     )
   }
   if (config.glasses) {
-    const rim = () => new THREE.TorusGeometry(headH * 0.115, 0.011, 6, 14)
+    const rim = () => new THREE.TorusGeometry(headH * 0.115, 0.011, 5, 12)
     for (const sx of [-1, 1]) {
       add('head', rim(), config.glasses.color, [sx * headW * 0.2, headH * 0.52, headD / 2 + 0.012])
     }

@@ -73,11 +73,23 @@ function at(
   return { geometry, material, matrix }
 }
 
+/**
+ * Normalize for merging: mergeGeometries requires identical attribute sets
+ * and index-ness, but RoundedBox/Icosahedron are non-indexed while the other
+ * primitives are indexed. Everything becomes non-indexed (flat facets are the
+ * look anyway) and drops uv (no image textures per the bible).
+ */
+export function normalizeForMerge(geometry: THREE.BufferGeometry): THREE.BufferGeometry {
+  const out = geometry.index ? geometry.toNonIndexed() : geometry.clone()
+  out.deleteAttribute('uv')
+  return out
+}
+
 /** Merge pieces into one geometry per material (playbook §5). */
 function mergeByMaterial(pieces: Piece[]): PropPart[] {
   const buckets = new Map<THREE.MeshLambertMaterial, THREE.BufferGeometry[]>()
   for (const p of pieces) {
-    const geo = p.geometry.clone().applyMatrix4(p.matrix)
+    const geo = normalizeForMerge(p.geometry).applyMatrix4(p.matrix)
     const list = buckets.get(p.material)
     if (list) list.push(geo)
     else buckets.set(p.material, [geo])

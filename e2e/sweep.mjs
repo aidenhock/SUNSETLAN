@@ -26,7 +26,8 @@ const SHOTS = [
   { name: '10-beach-ring', lat: 19, long: 90, az: deg(90) - Math.PI / 2, note: 'along the sand ring, horizon curve' },
   { name: '11-wading-back', lat: 13, long: 60, az: deg(60), note: 'from the water: foam ring + beach' },
   { name: '12-avatar-idle', lat: 88, long: 0, az: Math.PI, note: 'avatar close-up, idling', camDist: 3 },
-  { name: '13-avatar-running', lat: 60, long: 40, az: deg(40), note: 'avatar mid-run', camDist: 3.4, holdKeyMs: 700 },
+  { name: '13-avatar-walking', lat: 70, long: 20, az: deg(20), note: 'avatar mid-walk (no sprint)', camDist: 3.2, holdKeyMs: 700, walk: true },
+  { name: '14-avatar-running', lat: 60, long: 40, az: deg(40), note: 'avatar mid-run', camDist: 3.4, holdKeyMs: 700 },
 ]
 
 async function main() {
@@ -61,14 +62,14 @@ async function main() {
       await page.waitForTimeout(250)
     }
     if (shot.holdKeyMs) {
-      await page.keyboard.down('ShiftLeft')
+      if (!shot.walk) await page.keyboard.down('ShiftLeft')
       await page.keyboard.down('KeyW')
       await page.waitForTimeout(shot.holdKeyMs)
     }
     await page.screenshot({ path: `${OUT}/${shot.name}.png` })
     if (shot.holdKeyMs) {
       await page.keyboard.up('KeyW')
-      await page.keyboard.up('ShiftLeft')
+      if (!shot.walk) await page.keyboard.up('ShiftLeft')
     }
     if (shot.camDist) {
       await page.evaluate(() => (window.__controls.camDist = null))
