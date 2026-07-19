@@ -14,7 +14,7 @@ export function Water() {
   const foamRef = useRef<THREE.Mesh>(null)
 
   const waterMaterial = useMemo(() => {
-    const mat = new THREE.MeshStandardMaterial({
+    const mat = new THREE.MeshLambertMaterial({
       color: '#35a7a0',
       flatShading: true,
       transparent: true,

@@ -29,7 +29,7 @@ export function PlanetScene({ isTouch }: { isTouch: boolean }) {
         {/* Ocean floor — the planet body under the water shell. */}
         <mesh>
           <sphereGeometry args={[PLANET_RADIUS - 0.4, 48, 24]} />
-          <meshStandardMaterial color="#16565b" flatShading />
+          <meshLambertMaterial color="#16565b" flatShading />
         </mesh>
         <Water />
         <Island />
