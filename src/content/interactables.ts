@@ -10,14 +10,15 @@ export type ModalKind =
   | 'contact'
   | 'card'
 
+/** Chunky primitive prop bodies built in scene/props.ts. */
+export type PropKind = 'tripod' | 'mailbox'
+
 export interface InteractableDef {
   id: string
   label: string
   prompt: string
-  /** Kit model; absent → placeholder box. */
-  modelPath?: string
-  /** Normalized model height in meters (default 1.2). */
-  modelSize?: number
+  /** Primitive prop body; absent → placeholder box. */
+  prop?: PropKind
   /** Movement-blocking radius in meters of arc (default 1.2). */
   blockRadius?: number
   /** Planet-local position (lat 90 = spawn pole). */
@@ -46,8 +47,7 @@ export const interactables: InteractableDef[] = [
     id: 'photos',
     label: 'Photos',
     prompt: 'Look through the camera',
-    modelPath: '/models/tripod.glb',
-    modelSize: 1.5,
+    prop: 'tripod',
     blockRadius: 0.7,
     position: place(MAP.tripod.lat, MAP.tripod.long),
     rotation: [0, Math.PI, 0], // faces the sun, out over the water
@@ -58,8 +58,7 @@ export const interactables: InteractableDef[] = [
     id: 'contact',
     label: 'Contact',
     prompt: 'Open the mailbox',
-    modelPath: '/models/mailbox.glb',
-    modelSize: 1.1,
+    prop: 'mailbox',
     blockRadius: 0.6,
     position: place(MAP.mailbox.lat, MAP.mailbox.long),
     rotation: [0, Math.PI, 0],
