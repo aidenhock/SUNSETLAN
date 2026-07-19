@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useGLTF } from '@react-three/drei'
+import { useMemo } from 'react'
 import * as THREE from 'three'
-import { latLongToUnit, meridianYaw, surfaceQuaternion, WORLD_UP } from '../controls/planetMath'
 import { groundAltitudeAt } from '../controls/terrain'
 import { jitterAndTint } from './geometryUtils'
 import {
@@ -14,84 +14,34 @@ import {
   scatterProps,
   SINK_M,
 } from './planetConfig'
+import { DRACO_PATH, IDENTITY_Q, InstancedModel, StaticInstances, surfacePartMatrix } from './instancing'
 import { SurfaceGroup } from './SurfaceGroup'
 
 const ISLAND_THETA = THREE.MathUtils.degToRad(ISLAND_POLAR_DEG)
 const GRASS_THETA = THREE.MathUtils.degToRad(GRASS_POLAR_DEG)
 
-// Shared materials/geometries for the instanced repeats (created once).
+// Dock stays primitive: no kit part matches the analytic strip exactly
+// (CLAUDE.md sanctions code-built as the fallback).
 const woodMat = new THREE.MeshStandardMaterial({ color: '#8a6f47', flatShading: true })
-const stoneMat = new THREE.MeshStandardMaterial({ color: '#b9b3a5', flatShading: true })
-const leafMat = new THREE.MeshStandardMaterial({ color: '#55a05f', flatShading: true })
-const shellMat = new THREE.MeshStandardMaterial({ color: '#f3e6c8', flatShading: true })
-const trunkGeo = new THREE.CylinderGeometry(0.14, 0.22, 2.4, 6)
-const crownGeo = new THREE.IcosahedronGeometry(0.95, 0)
-const rockGeo = new THREE.DodecahedronGeometry(0.8, 0)
-const shellGeo = new THREE.ConeGeometry(0.16, 0.22, 5)
 const postGeo = new THREE.CylinderGeometry(0.09, 0.09, 0.84, 5)
-const fireStoneGeo = new THREE.DodecahedronGeometry(0.16, 0)
+const shellMat = new THREE.MeshStandardMaterial({ color: '#f3e6c8', flatShading: true })
+const shellGeo = new THREE.ConeGeometry(0.16, 0.22, 5)
 
 const wood = <meshStandardMaterial color="#8a6f47" flatShading />
 const stone = <meshStandardMaterial color="#b9b3a5" flatShading />
 const leaf = <meshStandardMaterial color="#55a05f" flatShading />
 
-/** World matrix for a part placed on the sphere (SurfaceGroup, but baked). */
-function surfacePartMatrix(
-  lat: number,
-  long: number,
-  altitude: number,
-  yaw: number,
-  localPos: THREE.Vector3,
-  localQuat: THREE.Quaternion,
-  scale: number,
-): THREE.Matrix4 {
-  const unit = latLongToUnit(lat, long)
-  const q = surfaceQuaternion(unit).multiply(
-    new THREE.Quaternion().setFromAxisAngle(WORLD_UP, meridianYaw(lat, long) + yaw),
-  )
-  const surface = new THREE.Matrix4().compose(
-    unit.clone().multiplyScalar(PLANET_RADIUS + altitude),
-    q,
-    new THREE.Vector3(1, 1, 1),
-  )
-  const local = new THREE.Matrix4().compose(
-    localPos,
-    localQuat,
-    new THREE.Vector3(scale, scale, scale),
-  )
-  return surface.multiply(local)
-}
-
-/** One draw call for a repeated mesh; matrices are baked once at mount. */
-function StaticInstances({
-  geometry,
-  material,
-  matrices,
-}: {
-  geometry: THREE.BufferGeometry
-  material: THREE.Material
-  matrices: THREE.Matrix4[]
-}) {
-  const meshRef = useRef<THREE.InstancedMesh>(null)
-  useEffect(() => {
-    const mesh = meshRef.current
-    if (!mesh) return
-    matrices.forEach((m, i) => mesh.setMatrixAt(i, m))
-    mesh.instanceMatrix.needsUpdate = true
-    mesh.computeBoundingSphere()
-  }, [matrices])
-  return <instancedMesh ref={meshRef} args={[geometry, material, matrices.length]} />
-}
-
-const IDENTITY_Q = new THREE.Quaternion()
-const SHELL_TILT = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -0.4)
 const V = (x: number, y: number, z: number) => new THREE.Vector3(x, y, z)
 
+/** Placement matrix at a map spot: analytic ground − sink, meridian-aligned. */
+const placement = (lat: number, long: number, yaw = 0, scale = 1) =>
+  surfacePartMatrix(lat, long, groundAltitudeAt(lat, long) - SINK_M, yaw, V(0, 0, 0), IDENTITY_Q, scale)
+
 /**
- * The island: jittered, vertex-tinted caps, every landmark from the world
- * map table, and instanced repeats (palms/rocks/shells/dock/stones — one
- * draw call each). Altitudes all derive from groundAltitudeAt (rule 1);
- * blocking radii live in planetConfig.
+ * The island: jittered, vertex-tinted caps, kit-part landmarks and scatter
+ * from the world map table (instanced — one draw call per mesh primitive),
+ * and primitive fallbacks for the dock, palapa, and big tree. Altitudes all
+ * derive from groundAltitudeAt (rule 1); blocking radii live in planetConfig.
  */
 export function Island() {
   const sandGeo = useMemo(
@@ -122,25 +72,21 @@ export function Island() {
     [],
   )
 
-  const inst = useMemo(() => {
-    const trunks: THREE.Matrix4[] = []
-    const crowns: THREE.Matrix4[] = []
+  const scatter = useMemo(() => {
+    const palms: THREE.Matrix4[] = []
     const rocks: THREE.Matrix4[] = []
     const shells: THREE.Matrix4[] = []
     scatterProps.forEach((p, i) => {
-      const alt = groundAltitudeAt(p.lat, p.long) - SINK_M
       const yaw = (i * 137.5) % 6.28
-      if (p.kind === 'palm') {
-        trunks.push(surfacePartMatrix(p.lat, p.long, alt, yaw, V(0, 1.2 * p.scale, 0), IDENTITY_Q, p.scale))
-        crowns.push(surfacePartMatrix(p.lat, p.long, alt, yaw, V(0, 2.7 * p.scale, 0), IDENTITY_Q, p.scale))
-      } else if (p.kind === 'rock') {
-        rocks.push(surfacePartMatrix(p.lat, p.long, alt, yaw, V(0, 0.4 * p.scale, 0), IDENTITY_Q, p.scale))
-      } else {
-        shells.push(surfacePartMatrix(p.lat, p.long, alt, yaw, V(0, 0.12, 0), SHELL_TILT, p.scale))
-      }
+      const m = placement(p.lat, p.long, yaw, p.scale)
+      if (p.kind === 'palm') palms.push(m)
+      else if (p.kind === 'rock') rocks.push(m)
+      else shells.push(m)
     })
+    return { palms, rocks, shells }
+  }, [])
 
-    // Dock: plank segments + posts, snapped per segment (rule 2).
+  const dock = useMemo(() => {
     const planks: THREE.Matrix4[] = []
     const posts: THREE.Matrix4[] = []
     const latSpan = DOCK.latMaxDeg - DOCK.latMinDeg
@@ -153,20 +99,7 @@ export function Island() {
         posts.push(surfacePartMatrix(lat, DOCK.longDeg, altitude, 0, V(x, -0.42, 0), IDENTITY_Q, 1))
       }
     }
-
-    // Campfire stone ring.
-    const fireStones: THREE.Matrix4[] = []
-    const fireAlt = groundAltitudeAt(MAP.campfire.lat, MAP.campfire.long) - SINK_M
-    for (let i = 0; i < 5; i++) {
-      fireStones.push(
-        surfacePartMatrix(
-          MAP.campfire.lat, MAP.campfire.long, fireAlt, 0,
-          V(Math.sin((i / 5) * Math.PI * 2) * 0.8, 0.16, Math.cos((i / 5) * Math.PI * 2) * 0.8),
-          IDENTITY_Q, 1,
-        ),
-      )
-    }
-    return { trunks, crowns, rocks, shells, planks, posts, fireStones }
+    return { planks, posts }
   }, [])
 
   const plankGeo = useMemo(() => {
@@ -174,6 +107,16 @@ export function Island() {
     const segLengthM = THREE.MathUtils.degToRad(segLatSpan) * PLANET_RADIUS + 0.12
     return new THREE.BoxGeometry(DOCK.halfWidthM * 2, DOCK.plankThicknessM, segLengthM)
   }, [])
+
+  const single = useMemo(
+    () => ({
+      campfire: [placement(MAP.campfire.lat, MAP.campfire.long)],
+      bench: [placement(MAP.bench.lat, MAP.bench.long, -0.9)],
+      crate: [placement(MAP.tv.lat, MAP.tv.long + 0.8)],
+      rowboat: [placement(MAP.rowboat.lat, MAP.rowboat.long, 0.9)],
+    }),
+    [],
+  )
 
   return (
     <>
@@ -187,30 +130,26 @@ export function Island() {
         <meshStandardMaterial vertexColors flatShading />
       </mesh>
 
-      {/* Instanced repeats — one draw call per kind. */}
-      <StaticInstances geometry={plankGeo} material={woodMat} matrices={inst.planks} />
-      <StaticInstances geometry={postGeo} material={woodMat} matrices={inst.posts} />
-      <StaticInstances geometry={trunkGeo} material={woodMat} matrices={inst.trunks} />
-      <StaticInstances geometry={crownGeo} material={leafMat} matrices={inst.crowns} />
-      <StaticInstances geometry={rockGeo} material={stoneMat} matrices={inst.rocks} />
-      <StaticInstances geometry={shellGeo} material={shellMat} matrices={inst.shells} />
-      <StaticInstances geometry={fireStoneGeo} material={stoneMat} matrices={inst.fireStones} />
+      {/* Dock (primitive fallback, instanced). */}
+      <StaticInstances geometry={plankGeo} material={woodMat} matrices={dock.planks} />
+      <StaticInstances geometry={postGeo} material={woodMat} matrices={dock.posts} />
 
-      {/* Night beach: campfire flame + log bench (fire light/crackle in 3B/3C). */}
-      <SurfaceGroup lat={MAP.campfire.lat} long={MAP.campfire.long}>
-        <mesh position={[0, 0.42, 0]}>
-          <coneGeometry args={[0.45, 0.9, 6]} />
-          <meshStandardMaterial color="#ffb870" emissive="#ff8c42" emissiveIntensity={0.6} flatShading />
-        </mesh>
-      </SurfaceGroup>
-      <SurfaceGroup lat={MAP.bench.lat} long={MAP.bench.long} yaw={-0.9}>
-        <mesh position={[0, 0.36, 0]} rotation-z={Math.PI / 2}>
-          <cylinderGeometry args={[0.28, 0.28, 2.2, 7]} />
-          {wood}
-        </mesh>
-      </SurfaceGroup>
+      {/* Kit-part scatter — one draw call per mesh primitive. */}
+      <InstancedModel url="/models/palm.glb" targetSize={3.6} placements={scatter.palms} />
+      <InstancedModel url="/models/rock.glb" targetSize={0.9} placements={scatter.rocks} />
+      {/* Shells stay primitive: a 20-tri cone beats a 1.4k-tri kit model that
+          reads identically at this size (software-rendering budget). */}
+      <StaticInstances geometry={shellGeo} material={shellMat} matrices={scatter.shells} />
 
-      {/* Palapa: posts, thatch roof, desk (Projects monitor sits beside). */}
+      {/* Night beach: kit campfire (it brings its own flame) + kit log bench. */}
+      <InstancedModel url="/models/campfire.glb" targetSize={1.3} axis="x" placements={single.campfire} />
+      <InstancedModel url="/models/log.glb" targetSize={2.0} axis="x" placements={single.bench} />
+
+      {/* CRT crate + beached rowboat from the kits. */}
+      <InstancedModel url="/models/crate.glb" targetSize={0.9} placements={single.crate} />
+      <InstancedModel url="/models/rowboat.glb" targetSize={2.8} axis="z" placements={single.rowboat} />
+
+      {/* Palapa: posts, thatch roof, desk (primitive fallback). */}
       <SurfaceGroup lat={MAP.palapa.lat} long={MAP.palapa.long}>
         {[-1.4, 1.4].flatMap((x) =>
           [-1.2, 1.2].map((z) => (
@@ -230,7 +169,7 @@ export function Island() {
         </mesh>
       </SurfaceGroup>
 
-      {/* Grassy rise: one big tree with gymnastics rings on a branch. */}
+      {/* Grassy rise: big tree + rings (primitive fallback). */}
       <SurfaceGroup lat={MAP.tree.lat} long={MAP.tree.long}>
         <mesh position={[0, 1.7, 0]}>
           <cylinderGeometry args={[0.35, 0.5, 3.4, 7]} />
@@ -240,7 +179,6 @@ export function Island() {
           <icosahedronGeometry args={[2.2, 0]} />
           {leaf}
         </mesh>
-        {/* Branch long enough to clear the canopy; rings hang from its tip. */}
         <mesh position={[-1.5, 2.9, 0]} rotation-z={0.8}>
           <cylinderGeometry args={[0.12, 0.12, 2.1, 5]} />
           {wood}
@@ -252,25 +190,13 @@ export function Island() {
           </mesh>
         ))}
       </SurfaceGroup>
-
-      {/* Old CRT TV's crate near the rocks (the TV box is the interactable). */}
-      <SurfaceGroup lat={MAP.tv.lat} long={MAP.tv.long + 0.8}>
-        <mesh position={[0, 0.45, 0]}>
-          <boxGeometry args={[0.9, 0.7, 0.9]} />
-          {wood}
-        </mesh>
-      </SurfaceGroup>
-
-      {/* (The Contact cube at the dock entrance IS the mailbox placeholder —
-          a decorative post would just poke through it until real props land.) */}
-
-      {/* Beached rowboat. */}
-      <SurfaceGroup lat={MAP.rowboat.lat} long={MAP.rowboat.long} yaw={0.9}>
-        <mesh position={[0, 0.42, 0]} scale={[1, 0.55, 2.6]}>
-          <dodecahedronGeometry args={[0.9, 0]} />
-          <meshStandardMaterial color="#c96f4a" flatShading />
-        </mesh>
-      </SurfaceGroup>
     </>
   )
 }
+
+useGLTF.preload('/models/palm.glb', DRACO_PATH)
+useGLTF.preload('/models/rock.glb', DRACO_PATH)
+useGLTF.preload('/models/campfire.glb', DRACO_PATH)
+useGLTF.preload('/models/log.glb', DRACO_PATH)
+useGLTF.preload('/models/crate.glb', DRACO_PATH)
+useGLTF.preload('/models/rowboat.glb', DRACO_PATH)

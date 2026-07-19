@@ -14,8 +14,12 @@ export interface InteractableDef {
   id: string
   label: string
   prompt: string
-  /** Absent during the gray-box phase — placeholder geometry is used instead. */
+  /** Kit model; absent → placeholder box. */
   modelPath?: string
+  /** Normalized model height in meters (default 1.2). */
+  modelSize?: number
+  /** Movement-blocking radius in meters of arc (default 1.2). */
+  blockRadius?: number
   /** Planet-local position (lat 90 = spawn pole). */
   position: [number, number, number]
   rotation: [number, number, number]
@@ -42,6 +46,9 @@ export const interactables: InteractableDef[] = [
     id: 'photos',
     label: 'Photos',
     prompt: 'Look through the camera',
+    modelPath: '/models/tripod.glb',
+    modelSize: 1.5,
+    blockRadius: 0.7,
     position: place(MAP.tripod.lat, MAP.tripod.long),
     rotation: [0, Math.PI, 0], // faces the sun, out over the water
     modal: 'gallery',
@@ -51,6 +58,9 @@ export const interactables: InteractableDef[] = [
     id: 'contact',
     label: 'Contact',
     prompt: 'Open the mailbox',
+    modelPath: '/models/mailbox.glb',
+    modelSize: 1.1,
+    blockRadius: 0.6,
     position: place(MAP.mailbox.lat, MAP.mailbox.long),
     rotation: [0, Math.PI, 0],
     modal: 'contact',

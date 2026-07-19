@@ -42,6 +42,11 @@ export const controlsRuntime = {
   /** Teleport: put this lat/long under the avatar next frame (consumed once). */
   poseOverride: null as { lat: number; long: number } | null,
   wadeRippleTime: 0,
+  /** Written every frame for the animated avatar's clip selection. */
+  locomotion: 'idle' as 'idle' | 'walk' | 'run',
+  airborne: false,
+  /** Camera distance override (meters); null = default follow distance. */
+  camDist: null as number | null,
 }
 
 const JUMP_V0 = 4.5
@@ -94,7 +99,10 @@ export function usePlanetController({ planetRef, avatarRef }: ControllerRefs) {
   const allBlockers = useMemo(
     () => [
       ...blockers,
-      ...interactableUnits.map((it) => ({ unit: it.unit, radius: 1.2 })),
+      ...interactableUnits.map((it, i) => ({
+        unit: it.unit,
+        radius: interactables[i].blockRadius ?? 1.2,
+      })),
     ],
     [interactableUnits],
   )
@@ -224,5 +232,7 @@ export function usePlanetController({ planetRef, avatarRef }: ControllerRefs) {
 
     avatar.position.y = groundY + jumpOffset
     avatar.rotation.y = yaw.current
+    controlsRuntime.locomotion = !inputActive ? 'idle' : sprinting ? 'run' : 'walk'
+    controlsRuntime.airborne = jumpT.current !== null
   })
 }

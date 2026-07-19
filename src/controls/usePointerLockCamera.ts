@@ -161,10 +161,11 @@ export function usePointerLockCamera({
     }
     target.current.set(0, avatar.position.y + HEAD_HEIGHT, 0)
     const cp = Math.cos(pitch.current)
+    const dist = controlsRuntime.camDist ?? CAM_DIST
     camera.position.set(
-      target.current.x + Math.sin(azimuth.current) * cp * CAM_DIST,
-      target.current.y + Math.sin(pitch.current) * CAM_DIST,
-      target.current.z + Math.cos(azimuth.current) * cp * CAM_DIST,
+      target.current.x + Math.sin(azimuth.current) * cp * dist,
+      target.current.y + Math.sin(pitch.current) * dist,
+      target.current.z + Math.cos(azimuth.current) * cp * dist,
     )
     camera.lookAt(target.current)
     controlsRuntime.azimuth = azimuth.current
