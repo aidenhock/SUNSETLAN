@@ -28,6 +28,9 @@ const SHOTS = [
   { name: '12-avatar-idle', lat: 88, long: 0, az: Math.PI, note: 'avatar close-up, idling', camDist: 3 },
   { name: '13-avatar-walking', lat: 70, long: 20, az: deg(20), note: 'avatar mid-walk (no sprint)', camDist: 3.2, holdKeyMs: 700, walk: true },
   { name: '14-avatar-running', lat: 60, long: 40, az: deg(40), note: 'avatar mid-run', camDist: 3.4, holdKeyMs: 700 },
+  // faceCamera: tap S so the avatar turns toward the camera, release, settle —
+  // the only way to verify eyes/glasses/hair swoop (the camera always trails).
+  { name: '15-avatar-face', lat: 80, long: 0, az: Math.PI, note: 'avatar face close-up: eyes, glasses, swoop', camDist: 2.6, faceCamera: true },
 ]
 
 async function main() {
@@ -60,6 +63,12 @@ async function main() {
     if (shot.camDist) {
       await page.evaluate((d) => (window.__controls.camDist = d), shot.camDist)
       await page.waitForTimeout(250)
+    }
+    if (shot.faceCamera) {
+      await page.keyboard.down('KeyS')
+      await page.waitForTimeout(350)
+      await page.keyboard.up('KeyS')
+      await page.waitForTimeout(450)
     }
     if (shot.holdKeyMs) {
       if (!shot.walk) await page.keyboard.down('ShiftLeft')

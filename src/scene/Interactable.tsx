@@ -56,9 +56,11 @@ export function Interactable({ def }: { def: InteractableDef }) {
         ) : (
           <mesh position={[0, 0.75, 0]} onClick={onClick} {...hover}>
             <boxGeometry args={[1.5, 1.5, 1.5]} />
+            {/* Pastel lagoon placeholder (the old #1d6e73 read as a dark
+                off-palette slab against the bright bible colors). */}
             <meshLambertMaterial
-              color={isNearby ? '#35a7a0' : '#1d6e73'}
-              emissive={isNearby ? '#35a7a0' : '#000000'}
+              color={isNearby ? '#5ecec7' : '#35a7a0'}
+              emissive={isNearby ? '#5ecec7' : '#000000'}
               emissiveIntensity={0.25}
               flatShading
             />

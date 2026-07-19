@@ -255,18 +255,19 @@ export function buildTripod(): PropPart[] {
   return mergeByMaterial(pieces)
 }
 
-/** Mailbox (Contact): wood post, lagoon rounded body, cream door, ember flag. ~1.2 m. */
+/** Mailbox (Contact): chunky AC proportions — thick post, big lagoon rounded
+ * body with an inset cream door, side-mounted ember flag. ~1.3 m. */
 export function buildMailbox(): PropPart[] {
   const wood = paletteMaterial(PROP_COLORS.woodDark)
   const shell = paletteMaterial(PROP_COLORS.lagoon)
   const door = paletteMaterial(PROP_COLORS.cream)
   const flag = paletteMaterial(PROP_COLORS.ember)
   return mergeByMaterial([
-    at(new THREE.BoxGeometry(0.1, 0.72, 0.1), wood, [0, 0.36, 0]),
-    at(new RoundedBoxGeometry(0.34, 0.32, 0.5, 2, 0.07), shell, [0, 0.86, 0]),
-    at(new RoundedBoxGeometry(0.28, 0.26, 0.05, 2, 0.05), door, [0, 0.86, 0.24]),
-    at(new THREE.BoxGeometry(0.03, 0.2, 0.03), flag, [0.19, 1.06, 0.05]),
-    at(new THREE.BoxGeometry(0.03, 0.09, 0.16), flag, [0.19, 1.16, 0.12]),
+    at(new THREE.BoxGeometry(0.14, 0.78, 0.14), wood, [0, 0.39, 0]),
+    at(new RoundedBoxGeometry(0.46, 0.42, 0.62, 2, 0.12), shell, [0, 0.97, 0]),
+    at(new RoundedBoxGeometry(0.3, 0.3, 0.06, 2, 0.06), door, [0, 0.97, 0.29]),
+    at(new THREE.BoxGeometry(0.04, 0.26, 0.04), flag, [0.27, 1.1, 0]),
+    at(new THREE.BoxGeometry(0.04, 0.1, 0.22), flag, [0.27, 1.26, -0.08]),
   ])
 }
 
@@ -296,8 +297,17 @@ export function buildBigTree(): PropPart[] {
     at(new THREE.IcosahedronGeometry(2.2, 0), leaf, [0, 4.1, 0]),
     at(new THREE.CylinderGeometry(0.12, 0.12, 2.1, 5), wood, [-1.5, 2.9, 0], [0, 0, 0.8]),
   ]
+  // Gym rings HANG from the branch on straps (placement rule: nothing floats).
+  // Branch line: y = 2.9 + 0.697 · (x + 1.5) / −0.717 for x along the branch.
+  const strap = paletteMaterial(PROP_COLORS.cream)
   const ringGeo = new THREE.TorusGeometry(0.16, 0.035, 6, 12)
-  pieces.push(at(ringGeo, stone, [-2.2, 2.35, 0]))
-  pieces.push(at(ringGeo, stone, [-1.8, 2.35, 0]))
+  for (const [x, branchY] of [
+    [-1.7, 3.09],
+    [-2.0, 3.39],
+  ] as const) {
+    const ringTop = 2.5 + 0.2
+    pieces.push(at(new THREE.BoxGeometry(0.04, branchY - ringTop + 0.08, 0.04), strap, [x, (branchY + ringTop) / 2, 0]))
+    pieces.push(at(ringGeo, stone, [x, 2.5, 0]))
+  }
   return mergeByMaterial(pieces)
 }
