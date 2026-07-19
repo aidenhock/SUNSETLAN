@@ -5,7 +5,9 @@ dist-ssr
 .vercel
 .DS_Store
 *.tsbuildinfo
-.claude/
+# Session state stays out; committed agent definitions stay in.
+.claude/*
+!.claude/agents/
 test-results/
 playwright-report/
 sweep-shots/

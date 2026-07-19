@@ -120,3 +120,11 @@ Roaming NPCs of family & friends — Animal-Crossing-style wander/waypoints + op
 
 ## Working conventions
 Unchanged (strict TS, no `any`; content only via content files; commit per working feature; `main` deployable; ask before deps or art-direction changes; test mobile viewport after control/UI changes) plus: quaternion/sky/audio math stays in hooks under `controls/` or `scene/` with comments; new analytic bands get vitest cases; e2e suites live in `e2e/` from 3A onward.
+
+## Model routing (cost tiers — agents in `.claude/agents/`)
+
+- **worker** (Sonnet): delegate routine, fully specified implementation — map-table placements, content files, new tests, constant retunes. It escalates design questions instead of deciding them.
+- **verifier** (Haiku, low effort, read-only + Bash): ALL review/verification fan-outs — verifying a single finding, running a suite and reporting pass/fail. Never run these on the session model.
+- **Explore** (Haiku): codebase exploration always routes here, never on an expensive model.
+- **fable-advisor** (Fable, few turns): consult before guessing whenever a decision isn't covered by this file or the session is genuinely stuck; it returns a decision + rationale, no code.
+- The main session model is reserved for planning, novel systems (controller/sky/audio math), integration, and final review.
