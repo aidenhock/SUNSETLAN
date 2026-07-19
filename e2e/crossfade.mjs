@@ -9,7 +9,9 @@ import { mkdirSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 const BASE = process.env.SWEEP_URL || 'http://localhost:4173'
-const OUT = resolve(process.argv[2] || 'crossfade-shots')
+const args = process.argv.slice(2).filter((a) => a !== '--reverse')
+const REVERSE = process.argv.includes('--reverse') // walk 180 → 0, facing west
+const OUT = resolve(args[0] || (REVERSE ? 'crossfade-back-shots' : 'crossfade-shots'))
 const deg = (d) => (d * Math.PI) / 180
 
 const LAT = 20
@@ -31,16 +33,19 @@ async function main() {
     store.setCameraMode('orbit')
   })
 
-  for (let long = 0; long <= 180; long += STEP) {
+  for (let i = 0; i <= 180; i += STEP) {
+    const long = REVERSE ? 180 - i : i
+    // Face the walking direction: east on the way out, west on the way back.
+    const az = deg(long) + (REVERSE ? Math.PI / 2 : -Math.PI / 2)
     await page.evaluate(
       ({ lat, long, az }) => {
         window.__controls.poseOverride = { lat, long }
         window.__controls.azimuthOverride = az
       },
-      { lat: LAT, long, az: deg(long) - Math.PI / 2 },
+      { lat: LAT, long, az },
     )
     await page.waitForTimeout(600)
-    const name = `crossfade-${String(long).padStart(3, '0')}`
+    const name = `crossfade-${REVERSE ? 'back-' : ''}${String(long).padStart(3, '0')}`
     await page.screenshot({ path: `${OUT}/${name}.png` })
     console.log(`shot ${name}`)
   }

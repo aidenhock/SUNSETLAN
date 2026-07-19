@@ -33,6 +33,13 @@ const SHOTS = [
   // faceCamera: tap S so the avatar turns toward the camera, release, settle —
   // the only way to verify eyes/glasses/hair swoop (the camera always trails).
   { name: '15-avatar-face', lat: 80, long: 0, az: Math.PI, note: 'avatar face close-up: eyes, glasses, swoop', camDist: 2.6, faceCamera: true },
+  // v3.2 acceptance: deep-night 360° pan — zero warm glow in any direction.
+  { name: '20-night-pan-n', lat: 17.5, long: 179, az: deg(179), note: 'deep night facing the island: no warm glow anywhere' },
+  { name: '21-night-pan-e', lat: 17.5, long: 179, az: deg(179) - Math.PI / 2, note: 'deep night facing east along the ring: no warm glow' },
+  { name: '22-night-pan-s', lat: 17.5, long: 179, az: deg(179) + Math.PI, note: 'deep night facing the open sea: no warm glow' },
+  { name: '23-night-pan-w', lat: 17.5, long: 179, az: deg(179) + Math.PI / 2, note: 'deep night facing west: faint steel-blue wayfinding band only' },
+  { name: '24-moon-lookup', lat: 22, long: 180, az: deg(180), pitch: -0.85, note: 'look-up at the night zenith: full moon + glow, stars, avatar silhouetted low' },
+  { name: '25-sunset-sea', lat: 30, long: 0, az: Math.PI, note: 'day beach facing the sea: golden-hour 3-stop sky, horizon matches fog' },
 ]
 
 async function main() {
@@ -62,6 +69,10 @@ async function main() {
       shot,
     )
     await page.waitForTimeout(700) // overrides consume + a few settled frames
+    if (shot.pitch !== undefined) {
+      await page.evaluate((p) => (window.__controls.pitchOverride = p), shot.pitch)
+      await page.waitForTimeout(250)
+    }
     if (shot.camDist) {
       await page.evaluate((d) => (window.__controls.camDist = d), shot.camDist)
       await page.waitForTimeout(250)
@@ -84,6 +95,10 @@ async function main() {
     }
     if (shot.camDist) {
       await page.evaluate(() => (window.__controls.camDist = null))
+    }
+    if (shot.pitch !== undefined) {
+      await page.evaluate(() => (window.__controls.pitchOverride = 0.35))
+      await page.waitForTimeout(120)
     }
     console.log(`shot ${shot.name}  (${shot.note})`)
   }
