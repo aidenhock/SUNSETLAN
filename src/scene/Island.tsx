@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import * as THREE from 'three'
 import { groundAltitudeAt } from '../controls/terrain'
-import { jitterAndTint } from './geometryUtils'
+import { facetTerrain } from './geometryUtils'
 import {
   DOCK,
   GRASS_ALTITUDE,
@@ -48,29 +48,32 @@ const placement = (lat: number, long: number, yaw = 0, scale = 1) =>
  * from groundAltitudeAt (rule 1); blocking radii live in planetConfig.
  */
 export function Island() {
+  // Per-face two-tone caps (playbook §3): sand gets irregular tan patches,
+  // grass gets the lively AC-style two-green tiling.
   const sandGeo = useMemo(
     () =>
-      jitterAndTint(
+      facetTerrain(
         new THREE.SphereGeometry(
           PLANET_RADIUS + SAND_ALTITUDE, 96, 48, 0, Math.PI * 2, 0, ISLAND_THETA,
         ),
-        { baseColor: '#e8d5a3', patchColor: '#ddc994', patchSize: 6, patchStrength: 0.4, speckle: 0.04 },
+        { colorA: '#e8d5a3', colorB: '#d9c48e', patchSize: 6, checker: 0.25, bias: 0.6, speckle: 0.05, seed: 5 },
       ),
     [],
   )
   const grassGeo = useMemo(
     () =>
-      jitterAndTint(
+      facetTerrain(
         new THREE.SphereGeometry(
           PLANET_RADIUS + GRASS_ALTITUDE, 96, 48, 0, Math.PI * 2, 0, GRASS_THETA,
         ),
         {
-          baseColor: '#55a05f',
-          patchColor: '#4c9a63',
-          patchSize: 11,
-          patchStrength: 0.35,
-          speckle: 0.03,
+          colorA: '#58b268',
+          colorB: '#49a15a',
+          patchSize: 9,
+          checker: 0.65,
+          speckle: 0.05,
           poleFadeRad: 0.28, // clean turf around spawn; character further out
+          seed: 3,
         },
       ),
     [],
@@ -143,11 +146,11 @@ export function Island() {
       {/* Beach: sand cap down to the water line. DoubleSide closes the open
           rim edge that is visible from the wade zone past the beach line. */}
       <mesh geometry={sandGeo}>
-        <meshStandardMaterial vertexColors flatShading side={THREE.DoubleSide} />
+        <meshLambertMaterial vertexColors flatShading side={THREE.DoubleSide} />
       </mesh>
       {/* Inner grass rise. */}
       <mesh geometry={grassGeo}>
-        <meshStandardMaterial vertexColors flatShading />
+        <meshLambertMaterial vertexColors flatShading />
       </mesh>
 
       {/* Dock (primitive, instanced). */}
