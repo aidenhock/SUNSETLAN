@@ -20,10 +20,11 @@ test('mobile: joystick sprint, tap button, modal round-trip, orbit drag', async 
   await page.mouse.down()
   await page.mouse.move(jcx, jcy - 60, { steps: 6 }) // past the rim → clamped to full
   const interactButton = page.getByRole('button', { name: 'Photos' })
+  const start = Date.now()
   let held = 0
   while (!(await interactButton.isVisible()) && held < 20_000) {
     await page.waitForTimeout(300)
-    held += 300
+    held = Date.now() - start // wall clock — sleeps alone undercount by 10-20%
   }
   await page.mouse.up()
   await expect(interactButton).toBeVisible()

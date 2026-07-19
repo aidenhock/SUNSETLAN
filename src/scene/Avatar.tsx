@@ -19,10 +19,11 @@ export const Avatar = forwardRef<THREE.Group>(function Avatar(_, ref) {
           <meshStandardMaterial color="#14262b" flatShading />
         </mesh>
       </group>
-      {/* Cheap blob shadow grounds the avatar without shadow maps. */}
-      <mesh rotation-x={-Math.PI / 2} position={[0, 0.03, 0]}>
+      {/* Cheap blob shadow grounds the avatar without shadow maps. Sits at
+          0.1 so the caps' ±0.08 vertex jitter can't poke through it. */}
+      <mesh rotation-x={-Math.PI / 2} position={[0, 0.1, 0]}>
         <circleGeometry args={[0.5, 20]} />
-        <meshBasicMaterial color="#14262b" transparent opacity={0.22} />
+        <meshBasicMaterial color="#14262b" transparent opacity={0.22} depthWrite={false} />
       </mesh>
     </group>
   )

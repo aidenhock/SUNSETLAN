@@ -8,3 +8,4 @@ dist-ssr
 .claude/
 test-results/
 playwright-report/
+sweep-shots/

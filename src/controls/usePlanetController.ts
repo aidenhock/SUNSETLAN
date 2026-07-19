@@ -5,6 +5,7 @@ import * as THREE from 'three'
 import { interactables } from '../content/interactables'
 import {
   blockers,
+  GRASS_ALTITUDE,
   INTERACT_ARC_M,
   INTERACT_EXIT_ARC_M,
   MAX_POLAR_RAD,
@@ -65,7 +66,9 @@ export function usePlanetController({ planetRef, avatarRef }: ControllerRefs) {
   const jumpT = useRef<number | null>(null) // seconds since jump start, null = grounded
   const yaw = useRef(0)
   const targetYaw = useRef(0)
-  const lastGroundY = useRef(PLANET_RADIUS)
+  // Spawn stands on grass — initializing at sea level would fire a phantom
+  // ripple on the first frame.
+  const lastGroundY = useRef(PLANET_RADIUS + GRASS_ALTITUDE)
 
   const interactableUnits = useMemo(
     () =>
@@ -195,9 +198,13 @@ export function usePlanetController({ planetRef, avatarRef }: ControllerRefs) {
     }
 
     const groundY = groundHeightAt(poleAfter)
-    // Any transition to or from sea level is a waterline crossing (wading in
-    // from the sand, back out, or stepping off the dock end) → ripple.
-    if ((groundY === SEA_LEVEL) !== (lastGroundY.current === SEA_LEVEL)) {
+    // Any grounded transition to or from sea level is a waterline crossing
+    // (wading in from the sand, back out, or stepping off the dock end) →
+    // ripple. Suppressed mid-jump: feet aren't in the water.
+    if (
+      jumpT.current === null &&
+      (groundY === SEA_LEVEL) !== (lastGroundY.current === SEA_LEVEL)
+    ) {
       controlsRuntime.wadeRippleTime = state.clock.elapsedTime
     }
     lastGroundY.current = groundY

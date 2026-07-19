@@ -35,7 +35,10 @@ export function realErrors(errors: string[]): string[] {
 export async function gotoWorld(page: Page): Promise<void> {
   await page.goto('/?e2e', { waitUntil: 'load' })
   await page.waitForSelector('canvas', { timeout: 30_000 })
-  await page.waitForFunction(() => window.__store !== undefined, { timeout: 15_000 })
+  await page.waitForFunction(
+    () => window.__store !== undefined && window.__controls !== undefined,
+    { timeout: 15_000 },
+  )
 }
 
 /** Sprints on a camera heading until `until` resolves true (or times out). */
