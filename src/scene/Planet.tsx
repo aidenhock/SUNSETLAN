@@ -4,9 +4,11 @@ import { usePlanetController } from '../controls/usePlanetController'
 import { usePointerLockCamera } from '../controls/usePointerLockCamera'
 import { interactables } from '../content/interactables'
 import { Avatar } from './Avatar'
+import { CelestialDome } from './CelestialDome'
 import { Interactable } from './Interactable'
 import { Island } from './Island'
 import { PLANET_RADIUS } from './planetConfig'
+import { SkyRig } from './SkyRig'
 import { WadeRipple } from './WadeRipple'
 import { Water } from './Water'
 
@@ -25,7 +27,11 @@ export function PlanetScene({ isTouch }: { isTouch: boolean }) {
 
   return (
     <>
+      <SkyRig planetRef={planetRef} />
       <group ref={planetRef}>
+        {/* Planet-local sky: the split dome, sun, moon, and stars rotate with
+            the world — that is what makes the two moods permanent. */}
+        <CelestialDome />
         {/* Ocean floor — the planet body under the water shell. */}
         <mesh>
           <sphereGeometry args={[PLANET_RADIUS - 0.4, 48, 24]} />

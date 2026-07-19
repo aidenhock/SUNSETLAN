@@ -3,7 +3,6 @@ import { Canvas, useThree } from '@react-three/fiber'
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { TouchJoystick } from './controls/TouchJoystick'
 import { PlanetScene } from './scene/Planet'
-import { Lighting } from './scene/Lighting'
 import { useStore } from './store/useStore'
 import { Hud } from './ui/Hud'
 import { LoadingScreen } from './ui/LoadingScreen'
@@ -92,7 +91,8 @@ export default function App() {
             />
           )}
           <Suspense fallback={null}>
-            <Lighting />
+            {/* Lights live in SkyRig (inside PlanetScene): useSkyState drives
+                them, the fog color, and this background per frame. */}
             <KeyboardControls map={keyboardMap}>
               <PlanetScene isTouch={isTouch} />
             </KeyboardControls>

@@ -11,8 +11,8 @@ function hashNoise(x: number, y: number, z: number, seed: number): number {
   return n - Math.floor(n)
 }
 
-/** Seeded PRNG (playbook §3) — one value per face, keyed by face order. */
-function mulberry32(seed: number): () => number {
+/** Seeded PRNG (playbook §3) — deterministic streams for faces/stars/scatter. */
+export function mulberry32(seed: number): () => number {
   let s = seed
   return () => {
     s = (s + 0x6d2b79f5) | 0

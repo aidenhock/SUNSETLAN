@@ -15,12 +15,14 @@ const deg = (d) => (d * Math.PI) / 180
 // interior) is camera azimuth = long; south = long + 180°; east = long - 90°.
 const SHOTS = [
   { name: '01-spawn-first-sight', lat: 90, long: 0, az: Math.PI, note: 'spawn view toward long 0: dock + water' },
+  { name: '01b-spawn-to-night', lat: 90, long: 0, az: 0, note: 'spawn facing long 180: moon low over the night horizon, stars' },
   { name: '02-dock-from-side', lat: 18, long: 352, az: deg(352) - Math.PI / 2, note: 'dock profile from the west' },
   { name: '03-dock-walk-out', lat: 20, long: 0, az: deg(0) + Math.PI, note: 'on the deck looking out to sea' },
   { name: '04-mailbox', lat: 21, long: 6, az: deg(6), note: 'mailbox at the dock entrance' },
   { name: '05-palapa', lat: 35.5, long: 40, az: deg(40), note: 'palapa + projects desk' },
   { name: '06-tree-rings', lat: 45.5, long: 300, az: deg(300), note: 'big tree + rings' },
   { name: '07-night-beach', lat: 17.5, long: 179, az: deg(179), note: 'campfire, bench, music ukulele' },
+  { name: '07b-night-sea', lat: 17.5, long: 179, az: deg(179) + Math.PI, note: 'night beach facing the open sea: midnight sky + stars' },
   { name: '08-crt-tv', lat: 17, long: 150, az: deg(150), note: 'CRT TV on crate + rocks' },
   { name: '09-rowboat', lat: 14.5, long: 210, az: deg(210), note: 'beached rowboat from the waterline' },
   { name: '10-beach-ring', lat: 19, long: 90, az: deg(90) - Math.PI / 2, note: 'along the sand ring, horizon curve' },
