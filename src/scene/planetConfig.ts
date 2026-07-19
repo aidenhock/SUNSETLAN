@@ -6,17 +6,17 @@ import { latLongToUnit } from '../controls/planetMath'
  * truth matching the approved top-down map in CLAUDE.md. Visuals, blockers,
  * and the analytic ground all read from here so they can never disagree.
  */
-export const PLANET_RADIUS = 70
+export const PLANET_RADIUS = 55
 /** Beach line: the island cap covers ~37% of the sphere (polar angle 75°). */
 export const ISLAND_POLAR_DEG = 75
-/** Grass down to lat 24 → the sand ring reads as a beach (~11 m, lat 15–24). */
+/** Grass down to lat 24 → the sand ring reads as a beach (~9 m, lat 15–24). */
 export const GRASS_POLAR_DEG = 66
 /** Rotation clamp: the pole may wade ~2.5 m of arc past the beach line. */
 export const MAX_POLAR_RAD = THREE.MathUtils.degToRad(ISLAND_POLAR_DEG) + 2.5 / PLANET_RADIUS
 
-/** Island crossing ≈ 183 m → ~37 s walk, ~23 s sprint. */
-export const MOVE_SPEED = 5
-export const SPRINT_SPEED = 8
+/** Island crossing ≈ 144 m → ~22 s walk, ~14 s sprint. */
+export const MOVE_SPEED = 6.5
+export const SPRINT_SPEED = 10
 /** Joystick full deflection sprints (no Shift key on phones). */
 export const SPRINT_JOY_THRESHOLD = 0.95
 

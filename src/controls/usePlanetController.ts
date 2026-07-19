@@ -21,6 +21,7 @@ import {
   latLongToUnit,
   poleInPlanetSpace,
   rotationStep,
+  WORLD_UP,
 } from './planetMath'
 import { groundHeightAt } from './terrain'
 
@@ -47,6 +48,15 @@ const JUMP_V0 = 4.5
 const JUMP_G = 12
 const MAX_DT = 0.05
 const SEA_LEVEL = PLANET_RADIUS
+
+// Frame-loop scratch — the controller allocates nothing per frame.
+const _poleBefore = new THREE.Vector3()
+const _poleCand = new THREE.Vector3()
+const _poleAfter = new THREE.Vector3()
+const _moveDir = new THREE.Vector3()
+const _stepQ = new THREE.Quaternion()
+const _candQ = new THREE.Quaternion()
+const _teleportUnit = new THREE.Vector3()
 
 interface ControllerRefs {
   planetRef: React.RefObject<THREE.Group | null>
@@ -99,8 +109,8 @@ export function usePlanetController({ planetRef, avatarRef }: ControllerRefs) {
     if (controlsRuntime.poseOverride) {
       const { lat, long } = controlsRuntime.poseOverride
       controlsRuntime.poseOverride = null
-      // q·unit = up puts (lat, long) under the avatar.
-      quat.current.setFromUnitVectors(latLongToUnit(lat, long), new THREE.Vector3(0, 1, 0))
+      // q·unit = up puts (lat, long) under the avatar (teleports aren't hot).
+      quat.current.setFromUnitVectors(_teleportUnit.copy(latLongToUnit(lat, long)), WORLD_UP)
     }
 
     // ---- input --------------------------------------------------------
@@ -117,43 +127,46 @@ export function usePlanetController({ planetRef, avatarRef }: ControllerRefs) {
     const inputActive = (ix !== 0 || iz !== 0) && !store.openModalId
     const speed = sprinting ? SPRINT_SPEED : MOVE_SPEED
 
-    const poleBefore = poleInPlanetSpace(quat.current)
-    const polarBefore = Math.acos(THREE.MathUtils.clamp(poleBefore.y, -1, 1))
-
-    const stepAllowed = (candidatePole: THREE.Vector3): boolean => {
-      const newPolar = Math.acos(THREE.MathUtils.clamp(candidatePole.y, -1, 1))
-      // Island bounds: cancel steps that leave the cap (allow walking back in).
-      if (newPolar > MAX_POLAR_RAD && newPolar > polarBefore) return false
-      // Prop blockers: cancel steps that push inward on a tree/rock/cube
-      // (steps that increase distance stay allowed, so you can't get stuck).
-      for (const b of allBlockers) {
-        const newDist = candidatePole.angleTo(b.unit) * PLANET_RADIUS
-        if (newDist < b.radius && newDist < poleBefore.angleTo(b.unit) * PLANET_RADIUS) {
-          return false
-        }
-      }
-      return true
-    }
-
-    const tryMove = (mx: number, mz: number): boolean => {
-      const moveDir = cameraRelativeMoveDir(mx, mz, controlsRuntime.azimuth)
-      if (moveDir.lengthSq() === 0) return false
-      const inputMag = Math.min(1, Math.hypot(mx, mz))
-      const angle = (speed * inputMag * dt) / PLANET_RADIUS
-      const candidate = applyStep(quat.current, rotationStep(moveDir, angle))
-      if (!stepAllowed(poleInPlanetSpace(candidate))) return false
-      quat.current.copy(candidate)
-      movedAccum.current += angle
-      if (!store.hasMoved && movedAccum.current * PLANET_RADIUS > 1.5) store.markMoved()
-      targetYaw.current = Math.atan2(moveDir.x, moveDir.z)
-      return true
-    }
+    poleInPlanetSpace(quat.current, _poleBefore)
+    const polarBefore = Math.acos(THREE.MathUtils.clamp(_poleBefore.y, -1, 1))
 
     if (inputActive) {
       // Full step first; if a boundary cancels it, slide along the camera
       // axes so diagonals against a wall don't freeze the avatar.
-      if (!tryMove(ix, iz) && (ix === 0 || !tryMove(ix, 0)) && iz !== 0) {
-        tryMove(0, iz)
+      // k=0: (ix,iz), k=1: (ix,0), k=2: (0,iz) — no closures, no arrays.
+      for (let k = 0; k < 3; k++) {
+        const mx = k === 2 ? 0 : ix
+        const mz = k === 1 ? 0 : iz
+        if (mx === 0 && mz === 0) continue
+        cameraRelativeMoveDir(mx, mz, controlsRuntime.azimuth, _moveDir)
+        if (_moveDir.lengthSq() === 0) continue
+        const inputMag = Math.min(1, Math.hypot(mx, mz))
+        const angle = (speed * inputMag * dt) / PLANET_RADIUS
+        rotationStep(_moveDir, angle, _stepQ)
+        applyStep(quat.current, _stepQ, _candQ)
+        poleInPlanetSpace(_candQ, _poleCand)
+
+        // Island bounds: cancel steps that leave the cap (allow walking back in).
+        const newPolar = Math.acos(THREE.MathUtils.clamp(_poleCand.y, -1, 1))
+        let blocked = newPolar > MAX_POLAR_RAD && newPolar > polarBefore
+        // Prop blockers: cancel steps that push inward on a tree/rock/cube
+        // (steps that increase distance stay allowed, so you can't get stuck).
+        if (!blocked) {
+          for (const b of allBlockers) {
+            const newDist = _poleCand.angleTo(b.unit) * PLANET_RADIUS
+            if (newDist < b.radius && newDist < _poleBefore.angleTo(b.unit) * PLANET_RADIUS) {
+              blocked = true
+              break
+            }
+          }
+        }
+        if (blocked) continue
+
+        quat.current.copy(_candQ)
+        movedAccum.current += angle
+        if (!store.hasMoved && movedAccum.current * PLANET_RADIUS > 1.5) store.markMoved()
+        targetYaw.current = Math.atan2(_moveDir.x, _moveDir.z)
+        break
       }
       // Face the direction of travel (frame-rate-independent smoothing).
       let d = targetYaw.current - yaw.current
@@ -165,11 +178,11 @@ export function usePlanetController({ planetRef, avatarRef }: ControllerRefs) {
     planet.updateMatrixWorld()
 
     // ---- proximity triggers with hysteresis ----------------------------
-    const poleAfter = poleInPlanetSpace(quat.current)
+    poleInPlanetSpace(quat.current, _poleAfter)
     let nearest: string | null = null
     let nearestArc = INTERACT_ARC_M
     for (const it of interactableUnits) {
-      const arc = poleAfter.angleTo(it.unit) * PLANET_RADIUS
+      const arc = _poleAfter.angleTo(it.unit) * PLANET_RADIUS
       if (arc <= nearestArc) {
         nearest = it.id
         nearestArc = arc
@@ -179,7 +192,7 @@ export function usePlanetController({ planetRef, avatarRef }: ControllerRefs) {
       // Nothing inside the enter radius: keep the current one until it
       // passes the exit radius so the prompt doesn't flicker at the edge.
       const current = interactableUnits.find((it) => it.id === store.nearbyId)
-      if (current && poleAfter.angleTo(current.unit) * PLANET_RADIUS <= INTERACT_EXIT_ARC_M) {
+      if (current && _poleAfter.angleTo(current.unit) * PLANET_RADIUS <= INTERACT_EXIT_ARC_M) {
         nearest = store.nearbyId
       }
     }
@@ -197,7 +210,7 @@ export function usePlanetController({ planetRef, avatarRef }: ControllerRefs) {
       }
     }
 
-    const groundY = groundHeightAt(poleAfter)
+    const groundY = groundHeightAt(_poleAfter)
     // Any grounded transition to or from sea level is a waterline crossing
     // (wading in from the sand, back out, or stepping off the dock end) →
     // ripple. Suppressed mid-jump: feet aren't in the water.

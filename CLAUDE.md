@@ -26,8 +26,8 @@ Audio: three.js `AudioListener` / `PositionalAudio` / `Audio` (no Howler, no Ton
 
 Core is done and stays: avatar kinematic at the pole, input rotates the planet quaternion, angular-distance triggers with hysteresis, island clamp, blockers with slide-along, analytic `groundHeightAt`. Changes:
 
-- **Speed**: `MOVE_SPEED` 4 → **5** walk; add **sprint 8** on Shift (restore `run` to the keyboard map; joystick full-deflection ≥ 0.95 sprints). Crossing the island ≈ 37 s walk / 23 s sprint.
-- **Proportions** (the beach is too big): `GRASS_POLAR_DEG` 52 → **66**. Island edge stays 75°, radius stays 70 m. Sand becomes a ~11 m ring (lat 15–24). Re-derive every placement from the world map table below — several current lat values assume the old bands.
+- **Speed** (retuned in 3A.1): walk **6.5**, **sprint 10** on Shift (`run` in the keyboard map; joystick full-deflection ≥ 0.95 sprints). Crossing the island ≈ 22 s walk / 14 s sprint.
+- **Proportions**: `GRASS_POLAR_DEG` **66**, island edge 75°, **`PLANET_RADIUS` 55** (3A.1 medium-world retune — placements are lat/long + meter radii, so they survive radius changes). Sand is a ~9 m ring (lat 15–24).
 - **Wading** stays: clamp ~2.5 m past the beach line; add a ripple ring + soft splash SFX on crossing the waterline. No swimming (a treasure ship is backlog).
 
 ### Placement rules (fixes the floating/sunken props and the dock)
@@ -96,7 +96,14 @@ Palette adds night tokens: `midnight` #1B2033, `moonlight` #9FB4FF, `starlight` 
 The capsule becomes **Aiden**: low-poly guy, **blonde hair, glasses** (simple frame + lens-less rims parented to the head), casual outfit; animations idle / walk / **run** / jump (run plays when sprinting). Route A: Quaternius CC0 animated character, recolor + glasses mesh. Route B (fallback if retargeting fights us): hand-built primitive character with procedural walk/run cycles — it matches the art style anyway. Blob shadow stays.
 
 ## Unchanged systems
-Interaction flow, content model, modals, `/classic` (add night-token styling only if trivial), performance budgets (DPR clamp, PerformanceMonitor tiers gate stars/notes/critter counts), assets pipeline (draco every glb, models < 4 MB total), meta/OG in Phase 4.
+Interaction flow, content model, modals, `/classic` (add night-token styling only if trivial), assets pipeline (draco every glb, models < 4 MB total), meta/OG in Phase 4.
+
+## Performance budgets (3A.1)
+- **Triangles**: island caps + water + ocean floor ≤ **60k**; whole scene ≤ **150k**.
+- **Frame loop**: zero allocations and zero geometry rebuilds inside `useFrame` — scratch vectors/quaternions only; terrain jitter/tint is baked once at startup. Water waves run in the vertex shader (`onBeforeCompile`), never on the CPU.
+- **Repeats are instanced**: palms, rocks, shells, dock planks/posts, campfire stones — one draw call per kind.
+- **Degradation**: DPR clamped [1, 2]; drei `PerformanceMonitor` drops `qualityTier` to `low` on sustained decline (DPR → 1; two flip-flops lock low). 3B/3C gate stars/note-sprites/critter counts on the tier.
+- **Profiling**: `?perf` mounts a lazy r3f-perf overlay (dev-only dependency, code-split); `node e2e/measure.mjs [--dsf 2] [--throttle N]` records fps / draw calls / triangles at spawn, mid-dock, and the night beach against the preview build.
 
 ## Phases
 
@@ -105,7 +112,7 @@ Speed + sprint + run key; new proportions; `groundAltitudeAt` + sink rule applie
 ✓ Done when: no prop floats at the horizon or sinks up close (screenshot sweep around the island), the dock visibly runs from sand out over the water and is walkable end to end, beach reads as a beach, sprint feels good on desktop and phone, unit + e2e suites pass.
 
 **Phase 3B — Two skies**
-CelestialDome + sun/moon/stars (fog-excluded), `useSkyState` fog/light/clear-color lerp, campfire + bench + music ukulele on the night beach per map, TV glow at night, seagulls on the sunset side, cloud tinting, intro swoop over the terminator.
+CelestialDome + sun/moon/stars (fog-excluded), `useSkyState` fog/light/clear-color lerp, campfire + bench + music ukulele on the night beach per map, TV glow at night, seagulls on the sunset side, cloud tinting, shooting stars — occasional meteor streak, night side — and the intro swoop over the terminator.
 ✓ Done when: walking long 0 → 180 crossfades the whole mood with no popping, both sides screenshot beautifully, 60 fps desktop / ~30 mid phone holds.
 
 **Phase 3C — Life & sound**

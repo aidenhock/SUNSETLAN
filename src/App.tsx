@@ -1,6 +1,6 @@
-import { KeyboardControls } from '@react-three/drei'
-import { Canvas } from '@react-three/fiber'
-import { Suspense, useEffect, useMemo, useState } from 'react'
+import { KeyboardControls, PerformanceMonitor } from '@react-three/drei'
+import { Canvas, useThree } from '@react-three/fiber'
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { TouchJoystick } from './controls/TouchJoystick'
 import { PlanetScene } from './scene/Planet'
 import { Lighting } from './scene/Lighting'
@@ -24,10 +24,38 @@ function SceneReady({ onReady }: { onReady: () => void }) {
   return null
 }
 
+/** Dev-only profiler overlay, code-split behind the ?perf flag. */
+const Perf = lazy(() => import('r3f-perf').then((m) => ({ default: m.Perf })))
+
+/** Machine-readable render stats for the e2e/measure tooling (?e2e / ?perf). */
+function RenderInfoProbe() {
+  const { gl } = useThree()
+  useEffect(() => {
+    ;(window as unknown as { __renderInfo?: unknown }).__renderInfo = () => ({
+      calls: gl.info.render.calls,
+      triangles: gl.info.render.triangles,
+      pixelRatio: gl.getPixelRatio(),
+    })
+  }, [gl])
+  return null
+}
+
 export default function App() {
   const [sceneReady, setSceneReady] = useState(false)
+  // The perf monitor arms a few seconds after the scene mounts — startup
+  // hitches (shader compile, terrain baking) must not trip the low tier.
+  const [monitorArmed, setMonitorArmed] = useState(false)
+  useEffect(() => {
+    if (!sceneReady) return
+    const t = setTimeout(() => setMonitorArmed(true), 4000)
+    return () => clearTimeout(t)
+  }, [sceneReady])
   const isTouch = useMemo(() => window.matchMedia('(pointer: coarse)').matches, [])
   const modalOpen = useStore((s) => s.openModalId !== null)
+  const flags = useMemo(() => new URLSearchParams(window.location.search), [])
+  const showPerf = flags.has('perf')
+  const probeInfo = showPerf || flags.has('e2e')
+  const qualityTier = useStore((s) => s.qualityTier)
 
   return (
     <div className="h-full w-full">
@@ -35,16 +63,42 @@ export default function App() {
           AT, and immune to Tab escaping cross-origin iframes in the modal. */}
       <div className="h-full w-full" inert={modalOpen}>
         <LoadingScreen ready={sceneReady} />
-        <Canvas dpr={[1, 2]} camera={{ fov: 50, near: 0.1, far: 400, position: [0, 75, 8] }}>
+        <Canvas
+          // The low tier halves the pixel load — the main lever for weak GPUs.
+          dpr={qualityTier === 'low' ? 1 : [1, 2]}
+          camera={{ fov: 50, near: 0.1, far: 400, position: [0, 60, 8] }}
+        >
           <color attach="background" args={['#ffe3bd']} />
           {/* Fog softens the horizon so the curvature reads at golden hour. */}
           <fog attach="fog" args={['#ffe3bd', 60, 220]} />
+          {/* Sustained fps drops flip qualityTier low (DPR 1; 3B/3C also gate
+              stars/notes/critters on it). Two flip-flops lock low for good. */}
+          {monitorArmed && (
+            <PerformanceMonitor
+              // Explicit contract: struggling below 40 fps → shed pixels;
+              // comfortably above 58 → restore.
+              bounds={() => [40, 58]}
+              onChange={
+                probeInfo
+                  ? ({ fps, factor }) => {
+                      ;(window as unknown as { __pmDebug?: unknown }).__pmDebug = { fps, factor }
+                    }
+                  : undefined
+              }
+              onDecline={() => useStore.getState().setQualityTier('low')}
+              onIncline={() => useStore.getState().setQualityTier('high')}
+              flipflops={2}
+              onFallback={() => useStore.getState().setQualityTier('low')}
+            />
+          )}
           <Suspense fallback={null}>
             <Lighting />
             <KeyboardControls map={keyboardMap}>
               <PlanetScene isTouch={isTouch} />
             </KeyboardControls>
             <SceneReady onReady={() => setSceneReady(true)} />
+            {showPerf && <Perf position="top-left" />}
+            {probeInfo && <RenderInfoProbe />}
           </Suspense>
         </Canvas>
         {isTouch && <TouchJoystick />}

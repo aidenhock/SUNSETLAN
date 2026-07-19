@@ -47,17 +47,11 @@ export function groundAltitudeAt(latDeg: number, longDeg: number): number {
   return band
 }
 
-/** Lat/long of the point currently under the avatar. */
-export function poleLatLong(poleLocal: THREE.Vector3): { lat: number; long: number } {
-  const polar = Math.acos(THREE.MathUtils.clamp(poleLocal.y, -1, 1))
-  return {
-    lat: 90 - THREE.MathUtils.radToDeg(polar),
-    long: THREE.MathUtils.radToDeg(Math.atan2(poleLocal.x, poleLocal.z)),
-  }
-}
-
-/** World-space ground height under the avatar (avatar y-position). */
+/** World-space ground height under the avatar (avatar y-position).
+ *  Called every frame — no object allocation (lat/long computed inline). */
 export function groundHeightAt(poleLocal: THREE.Vector3): number {
-  const { lat, long } = poleLatLong(poleLocal)
+  const polar = Math.acos(THREE.MathUtils.clamp(poleLocal.y, -1, 1))
+  const lat = 90 - THREE.MathUtils.radToDeg(polar)
+  const long = THREE.MathUtils.radToDeg(Math.atan2(poleLocal.x, poleLocal.z))
   return PLANET_RADIUS + groundAltitudeAt(lat, long)
 }

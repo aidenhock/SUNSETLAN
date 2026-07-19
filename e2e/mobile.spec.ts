@@ -28,7 +28,7 @@ test('mobile: joystick sprint, tap button, modal round-trip, orbit drag', async 
   }
   await page.mouse.up()
   await expect(interactButton).toBeVisible()
-  expect(held, 'full deflection should sprint (walk-only would be ~19 s)').toBeLessThan(17_000)
+  expect(held, 'full deflection should sprint (walk-only would be ~11.5 s)').toBeLessThan(10_000)
   await expect(hint).toBeHidden()
 
   // Tap the floating button (not the mesh) → modal; Close by tap.

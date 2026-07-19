@@ -5,9 +5,17 @@ import * as THREE from 'three'
  * it stands at the world pole (0, R, 0) and every "step" rotates the planet
  * group's quaternion underneath it. Everything here is unit-testable and
  * free of React/scene state.
+ *
+ * Hot-path functions take an optional `out` target and use module scratch
+ * internally so the controller's frame loop allocates nothing. Omitting
+ * `out` allocates (fine for tests and startup code).
  */
 
 export const WORLD_UP = new THREE.Vector3(0, 1, 0)
+
+const _axis = new THREE.Vector3()
+const _inv = new THREE.Quaternion()
+const _pole = new THREE.Vector3()
 
 /**
  * Quaternion for one movement step of `angle` radians toward `moveDir`
@@ -19,24 +27,36 @@ export const WORLD_UP = new THREE.Vector3(0, 1, 0)
  * the ground to flow the opposite way (backward under the avatar's feet),
  * so the planet rotates against the input direction.
  */
-export function rotationStep(moveDir: THREE.Vector3, angle: number): THREE.Quaternion {
-  const axis = new THREE.Vector3().crossVectors(WORLD_UP, moveDir)
-  if (axis.lengthSq() < 1e-12) return new THREE.Quaternion() // no horizontal input
-  return new THREE.Quaternion().setFromAxisAngle(axis.normalize(), -angle)
+export function rotationStep(
+  moveDir: THREE.Vector3,
+  angle: number,
+  out: THREE.Quaternion = new THREE.Quaternion(),
+): THREE.Quaternion {
+  _axis.crossVectors(WORLD_UP, moveDir)
+  if (_axis.lengthSq() < 1e-12) return out.identity() // no horizontal input
+  return out.setFromAxisAngle(_axis.normalize(), -angle)
 }
 
 /** Compose one step onto the current planet orientation (world-space rotation). */
-export function applyStep(current: THREE.Quaternion, step: THREE.Quaternion): THREE.Quaternion {
+export function applyStep(
+  current: THREE.Quaternion,
+  step: THREE.Quaternion,
+  out: THREE.Quaternion = new THREE.Quaternion(),
+): THREE.Quaternion {
   // p_world = q · p_local, so an extra world rotation premultiplies: q' = step · q.
-  return new THREE.Quaternion().multiplyQuaternions(step, current).normalize()
+  return out.multiplyQuaternions(step, current).normalize()
 }
 
 /**
  * The planet-local direction currently under the avatar's feet, i.e. the
  * world pole pulled back through the planet's rotation.
  */
-export function poleInPlanetSpace(q: THREE.Quaternion): THREE.Vector3 {
-  return WORLD_UP.clone().applyQuaternion(q.clone().invert())
+export function poleInPlanetSpace(
+  q: THREE.Quaternion,
+  out: THREE.Vector3 = new THREE.Vector3(),
+): THREE.Vector3 {
+  _inv.copy(q).invert()
+  return out.copy(WORLD_UP).applyQuaternion(_inv)
 }
 
 /**
@@ -44,7 +64,7 @@ export function poleInPlanetSpace(q: THREE.Quaternion): THREE.Vector3 {
  * planet-local direction. Multiply by the planet radius for meters of arc.
  */
 export function angularDistanceToPole(q: THREE.Quaternion, localDir: THREE.Vector3): number {
-  return poleInPlanetSpace(q).angleTo(localDir)
+  return poleInPlanetSpace(q, _pole).angleTo(localDir)
 }
 
 /**
@@ -52,7 +72,7 @@ export function angularDistanceToPole(q: THREE.Quaternion, localDir: THREE.Vecto
  * (planet-local +Y). 0 = island center is underfoot; grows as you walk out.
  */
 export function polarAngle(q: THREE.Quaternion): number {
-  const y = THREE.MathUtils.clamp(poleInPlanetSpace(q).y, -1, 1)
+  const y = THREE.MathUtils.clamp(poleInPlanetSpace(q, _pole).y, -1, 1)
   return Math.acos(y)
 }
 
@@ -116,9 +136,11 @@ export function cameraRelativeMoveDir(
   ix: number,
   iz: number,
   azimuth: number,
+  out: THREE.Vector3 = new THREE.Vector3(),
 ): THREE.Vector3 {
-  const forward = new THREE.Vector3(-Math.sin(azimuth), 0, -Math.cos(azimuth))
-  const right = new THREE.Vector3(Math.cos(azimuth), 0, -Math.sin(azimuth))
-  const dir = forward.multiplyScalar(iz).add(right.multiplyScalar(ix))
-  return dir.lengthSq() < 1e-12 ? dir.set(0, 0, 0) : dir.normalize()
+  // forward·iz + right·ix, written out component-wise (no temporaries).
+  const sa = Math.sin(azimuth)
+  const ca = Math.cos(azimuth)
+  out.set(-sa * iz + ca * ix, 0, -ca * iz - sa * ix)
+  return out.lengthSq() < 1e-12 ? out.set(0, 0, 0) : out.normalize()
 }

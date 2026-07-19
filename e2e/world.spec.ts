@@ -25,12 +25,12 @@ test('desktop: spawn view, pointer lock, sprint to the dock, modal round-trip', 
   await expect(page.getByText('Click to resume', { exact: false })).toBeVisible()
 
   // Sprint down the meridian-0 dock until the Photos prompt fires.
-  // Walk-only would need ~19 s; sprint covers it in ~12 s — the time bound
-  // is also the sprint regression check.
+  // R=55: walk (6.5 m/s) would need ~11.5 s; sprint (10 m/s) ~7.5 s — the
+  // time bound discriminates and doubles as the sprint regression check.
   const prompt = page.locator('kbd', { hasText: 'E' })
   const ms = await sprintUntil(page, Math.PI, () => prompt.isVisible())
   await expect(prompt).toBeVisible()
-  expect(ms, 'sprint should reach the dock end in well under walk time').toBeLessThan(17_000)
+  expect(ms, 'sprint should reach the dock end in well under walk time').toBeLessThan(10_000)
   await expect(hint).toBeHidden()
 
   // E opens the gallery modal; Escape closes it.
