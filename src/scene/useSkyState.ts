@@ -1,13 +1,14 @@
 import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { latLongToUnit, poleInPlanetSpace } from '../controls/planetMath'
+import { paletteMaterial, PROP_COLORS } from './props'
 
 /**
- * The two-skies state (CLAUDE.md 3B). One place, per frame: compute nightMix
- * from the planet quaternion and lerp fog color, background/clear color, and
- * the whole light rig (hemisphere pair, directional color/intensity/direction,
- * ambient) between the sunset and night moods. Everything mutates in place —
- * zero allocations in the frame loop.
+ * The two-skies state (CLAUDE.md 3B, v3.2 rules). One place, per frame:
+ * compute nightMix from the planet quaternion, publish the sun/moon world
+ * directions, and lerp fog + background (always the CURRENT horizon stop)
+ * and the whole light rig. The dome shader reads skyRuntime in its own
+ * useFrame. Everything mutates in place — zero allocations per frame.
  */
 
 /** Planet-local anchors: sun low over the water at long 0, moon at 180.
@@ -16,12 +17,23 @@ import { latLongToUnit, poleInPlanetSpace } from '../controls/planetMath'
 export const SUN_LOCAL = latLongToUnit(16, 0)
 export const MOON_LOCAL = latLongToUnit(17, 180)
 
-/** Read-only for other systems (clouds, TV glow, meteors) — written per frame. */
-export const skyRuntime = { nightMix: 0 }
+/** Read-only for other systems (dome, clouds, TV glow, meteors) — written
+ * every frame. sunWorld/moonWorld are unit dirs from the planet center. */
+export const skyRuntime = {
+  nightMix: 0,
+  sunWorld: SUN_LOCAL.clone(),
+  moonWorld: MOON_LOCAL.clone(),
+}
 
+/** v3.2 sky stops (CLAUDE.md Two Skies — tune here, record finals). */
 export const SKY = {
-  fogDay: '#ffe3bd',
-  fogNight: '#1b2033', // midnight token
+  dayHorizon: '#ff9e5e',
+  dayMid: '#ffc98b',
+  dayZenith: '#8fb8d8',
+  nightHorizon: '#24304f',
+  nightMid: '#141b33',
+  nightZenith: '#070a14',
+  wayfind: '#31456b',
   dirDay: '#ffd9a0',
   dirNight: '#9fb4ff', // moonlight token
   hemiSkyDay: '#fff3d6',
@@ -36,8 +48,7 @@ export const SKY = {
  * the long-0 meridian": monotone with it along any walk between the two
  * moods, but stable at the spawn pole (where longitude is undefined) and it
  * correctly separates the east/west terminator (z ≈ 0, stays dusk-warm) from
- * the true night side (z < 0). Asymmetric edges keep spawn and the terminator
- * in the warm mood; the crossfade plays out over ~long 80 → 135 of the ring.
+ * the true night side (z < 0).
  */
 export function nightMixFromPoleZ(z: number): number {
   return 1 - THREE.MathUtils.smoothstep(z, -0.72, 0.18)
@@ -49,14 +60,15 @@ const HEMI_DAY_I = 0.55
 const HEMI_NIGHT_I = 0.4
 const AMB_DAY_I = 0.35
 const AMB_NIGHT_I = 0.26
+/** Campfire flame emissive ramps with night (v3.2: emissives scale). */
+const FLAME_DAY = 0.45
+const FLAME_NIGHT = 1.1
 
 // Frame-loop scratch.
 const _pole = new THREE.Vector3()
-const _sunW = new THREE.Vector3()
-const _moonW = new THREE.Vector3()
 const _lightDir = new THREE.Vector3()
-const _fogDay = new THREE.Color(SKY.fogDay)
-const _fogNight = new THREE.Color(SKY.fogNight)
+const _fogDay = new THREE.Color(SKY.dayHorizon)
+const _fogNight = new THREE.Color(SKY.nightHorizon)
 const _dirDay = new THREE.Color(SKY.dirDay)
 const _dirNight = new THREE.Color(SKY.dirNight)
 const _hemiSkyDay = new THREE.Color(SKY.hemiSkyDay)
@@ -64,6 +76,7 @@ const _hemiSkyNight = new THREE.Color(SKY.hemiSkyNight)
 const _hemiGroundDay = new THREE.Color(SKY.hemiGroundDay)
 const _hemiGroundNight = new THREE.Color(SKY.hemiGroundNight)
 const _c = new THREE.Color()
+const _flameMat = paletteMaterial(PROP_COLORS.flame, PROP_COLORS.ember, 0.85)
 
 export function useSkyState({
   planetRef,
@@ -84,8 +97,11 @@ export function useSkyState({
     poleInPlanetSpace(planet.quaternion, _pole)
     const nightMix = nightMixFromPoleZ(_pole.z)
     skyRuntime.nightMix = nightMix
+    skyRuntime.sunWorld.copy(SUN_LOCAL).applyQuaternion(planet.quaternion)
+    skyRuntime.moonWorld.copy(MOON_LOCAL).applyQuaternion(planet.quaternion)
 
-    // Fog + background (they must match — the dome is fog-excluded).
+    // Fog + background = the current sky horizon stop (v3.2), so terrain
+    // fade and the dome horizon always agree.
     _c.lerpColors(_fogDay, _fogNight, nightMix)
     if (scene.fog) scene.fog.color.copy(_c)
     if (scene.background instanceof THREE.Color) scene.background.copy(_c)
@@ -94,11 +110,13 @@ export function useSkyState({
     if (d) {
       d.color.lerpColors(_dirDay, _dirNight, nightMix)
       d.intensity = THREE.MathUtils.lerp(DIR_DAY_I, DIR_NIGHT_I, nightMix)
-      // Light direction follows the sun's (moon's past the handover) WORLD
-      // position under the planet quaternion; the 0.4–0.6 blend kills the pop.
-      _sunW.copy(SUN_LOCAL).applyQuaternion(planet.quaternion)
-      _moonW.copy(MOON_LOCAL).applyQuaternion(planet.quaternion)
-      _lightDir.lerpVectors(_sunW, _moonW, THREE.MathUtils.smoothstep(nightMix, 0.4, 0.6))
+      // Light direction follows the sun (moon past the handover); the
+      // 0.4–0.6 blend kills the pop.
+      _lightDir.lerpVectors(
+        skyRuntime.sunWorld,
+        skyRuntime.moonWorld,
+        THREE.MathUtils.smoothstep(nightMix, 0.4, 0.6),
+      )
       if (_lightDir.lengthSq() > 1e-4) {
         d.position.copy(_lightDir.normalize().multiplyScalar(100))
       }
@@ -111,5 +129,7 @@ export function useSkyState({
     }
     const a = amb.current
     if (a) a.intensity = THREE.MathUtils.lerp(AMB_DAY_I, AMB_NIGHT_I, nightMix)
+
+    _flameMat.emissiveIntensity = THREE.MathUtils.lerp(FLAME_DAY, FLAME_NIGHT, nightMix)
   })
 }

@@ -1,24 +1,108 @@
-import { useMemo } from 'react'
+import { useFrame } from '@react-three/fiber'
+import { useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { useStore } from '../store/useStore'
 import { mulberry32 } from './geometryUtils'
-import { MOON_LOCAL, SKY, SUN_LOCAL } from './useSkyState'
+import { MOON_LOCAL, SKY, skyRuntime, SUN_LOCAL } from './useSkyState'
 
 /**
- * The two permanent skies (CLAUDE.md 3B). Everything here is a child of the
- * rotating planet group, so the warm sky is welded to long 0 and the night
- * sky to long 180: walk toward the sunset side and the sun rises ahead of
- * you. All materials are fog-excluded and depth-write-off (scene fog 60–220
- * would otherwise swallow the dome at radius 240), and render first.
+ * The two skies, v3.2 (CLAUDE.md). The dome is one small ShaderMaterial:
+ * 3-stop vertical gradients (horizon/mid/zenith) per state blended
+ * stop-by-stop by nightMix, plus a horizon-band sun halo hard-gated to zero
+ * past nightMix 0.85, a pale cool moon glow (night-gated), and the faint
+ * steel-blue deep-night wayfinding band toward the day azimuth. Elevation is
+ * computed from the CAMERA (view direction), not dome-local y — the player
+ * stands at radius ~57, so their perceived horizon is nowhere near the
+ * dome's equator. Sun/moon discs and stars stay planet-local children; all
+ * sky materials are fog-excluded, depth-write-off, rendered first.
  */
 
 const DOME_R = 240 // inside camera far 400
 const BODY_R = 230 // sun/moon/stars sit just inside the dome
 
-const WARM_HORIZON = new THREE.Color('#FFB870')
-const WARM_HIGH = new THREE.Color('#FFC98B')
-const NIGHT = new THREE.Color(SKY.fogNight) // #1B2033 midnight
-const NIGHT_ZENITH = new THREE.Color('#141a2b')
+const DOME_VERT = /* glsl */ `
+varying vec3 vWorldPos;
+void main() {
+  vWorldPos = (modelMatrix * vec4(position, 1.0)).xyz;
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+}
+`
+
+const DOME_FRAG = /* glsl */ `
+uniform float uNightMix;
+uniform vec3 uSunWorld;  // unit, from planet center
+uniform vec3 uMoonWorld; // unit, from planet center
+uniform vec3 uDayH; uniform vec3 uDayM; uniform vec3 uDayZ;
+uniform vec3 uNightH; uniform vec3 uNightM; uniform vec3 uNightZ;
+uniform vec3 uHalo; uniform vec3 uMoonGlow; uniform vec3 uWayfind;
+varying vec3 vWorldPos;
+
+vec3 stops(vec3 h, vec3 m, vec3 z, float e) {
+  vec3 c = mix(h, m, smoothstep(0.02, 0.35, e));
+  return mix(c, z, smoothstep(0.30, 0.75, e));
+}
+
+void main() {
+  vec3 vd = normalize(vWorldPos - cameraPosition); // view direction
+  float elev = vd.y;                               // player-relative elevation
+  vec3 col = mix(
+    stops(uDayH, uDayM, uDayZ, elev),
+    stops(uNightH, uNightM, uNightZ, elev),
+    uNightMix
+  );
+
+  // Azimuth proximity to the sun, in the player's horizontal plane.
+  vec3 sunFromCam = normalize(uSunWorld * ${BODY_R.toFixed(1)} - cameraPosition);
+  vec2 sunH = normalize(sunFromCam.xz + vec2(1e-5, 0.0));
+  vec2 dirH = normalize(vd.xz + vec2(1e-5, 0.0));
+  float azCos = dot(sunH, dirH);
+  float horizonBand = (1.0 - smoothstep(0.10, 0.42, elev)) * smoothstep(-0.35, -0.06, elev);
+
+  // Sun halo: horizon band, ~±40° of the sun azimuth, ZERO past nightMix 0.85.
+  float halo = smoothstep(0.766, 0.96, azCos) * horizonBand
+    * (1.0 - smoothstep(0.45, 0.85, uNightMix));
+  col += uHalo * halo * 0.55;
+
+  // Moon glow: ~±25° around the moon, gated to night.
+  vec3 moonFromCam = normalize(uMoonWorld * ${BODY_R.toFixed(1)} - cameraPosition);
+  float mg = smoothstep(0.906, 0.988, dot(vd, moonFromCam)) * smoothstep(0.45, 0.8, uNightMix);
+  col += uMoonGlow * mg * 0.5;
+
+  // Deep-night wayfinding: faint steel-blue toward the DAY azimuth only.
+  float wf = smoothstep(0.55, 0.92, azCos)
+    * (1.0 - smoothstep(0.10, 0.30, elev)) * smoothstep(-0.35, -0.06, elev)
+    * smoothstep(0.78, 0.92, uNightMix);
+  col = mix(col, uWayfind, wf * 0.55);
+
+  gl_FragColor = vec4(col, 1.0);
+  #include <tonemapping_fragment>
+  #include <colorspace_fragment>
+}
+`
+
+function buildDomeMaterial(): THREE.ShaderMaterial {
+  return new THREE.ShaderMaterial({
+    vertexShader: DOME_VERT,
+    fragmentShader: DOME_FRAG,
+    side: THREE.BackSide,
+    depthWrite: false,
+    fog: false,
+    uniforms: {
+      uNightMix: { value: 0 },
+      uSunWorld: { value: SUN_LOCAL.clone() },
+      uMoonWorld: { value: MOON_LOCAL.clone() },
+      uDayH: { value: new THREE.Color(SKY.dayHorizon) },
+      uDayM: { value: new THREE.Color(SKY.dayMid) },
+      uDayZ: { value: new THREE.Color(SKY.dayZenith) },
+      uNightH: { value: new THREE.Color(SKY.nightHorizon) },
+      uNightM: { value: new THREE.Color(SKY.nightMid) },
+      uNightZ: { value: new THREE.Color(SKY.nightZenith) },
+      uHalo: { value: new THREE.Color(SKY.dayHorizon) },
+      uMoonGlow: { value: new THREE.Color('#a8b8d8') },
+      uWayfind: { value: new THREE.Color(SKY.wayfind) },
+    },
+  })
+}
 
 /** Faces +Z toward the planet center from a local anchor direction. */
 function facingCenter(unit: THREE.Vector3): THREE.Quaternion {
@@ -28,87 +112,82 @@ function facingCenter(unit: THREE.Vector3): THREE.Quaternion {
   )
 }
 
-function buildDome(): THREE.BufferGeometry {
-  const geo = new THREE.SphereGeometry(DOME_R, 48, 32)
-  const pos = geo.attributes.position as THREE.BufferAttribute
-  const colors = new Float32Array(pos.count * 3)
-  const v = new THREE.Vector3()
-  const warm = new THREE.Color()
-  const night = new THREE.Color()
-  const c = new THREE.Color()
-  for (let i = 0; i < pos.count; i++) {
-    v.fromBufferAttribute(pos, i).normalize()
-    // Blend by ANGULAR DISTANCE from the sun anchor, not longitude — a
-    // longitude blend makes the night side a thin pole-to-pole lune that
-    // pinches overhead; this makes it a proper cap around the antisolar
-    // point. 83° → 120° puts the terminator gradient over the spawn zenith
-    // (both moods visible from the pole — the signature).
-    const sunAngle = v.angleTo(SUN_LOCAL)
-    const e = THREE.MathUtils.smoothstep(v.y, -0.05, 0.5)
-    warm.lerpColors(WARM_HORIZON, WARM_HIGH, e)
-    night.lerpColors(NIGHT, NIGHT_ZENITH, e)
-    c.lerpColors(warm, night, THREE.MathUtils.smoothstep(sunAngle, 1.45, 2.1))
-    colors[i * 3] = c.r
-    colors[i * 3 + 1] = c.g
-    colors[i * 3 + 2] = c.b
-  }
-  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3))
-  return geo
-}
-
-/** Stars scattered only on the night hemisphere of the dome, seeded. */
-function buildStars(count: number): THREE.BufferGeometry {
+/** Seeded star positions on the night dome region; split into two size
+ * batches for the spec's slight size variance. */
+function buildStars(count: number): [THREE.BufferGeometry, THREE.BufferGeometry] {
   const rand = mulberry32(2033)
-  const positions = new Float32Array(count * 3)
-  const v = new THREE.Vector3()
+  const points: number[] = []
   let placed = 0
+  const v = new THREE.Vector3()
   while (placed < count) {
     v.set(rand() * 2 - 1, rand() * 2 - 1, rand() * 2 - 1)
     if (v.lengthSq() > 1 || v.lengthSq() < 1e-4) continue
     v.normalize()
-    // Night side only (local −z beyond the terminator). Allow well below the
-    // dome equator: from the night beach the visible sky band over the sea
-    // is at negative local y.
     if (v.z > -0.25 || v.y < -0.6) continue
-    positions[placed * 3] = v.x * (BODY_R + 4)
-    positions[placed * 3 + 1] = v.y * (BODY_R + 4)
-    positions[placed * 3 + 2] = v.z * (BODY_R + 4)
+    points.push(v.x * (BODY_R + 4), v.y * (BODY_R + 4), v.z * (BODY_R + 4))
     placed++
   }
-  const geo = new THREE.BufferGeometry()
-  geo.setAttribute('position', new THREE.BufferAttribute(positions, 3))
-  return geo
+  const split = Math.floor(count * 0.7) * 3
+  const geoOf = (arr: number[]) => {
+    const g = new THREE.BufferGeometry()
+    g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(arr), 3))
+    return g
+  }
+  return [geoOf(points.slice(0, split)), geoOf(points.slice(split))]
 }
+
+const starMaterial = (size: number) =>
+  new THREE.PointsMaterial({
+    color: '#fff3d6', // starlight token
+    size,
+    sizeAttenuation: false,
+    transparent: true,
+    opacity: 0,
+    fog: false,
+    depthWrite: false,
+  })
 
 export function CelestialDome() {
   const qualityTier = useStore((s) => s.qualityTier)
-  const domeGeo = useMemo(buildDome, [])
-  const starGeo = useMemo(() => buildStars(qualityTier === 'low' ? 150 : 400), [qualityTier])
+  const domeMaterial = useMemo(buildDomeMaterial, [])
+  const [starsSmall, starsBig] = useMemo(
+    () => buildStars(qualityTier === 'low' ? 150 : 400),
+    [qualityTier],
+  )
+  const starMatSmall = useMemo(() => starMaterial(1.7), [])
+  const starMatBig = useMemo(() => starMaterial(2.8), [])
   const sunPos = useMemo(() => SUN_LOCAL.clone().multiplyScalar(BODY_R), [])
   const sunQ = useMemo(() => facingCenter(SUN_LOCAL), [])
   const moonPos = useMemo(() => MOON_LOCAL.clone().multiplyScalar(BODY_R), [])
   const moonQ = useMemo(() => facingCenter(MOON_LOCAL), [])
+  const sunGroup = useRef<THREE.Group>(null)
+
+  useFrame(() => {
+    const u = domeMaterial.uniforms
+    u.uNightMix.value = skyRuntime.nightMix
+    ;(u.uSunWorld.value as THREE.Vector3).copy(skyRuntime.sunWorld)
+    ;(u.uMoonWorld.value as THREE.Vector3).copy(skyRuntime.moonWorld)
+    // Stars fade in across nightMix 0.55 → 0.9 (spec v3.2).
+    const fade = THREE.MathUtils.smoothstep(skyRuntime.nightMix, 0.55, 0.9)
+    starMatSmall.opacity = 0.85 * fade
+    starMatBig.opacity = 0.95 * fade
+    // The sun disc + its small halo dim with the same hard gate as the sky
+    // halo, so no warm sprite survives deep night at a grazing angle.
+    const g = sunGroup.current
+    if (g) g.visible = skyRuntime.nightMix < 0.85
+  })
 
   return (
     <>
-      <mesh geometry={domeGeo} renderOrder={-10}>
-        <meshBasicMaterial vertexColors side={THREE.BackSide} fog={false} depthWrite={false} />
+      <mesh material={domeMaterial} renderOrder={-10}>
+        <sphereGeometry args={[DOME_R, 48, 32]} />
       </mesh>
 
-      <points geometry={starGeo} renderOrder={-9}>
-        <pointsMaterial
-          color="#fff3d6" // starlight token
-          size={2}
-          sizeAttenuation={false}
-          transparent
-          opacity={0.9}
-          fog={false}
-          depthWrite={false}
-        />
-      </points>
+      <points geometry={starsSmall} material={starMatSmall} renderOrder={-9} />
+      <points geometry={starsBig} material={starMatBig} renderOrder={-9} />
 
       {/* Sun: soft halo behind a warm disc, low over the long-0 water. */}
-      <group position={sunPos} quaternion={sunQ}>
+      <group ref={sunGroup} position={sunPos} quaternion={sunQ}>
         <mesh renderOrder={-9}>
           <circleGeometry args={[24, 24]} />
           <meshBasicMaterial
@@ -125,15 +204,12 @@ export function CelestialDome() {
         </mesh>
       </group>
 
-      {/* Moon: pale disc + offset sky-colored disc carving the crescent. */}
+      {/* Moon: full disc (v3.2 — no crescent); the cool glow lives in the
+          dome shader so it gates with night like everything else. */}
       <group position={moonPos} quaternion={moonQ}>
         <mesh renderOrder={-8}>
           <circleGeometry args={[11, 24]} />
           <meshBasicMaterial color="#f4ecd8" fog={false} depthWrite={false} />
-        </mesh>
-        <mesh position={[4.2, 1.4, 0.5]} renderOrder={-7}>
-          <circleGeometry args={[10.2, 24]} />
-          <meshBasicMaterial color={NIGHT} fog={false} depthWrite={false} />
         </mesh>
       </group>
     </>
