@@ -22,6 +22,24 @@ function mulberry32(seed: number): () => number {
   }
 }
 
+/**
+ * Fill a geometry's vertex-color attribute with one flat color so pieces of
+ * different colors can merge into a single vertex-colored geometry (one draw
+ * call per rigid node — used by BlockyCharacter).
+ */
+export function tintGeometry(geometry: THREE.BufferGeometry, hex: string): THREE.BufferGeometry {
+  const color = new THREE.Color(hex)
+  const count = geometry.attributes.position.count
+  const colors = new Float32Array(count * 3)
+  for (let i = 0; i < count; i++) {
+    colors[i * 3] = color.r
+    colors[i * 3 + 1] = color.g
+    colors[i * 3 + 2] = color.b
+  }
+  geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3))
+  return geometry
+}
+
 export interface FacetTerrainOptions {
   /** Radial jitter amplitude in meters (visual only — keep < band steps). */
   amplitude?: number
