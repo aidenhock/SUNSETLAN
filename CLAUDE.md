@@ -10,7 +10,8 @@ Owner: Aiden — data analyst / developer (Python, SQL, ETL, Flask, some React).
 - ✅ **Phase 1** — walkable gray box (flat world, since removed).
 - ✅ **Phase 2** — planet core: quaternion controller with analytic ground (`groundHeightAt`), pointer-lock + orbit + touch controls, six data-driven interactables, all modal types, `/classic` fallback, 24 vitest cases. 9 commits on `main`; smoke suites exist only in session scratchpads (fix in 3A).
 - ✅ **Style reset (v3.1)** — imported kit assets removed; chunky-faceted primitives + BlockyCharacter per `docs/style-playbook.md`; Lambert lighting rig; per-face terrain colors; draw-call budget adopted.
-- ▶ **Now**: Phases 3B → 3C below, in order.
+- ✅ **Phase 3B** — two skies: planet-local CelestialDome (sun/moon/stars), `useSkyState` nightMix crossfade, box-cluster clouds, seagulls, shooting stars, CRT night glow, intro swoop over the terminator. Verified: smooth 0→180 crossfade, budgets hold (≤46 draw calls), suites green. Note: facing across the planet from the night side shows the warm dome half over the island — correct tiny-planet geometry, not a bug (`e2e/crossfade.mjs` documents the walk).
+- ▶ **Now**: Phase 3C below.
 
 ### Goals, in priority order
 1. Memorable within 10 seconds; calm, cozy, Animal-Crossing-adjacent vibe. The rotating planet and its split sky are the signature.
