@@ -4,38 +4,78 @@ import {
   DOCK,
   GRASS_ALTITUDE,
   PLANET_RADIUS,
-  SAND_ALTITUDE,
+  TERRAIN,
+  terrainProfile,
 } from '../scene/planetConfig'
 import { latLongToUnit, meridianYaw, surfaceQuaternion } from './planetMath'
 import { groundAltitudeAt, groundHeightAt, onDockStrip } from './terrain'
 
-describe('groundAltitudeAt (analytic bands, v3 proportions)', () => {
-  it('spawn (island center) stands on grass', () => {
-    expect(groundAltitudeAt(90, 0)).toBeCloseTo(GRASS_ALTITUDE, 6)
+const profileAtLat = (lat: number) => terrainProfile(THREE.MathUtils.degToRad(90 - lat))
+
+describe('terrainProfile (v3.2 continuous surface, placement rule 4)', () => {
+  it('spawn plateau stands at grass altitude', () => {
+    expect(profileAtLat(90)).toBeCloseTo(GRASS_ALTITUDE, 6)
+    expect(profileAtLat(28)).toBeCloseTo(GRASS_ALTITUDE, 6) // plateau to polar 63
   })
 
-  it('grass now reaches down to lat 24', () => {
-    expect(groundAltitudeAt(30, 200)).toBeCloseTo(GRASS_ALTITUDE, 6)
-    expect(groundAltitudeAt(25, 100)).toBeCloseTo(GRASS_ALTITUDE, 6)
+  it('crosses exactly zero at the waterline', () => {
+    expect(profileAtLat(90 - TERRAIN.waterlineDeg)).toBeCloseTo(0, 6)
   })
 
-  it('the sand ring is lat 15–24', () => {
-    expect(groundAltitudeAt(23, 200)).toBeCloseTo(SAND_ALTITUDE, 6)
-    expect(groundAltitudeAt(16, 40)).toBeCloseTo(SAND_ALTITUDE, 6)
+  it('wades below sea level down the real slope past the waterline', () => {
+    expect(profileAtLat(13)).toBeLessThan(0)
+    expect(profileAtLat(9)).toBeCloseTo(TERRAIN.apronAltitude, 6)
   })
 
-  it('past the beach line wades at sea level', () => {
-    expect(groundAltitudeAt(10, 200)).toBeCloseTo(0, 6)
+  it('is continuous across every band boundary (no jumps > 0.02 m)', () => {
+    for (const edgeDeg of [
+      TERRAIN.plateauEndDeg,
+      TERRAIN.shoulderEndDeg,
+      TERRAIN.waterlineDeg,
+      TERRAIN.apronEndDeg,
+    ]) {
+      const e = THREE.MathUtils.degToRad(edgeDeg)
+      const eps = THREE.MathUtils.degToRad(0.01)
+      expect(Math.abs(terrainProfile(e + eps) - terrainProfile(e - eps))).toBeLessThan(0.02)
+    }
   })
 
-  it('dock deck rides 0.6 above its local band: sand entrance, water end', () => {
-    expect(groundAltitudeAt(18, DOCK.longDeg)).toBeCloseTo(SAND_ALTITUDE + DOCK.deckHeightM, 6)
-    expect(groundAltitudeAt(14, DOCK.longDeg)).toBeCloseTo(DOCK.deckHeightM, 6)
+  it('descends monotonically from the plateau edge to the apron floor', () => {
+    let prev = terrainProfile(THREE.MathUtils.degToRad(TERRAIN.plateauEndDeg))
+    for (let d = TERRAIN.plateauEndDeg; d <= TERRAIN.apronEndDeg; d += 0.25) {
+      const alt = terrainProfile(THREE.MathUtils.degToRad(d))
+      expect(alt).toBeLessThanOrEqual(prev + 1e-9)
+      prev = alt
+    }
+  })
+})
+
+describe('groundAltitudeAt (profile + dock strip)', () => {
+  it('equals the terrain profile off the dock', () => {
+    for (const [lat, long] of [
+      [90, 0],
+      [25, 100],
+      [19, 40],
+      [13, 200],
+    ]) {
+      expect(groundAltitudeAt(lat, long)).toBeCloseTo(profileAtLat(lat), 6)
+    }
   })
 
-  it('beside the dock (outside half width) is plain sand', () => {
+  it('dock deck rides deckHeightM above the local profile, entrance to end', () => {
+    expect(groundAltitudeAt(18, DOCK.longDeg)).toBeCloseTo(
+      profileAtLat(18) + DOCK.deckHeightM,
+      6,
+    )
+    expect(groundAltitudeAt(14, DOCK.longDeg)).toBeCloseTo(
+      profileAtLat(14) + DOCK.deckHeightM,
+      6,
+    )
+  })
+
+  it('beside the dock (outside half width) is the plain profile', () => {
     expect(onDockStrip(18, DOCK.longDeg + 3)).toBe(false)
-    expect(groundAltitudeAt(18, DOCK.longDeg + 3)).toBeCloseTo(SAND_ALTITUDE, 6)
+    expect(groundAltitudeAt(18, DOCK.longDeg + 3)).toBeCloseTo(profileAtLat(18), 6)
   })
 
   it('groundHeightAt agrees with groundAltitudeAt through the pole transform', () => {

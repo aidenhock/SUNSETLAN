@@ -1,29 +1,18 @@
 import * as THREE from 'three'
-import {
-  DOCK,
-  GRASS_ALTITUDE,
-  GRASS_POLAR_DEG,
-  ISLAND_POLAR_DEG,
-  PLANET_RADIUS,
-  SAND_ALTITUDE,
-} from '../scene/planetConfig'
+import { DOCK, PLANET_RADIUS, terrainProfile } from '../scene/planetConfig'
 
 /**
- * Analytic terrain. The walkable world is concentric sphere caps plus the
- * dock strip, so ground height is a pure function of (lat, long) — no
- * raycasting, and placement code derives altitudes from the same bands the
- * controller walks on (placement rule 1: never hardcode altitude).
+ * Analytic terrain (v3.2). The walkable world is ONE continuous profile —
+ * terrainProfile(polar) in planetConfig, the same function the terrain mesh
+ * is shaped from (placement rule 4) — plus the dock strip. Ground height is
+ * a pure function of (lat, long): no raycasting, and placement code derives
+ * altitudes from the exact surface the controller walks on. Wading depth is
+ * the real slope past the waterline; there is no step.
  */
 
-const GRASS_THETA = THREE.MathUtils.degToRad(GRASS_POLAR_DEG)
-const ISLAND_THETA = THREE.MathUtils.degToRad(ISLAND_POLAR_DEG)
-
-/** Base band (grass / sand / water) altitude above sea level at a latitude. */
+/** Continuous profile altitude above sea level at a latitude. */
 function bandAltitudeAt(latDeg: number): number {
-  const polar = THREE.MathUtils.degToRad(90 - latDeg)
-  if (polar < GRASS_THETA) return GRASS_ALTITUDE
-  if (polar < ISLAND_THETA) return SAND_ALTITUDE
-  return 0
+  return terrainProfile(THREE.MathUtils.degToRad(90 - latDeg))
 }
 
 /** True when (lat, long) is on the dock's walkable strip. */

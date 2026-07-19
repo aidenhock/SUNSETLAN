@@ -4,14 +4,12 @@ import { groundAltitudeAt } from '../controls/terrain'
 import { facetTerrain } from './geometryUtils'
 import {
   DOCK,
-  GRASS_ALTITUDE,
-  GRASS_POLAR_DEG,
-  ISLAND_POLAR_DEG,
   MAP,
   PLANET_RADIUS,
-  SAND_ALTITUDE,
   scatterProps,
   SINK_M,
+  TERRAIN,
+  terrainProfile,
 } from './planetConfig'
 import { IDENTITY_Q, InstancedProp, StaticInstances, surfacePartMatrix } from './instancing'
 import {
@@ -26,9 +24,6 @@ import {
   paletteMaterial,
   PROP_COLORS,
 } from './props'
-
-const ISLAND_THETA = THREE.MathUtils.degToRad(ISLAND_POLAR_DEG)
-const GRASS_THETA = THREE.MathUtils.degToRad(GRASS_POLAR_DEG)
 
 const woodMat = paletteMaterial(PROP_COLORS.woodDark)
 const postGeo = new THREE.CylinderGeometry(0.09, 0.09, 0.84, 5)
@@ -48,29 +43,24 @@ const placement = (lat: number, long: number, yaw = 0, scale = 1) =>
  * from groundAltitudeAt (rule 1); blocking radii live in planetConfig.
  */
 export function Island() {
-  // Per-face two-tone caps (playbook §3): sand gets irregular tan patches,
-  // grass gets the lively AC-style two-green tiling.
-  const sandGeo = useMemo(
+  // ONE continuous terrain surface (placement rule 4): the cap follows
+  // terrainProfile and is painted by polar band — grass tiling on the
+  // plateau, blended shoulder, sand tans to the waterline, wet sand on the
+  // submerged apron. Per-face two-tone facets per playbook §3.
+  const terrainGeo = useMemo(
     () =>
       facetTerrain(
         new THREE.SphereGeometry(
-          PLANET_RADIUS + SAND_ALTITUDE, 96, 48, 0, Math.PI * 2, 0, ISLAND_THETA,
-        ),
-        { colorA: '#e8d5a3', colorB: '#d9c48e', patchSize: 6, checker: 0.25, bias: 0.6, speckle: 0.05, seed: 5 },
-      ),
-    [],
-  )
-  const grassGeo = useMemo(
-    () =>
-      facetTerrain(
-        new THREE.SphereGeometry(
-          PLANET_RADIUS + GRASS_ALTITUDE, 96, 48, 0, Math.PI * 2, 0, GRASS_THETA,
+          PLANET_RADIUS, 96, 64, 0, Math.PI * 2, 0, THREE.MathUtils.degToRad(TERRAIN.apronEndDeg),
         ),
         {
-          colorA: '#58b268',
-          colorB: '#49a15a',
-          patchSize: 9,
-          checker: 0.65,
+          radiusAt: (polar) => PLANET_RADIUS + terrainProfile(polar),
+          bands: [
+            { untilPolarDeg: 65, colorA: '#58b268', colorB: '#49a15a', checker: 0.65 },
+            { untilPolarDeg: TERRAIN.waterlineDeg, colorA: '#e8d5a3', colorB: '#d9c48e', checker: 0.25, bias: 0.6 },
+            { untilPolarDeg: 90, colorA: '#c7ae83', colorB: '#b39a70', checker: 0.3, bias: 0.55 },
+          ],
+          patchSize: 8,
           speckle: 0.05,
           poleFadeRad: 0.28, // clean turf around spawn; character further out
           seed: 3,
@@ -143,13 +133,9 @@ export function Island() {
 
   return (
     <>
-      {/* Beach: sand cap down to the water line. DoubleSide closes the open
-          rim edge that is visible from the wade zone past the beach line. */}
-      <mesh geometry={sandGeo}>
-        <meshLambertMaterial vertexColors flatShading side={THREE.DoubleSide} />
-      </mesh>
-      {/* Inner grass rise. */}
-      <mesh geometry={grassGeo}>
+      {/* The island surface — one continuous mesh, no rims, no undersides
+          (the apron ends tucked under the ocean-floor sphere). */}
+      <mesh geometry={terrainGeo}>
         <meshLambertMaterial vertexColors flatShading />
       </mesh>
 

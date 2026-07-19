@@ -225,12 +225,12 @@ export function usePlanetController({ planetRef, avatarRef }: ControllerRefs) {
     }
 
     const groundY = groundHeightAt(_poleAfter)
-    // Any grounded transition to or from sea level is a waterline crossing
-    // (wading in from the sand, back out, or stepping off the dock end) →
-    // ripple. Suppressed mid-jump: feet aren't in the water.
+    // Any grounded transition across sea level is a waterline crossing
+    // (wading in down the real slope, back out, or stepping off the dock
+    // end) → ripple. Suppressed mid-jump: feet aren't in the water.
     if (
       jumpT.current === null &&
-      (groundY === SEA_LEVEL) !== (lastGroundY.current === SEA_LEVEL)
+      groundY < SEA_LEVEL !== lastGroundY.current < SEA_LEVEL
     ) {
       controlsRuntime.wadeRippleTime = state.clock.elapsedTime
     }

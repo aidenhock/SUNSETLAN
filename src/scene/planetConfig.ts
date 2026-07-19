@@ -24,11 +24,59 @@ export const INTERACT_ARC_M = 2.5
 /** Hysteresis: once nearby, stay nearby until past this radius (no flicker). */
 export const INTERACT_EXIT_ARC_M = 3.0
 
-/** Cap heights above sea level — shared by cap geometry and analytic ground. */
+/** Profile heights above sea level — shared by the terrain mesh and the
+ * analytic ground (placement rule 4: they are the SAME function). */
 export const SAND_ALTITUDE = 0.35
 export const GRASS_ALTITUDE = 0.55
 /** Placement rule 1: prop bases sink 0.1 m into the ground so they bite. */
 export const SINK_M = 0.1
+
+/**
+ * The continuous terrain profile (v3.2, placement rule 4): one surface from
+ * the grass plateau down through the beach to a submerged apron that ends
+ * tucked under the ocean-floor sphere (radius 55 − 0.4) — never an exposed
+ * rim. Chained smoothsteps give zero-slope joins, so the profile is C1-ish
+ * smooth and monotone from the plateau out.
+ */
+export const TERRAIN = {
+  /** Grass plateau ends (deg from the pole). */
+  plateauEndDeg: 63,
+  /** Rolling shoulder down to the sand altitude. */
+  shoulderEndDeg: 67,
+  /** Waterline: profile crosses exactly 0 here (= ISLAND_POLAR_DEG). */
+  waterlineDeg: ISLAND_POLAR_DEG,
+  /** Submerged apron ends here, below the ocean-floor sphere. */
+  apronEndDeg: 81,
+  apronAltitude: -0.9,
+} as const
+
+/** Altitude above sea level at a polar angle (radians from the pole). */
+export function terrainProfile(polarRad: number): number {
+  const p = THREE.MathUtils.radToDeg(polarRad)
+  if (p <= TERRAIN.plateauEndDeg) return GRASS_ALTITUDE
+  if (p <= TERRAIN.shoulderEndDeg) {
+    return THREE.MathUtils.lerp(
+      GRASS_ALTITUDE,
+      SAND_ALTITUDE,
+      THREE.MathUtils.smoothstep(p, TERRAIN.plateauEndDeg, TERRAIN.shoulderEndDeg),
+    )
+  }
+  if (p <= TERRAIN.waterlineDeg) {
+    return THREE.MathUtils.lerp(
+      SAND_ALTITUDE,
+      0,
+      THREE.MathUtils.smoothstep(p, TERRAIN.shoulderEndDeg, TERRAIN.waterlineDeg),
+    )
+  }
+  if (p <= TERRAIN.apronEndDeg) {
+    return THREE.MathUtils.lerp(
+      0,
+      TERRAIN.apronAltitude,
+      THREE.MathUtils.smoothstep(p, TERRAIN.waterlineDeg, TERRAIN.apronEndDeg),
+    )
+  }
+  return TERRAIN.apronAltitude
+}
 
 /**
  * The dock: longitude 0, entrance on sand, last segments over open water.
