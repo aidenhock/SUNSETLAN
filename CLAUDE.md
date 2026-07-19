@@ -9,7 +9,8 @@ Owner: Aiden — data analyst / developer (Python, SQL, ETL, Flask, some React).
 ### Status
 - ✅ **Phase 1** — walkable gray box (flat world, since removed).
 - ✅ **Phase 2** — planet core: quaternion controller with analytic ground (`groundHeightAt`), pointer-lock + orbit + touch controls, six data-driven interactables, all modal types, `/classic` fallback, 24 vitest cases. 9 commits on `main`; smoke suites exist only in session scratchpads (fix in 3A).
-- ▶ **Now**: Phases 3A → 3B → 3C below, in order.
+- ✅ **Style reset (v3.1)** — imported kit assets removed; chunky-faceted primitives + BlockyCharacter per `docs/style-playbook.md`; Lambert lighting rig; per-face terrain colors; draw-call budget adopted.
+- ▶ **Now**: Phases 3B → 3C below, in order.
 
 ### Goals, in priority order
 1. Memorable within 10 seconds; calm, cozy, Animal-Crossing-adjacent vibe. The rotating planet and its split sky are the signature.
@@ -46,7 +47,8 @@ The sun, moon, stars, and sky gradient are **children of the rotating planet gro
 - **Sun**: flat disc/billboard at long 0, low elevation over the water. **Moon**: disc + crescent shadow at long 180. **Stars**: one `THREE.Points` (~400 pts, count by `qualityTier`) scattered only on the night hemisphere of the dome.
 - **`useSkyState` hook** (one place, per frame): compute `nightMix = smoothstep` of the pole's angular distance from the long-0 meridian (0 at sunset side → 1 at night side). Lerp: fog color `#ffe3bd → #1b2033`; directional light color `#ffd9a0 → #9fb4ff` and intensity `1.0 → 0.55`; ambient down slightly; renderer clear color matches fog. Directional light direction follows the sun's (or moon's, when nightMix > 0.5) current **world** position derived from the planet quaternion.
 - Replace the static `<color attach="background">` and fog values with hook-driven ones.
-- Clouds: warm-tinted and plentiful on the sunset side, sparse on the night side.
+- **Clouds** (playbook §4 recipe — binding): hand-built clusters of 3–6 white rounded boxes per cloud group (Aviator pattern), instanced when numerous, slow planet-local drift in `useFrame`. Never drei `<Cloud>`/`<Clouds>` (billboard sprites needing a cloud texture). Warm-tinted and plentiful on the sunset side, sparse on the night side.
+- **Lighting** (playbook §4 recipe — base rig ships before 3B): `HemisphereLight(skyPastel, groundPastel)` + one soft `DirectionalLight` + gentle ambient, `MeshLambertMaterial` everywhere. Cozy brightness comes from light intensity and saturated-but-light palette colors — never bloom/postprocessing. 3B's `useSkyState` lerps this same rig (hemisphere sky/ground colors, directional color/intensity) with `nightMix`.
 
 ## World map (single source of truth — matches the approved top-down map)
 
@@ -69,12 +71,18 @@ The sun, moon, stars, and sky gradient are **children of the rotating planet gro
 
 Blockers regenerate from this table. Interactable prompts/copy unchanged.
 
-## Art direction
+## Art direction — the style bible
 
-Palette adds night tokens: `midnight` #1B2033, `moonlight` #9FB4FF, `starlight` #FFF3D6, `ember` #FF8C42 — alongside the existing `sand/palm/lagoon/deepwater/sunset/ink`. Typography unchanged (Bricolage Grotesque + Atkinson Hyperlegible). Flat-shaded, no shadow maps, blob shadows only. Signature moment: the intro camera starts in space **over the terminator** (both sides visible), then swoops to the pole; respect `prefers-reduced-motion` (fade instead).
+Visual targets: **Animal Crossing** (cozy ground + props), **Wii Sports Resort / Miis** (characters), **Minecraft** (chunky facets). `docs/style-playbook.md` is the **technique authority** — its recipes are binding; do not re-derive alternatives.
+
+- **Characters speak AC/Mii**: rounded chibi ~2.2 heads tall, oversized rounded head, stubby limbs, **no fingers**, big flat eyes. Matte-plastic finish (the Mii look). Built from primitives with pivot-group limbs (playbook §1), animated procedurally (playbook §2) — no skeletons, no clips.
+- **The world speaks chunky-faceted**: visible flat facets and blocky silhouettes — the facet read comes from Minecraft, **not** textured cubes. Every prop is a hand-built primitive assembly with chunky proportions.
+- **Color**: bright soft pastels; cozy, clean, slightly-overexposed cheerful. Existing tokens `sand/palm/lagoon/deepwater/sunset/ink` plus night tokens: `midnight` #1B2033, `moonlight` #9FB4FF, `starlight` #FFF3D6, `ember` #FF8C42.
+- **One material language**: flat palette colors per mesh; per-face vertex colors for terrain patches; **`MeshLambertMaterial` is the default everywhere** (approved experiment: `MeshToonMaterial` with a procedural 3-step gradient `DataTexture`). No Phong/Standard/Physical, no specular, no PBR. **Image textures are banned** — procedurally *generated* canvas tiles are allowed only per the playbook §3 flat-patch caveat.
+- Flat-shaded, no shadow maps, blob shadows only. Typography unchanged (Bricolage Grotesque + Atkinson Hyperlegible). Signature moment: the intro camera starts in space **over the terminator** (both sides visible), then swoops to the pole; respect `prefers-reduced-motion` (fade instead).
 
 ### Ground & water feel
-- **Caps**: displace cap vertices slightly (deterministic noise, ±0.08 m) and add per-vertex color variation (sand speckle, grass patches) for a handmade look — no image textures; flat shading stays. Analytic ground is unaffected (visual jitter < step height).
+- **Caps**: non-indexed cap geometry painted with **per-face two-tone vertex colors** (playbook §3): a triangle's three vertices share one color — two greens noise-weighted per face on grass, irregular tan patches on sand — for the crisp AC facet tiling. Seeded deterministic jitter (strengthened from the old ±0.08 m pass) with the pole fade kept so nothing spokes at spawn. No image textures. Analytic ground is unaffected (visual jitter < step height).
 - **Shoreline**: thin foam ring band at the waterline, animated opacity/offset.
 - **Waves**: vertex displacement on the water sphere — 2–3 summed sines, amplitude ≈ 0.12 m, planet-local (waves rotate with the world). Cheap; no reflections/refraction.
 
@@ -92,24 +100,23 @@ Palette adds night tokens: `midnight` #1B2033, `moonlight` #9FB4FF, `starlight` 
 - Opening a media modal (Videos/Music) ducks music to 0.2; restore on close.
 - **Waves ambience**: quiet loop whose gain rises near the waterline.
 
-## Player avatar (3A.2 — implement now)
-The capsule becomes **Aiden**: a Quaternius CC0 animated low-poly character, materials recolored in code (blonde hair, casual outfit), simple glasses (thin rims + bridge, no lenses) attached to the head bone. Clips wired to the controller: idle when still, walk at `MOVE_SPEED`, run when sprinting, jump on Space — ~0.15 s crossfades. Draco-compressed, under ~1 MB. Route B fallback stands: hand-built primitive character with procedural cycles if retargeting fights us. Blob shadow stays.
+## Player avatar (BlockyCharacter)
+The avatar is **Aiden** as a `BlockyCharacter`: a parameterized chibi rig (playbook §1) built entirely from primitives — rounded-box body, oversized rounded head, big flat eyes, pivot-group limbs, no fingers — configured from `src/content/characters.ts` (Aiden: blonde swoop hair, thin dark glasses, yellow tee, teal shorts). Animation is procedural transform math on the pivot groups (playbook §2): idle bob, counter-phase walk, run with forward lean, jump squash-and-stretch (launch immediately, never delay input) — one blend parameter per state, ~0.15 s lerped-parameter crossfades wired to `controlsRuntime.locomotion` / `airborne`. No glTF, no skeleton, no `AnimationMixer`. ≤ ~3k tris. Blob shadow stays.
 
 ## Unchanged systems
 Interaction flow, content model, modals, `/classic` (add night-token styling only if trivial), meta/OG in Phase 4.
 
-## Asset pipeline (3A.2 pivot: real packs over hand-built primitives)
+## Asset pipeline (v3 style reset: hand-built primitives only)
 
-Landmark props and scatter come from **CC0 low-poly packs** (Kenney, Quaternius, Poly Pizza); the code-built primitives stay in the tree as the fallback for anything without a good kit part.
+The CC0-pack experiment is reversed — imported glTF props and the imported avatar are **out** (removed along with the Draco decoder and model files). Every prop, character, and critter is hand-built from three.js primitives per the style bible; no model files, no loaders, no compression step.
 
-- **Licenses**: CC0 or CC-BY only. Credit every pack in `CREDITS.md` even when CC0.
-- **Style gate**: must match the flat-shaded low-poly look — no textures beyond flat/vertex colors, no PBR gloss. Recolor materials in code to the palette when needed.
-- **Compression**: every model runs `npx gltf-transform optimize <in> <out> --compress draco`. Total models **< 4 MB** (avatar within it, ~1 MB).
-- **Instancing**: repeated models (palms, rocks, shells, crates, dock parts) render as instanced meshes, same as the primitive era.
-- **Placement unchanged**: the world map table + `groundAltitudeAt` − sink drive every placement; blocker radii updated to the real model footprints.
-- **Critters**: may be imported if a suitable tiny animated model exists; otherwise stay code-animated primitives per Ambient life.
+- **Construction**: primitive assemblies (boxes/rounded boxes, cylinders, cones, icosahedra) in chunky-faceted proportions. Palms: stacked banana-curve box trunk + flat wedge fronds. One shared material per color per prop type.
+- **Instancing**: repeated props (palms, rocks, shells, dock planks/posts) render as instanced meshes; static same-material clusters may use `mergeGeometries` (playbook §5).
+- **Placement unchanged**: the world map table + `groundAltitudeAt` − sink drive every placement; blocker radii match the primitive footprints.
+- **Critters**: always code-animated primitives per Ambient life — never skinned glTFs.
 
-## Performance budgets (3A.1)
+## Performance budgets (3A.1 + style-reset draw-call budget)
+- **Draw calls** (the primary budget — playbook §5): **< 50 on mobile, < 100 on desktop**, measured via `renderer.info.render.calls` (`e2e/measure.mjs` and r3f-perf both report it). When over budget, **fix draw calls first**, then segment counts, then effects — triangles are almost never the bottleneck.
 - **Triangles**: island caps + water + ocean floor ≤ **60k**; whole scene ≤ **150k**.
 - **Frame loop**: zero allocations and zero geometry rebuilds inside `useFrame` — scratch vectors/quaternions only; terrain jitter/tint is baked once at startup. Water waves run in the vertex shader (`onBeforeCompile`), never on the CPU.
 - **Repeats are instanced**: palms, rocks, shells, dock planks/posts, campfire stones — one draw call per kind.
@@ -123,11 +130,11 @@ Speed + sprint + run key; new proportions; `groundAltitudeAt` + sink rule applie
 ✓ Done when: no prop floats at the horizon or sinks up close (screenshot sweep around the island), the dock visibly runs from sand out over the water and is walkable end to end, beach reads as a beach, sprint feels good on desktop and phone, unit + e2e suites pass.
 
 **Phase 3B — Two skies**
-CelestialDome + sun/moon/stars (fog-excluded), `useSkyState` fog/light/clear-color lerp, campfire + bench + music ukulele on the night beach per map, TV glow at night, seagulls on the sunset side, cloud tinting, shooting stars — occasional meteor streak, night side — and the intro swoop over the terminator.
+CelestialDome + sun/moon/stars (fog-excluded), `useSkyState` fog/light/clear-color lerp driving the hemisphere + directional rig, box-cluster clouds (per the recipe above) with side tinting, campfire + bench + music ukulele on the night beach per map, TV glow at night, seagulls on the sunset side, shooting stars — occasional meteor streak, night side — and the intro swoop over the terminator.
 ✓ Done when: walking long 0 → 180 crossfades the whole mood with no popping, both sides screenshot beautifully, 60 fps desktop / ~30 mid phone holds.
 
 **Phase 3C — Life & sound**
-Aiden avatar with run animation; ukulele NPC + note sprites + positional loop; audio buses + lo-fi loop + crossfade/duck rules; crabs; campfire crackle + flicker; waves ambience; mute toggle polish.
+Ukulele NPC + note sprites + positional loop (avatar + run animation shipped with the style reset); audio buses + lo-fi loop + crossfade/duck rules; crabs; campfire crackle + flicker; waves ambience; mute toggle polish.
 ✓ Done when: the lo-fi ⇄ ukulele crossfade works by ear walking the dock, crabs scuttle without entering the water or the grass, audio only ever starts after a gesture, budgets hold (audio lazy-loaded).
 
 **Phase 4 — Content & launch** (unchanged)
