@@ -33,9 +33,10 @@ const DOME_FRAG = /* glsl */ `
 uniform float uNightMix;
 uniform vec3 uSunWorld;  // unit, from planet center
 uniform vec3 uMoonWorld; // unit, from planet center
-uniform vec3 uDayH; uniform vec3 uDayL; uniform vec3 uDayM; uniform vec3 uDayZ;
+uniform vec3 uDayZen; uniform vec3 uDayHor;
 uniform vec3 uNightH; uniform vec3 uNightL; uniform vec3 uNightM; uniform vec3 uNightZ;
-uniform vec3 uHalo; uniform vec3 uMoonGlow; uniform vec3 uWayfind;
+uniform vec3 uSunsetDeep; uniform vec3 uSunsetGold; uniform vec3 uSunsetPink;
+uniform vec3 uMoonLayer; uniform vec3 uMoonGlow; uniform vec3 uWayfind;
 varying vec3 vWorldPos;
 
 vec3 stops4(vec3 h, vec3 l, vec3 m, vec3 z, float e) {
@@ -47,27 +48,39 @@ vec3 stops4(vec3 h, vec3 l, vec3 m, vec3 z, float e) {
 void main() {
   vec3 vd = normalize(vWorldPos - cameraPosition); // view direction
   float elev = vd.y;                               // player-relative elevation
-  vec3 col = mix(
-    stops4(uDayH, uDayL, uDayM, uDayZ, elev),
-    stops4(uNightH, uNightL, uNightM, uNightZ, elev),
-    uNightMix
-  );
 
-  // Azimuth proximity to the sun, in the player's horizontal plane.
+  // Base layer: elevation-only blues (v3.5) — day cream-blue → soft blue,
+  // night keeps the 4-stop blue→black ramp.
+  vec3 dayBase = mix(uDayHor, uDayZen, smoothstep(-0.05, 0.4, elev));
+  vec3 nightBase = stops4(uNightH, uNightL, uNightM, uNightZ, elev);
+  vec3 col = mix(dayBase, nightBase, uNightMix);
+
+  // Azimuth distance to the sun in the player's horizontal plane.
   vec3 sunFromCam = normalize(uSunWorld * ${BODY_R.toFixed(1)} - cameraPosition);
   vec2 sunH = normalize(sunFromCam.xz + vec2(1e-5, 0.0));
   vec2 dirH = normalize(vd.xz + vec2(1e-5, 0.0));
   float azCos = dot(sunH, dirH);
-  float horizonBand = (1.0 - smoothstep(0.10, 0.42, elev)) * smoothstep(-0.35, -0.06, elev);
+  float azDist = acos(clamp(azCos, -1.0, 1.0));
 
-  // Sun halo: horizon band, ~±40° of the sun azimuth, ZERO past nightMix 0.85.
-  float halo = smoothstep(0.766, 0.96, azCos) * horizonBand
-    * (1.0 - smoothstep(0.45, 0.85, uNightMix));
-  col += uHalo * halo * 0.55;
+  // Sunset layer: warm as a function of BOTH sun-azimuth distance AND
+  // elevation — deep orange piled at the horizon around the sun, easing
+  // through gold/pink outward and upward, fully faded by ~90° so the
+  // anti-sun sky stays blue evening. Gated by nightMix.
+  float azFall = 1.0 - smoothstep(0.0, 1.5708, azDist);
+  float elevFall = 1.0 - smoothstep(-0.05, 0.55, elev);
+  float w = azFall * elevFall * (1.0 - smoothstep(0.55, 0.85, uNightMix));
+  vec3 warm = mix(uSunsetPink, uSunsetDeep, smoothstep(0.15, 0.7, w));
+  warm = mix(warm, uSunsetGold, smoothstep(0.72, 0.95, w));
+  col = mix(col, warm, smoothstep(0.02, 0.6, w));
 
-  // Moon glow (v3.3): tighter than the sun's, cool blue-white, and only
-  // past residual daylight — the moon must never read as a second sun.
+  // Moon layer: same shape, subtle silver-blue, night-gated.
   vec3 moonFromCam = normalize(uMoonWorld * ${BODY_R.toFixed(1)} - cameraPosition);
+  vec2 moonH = normalize(moonFromCam.xz + vec2(1e-5, 0.0));
+  float mAz = acos(clamp(dot(moonH, dirH), -1.0, 1.0));
+  float mw = (1.0 - smoothstep(0.0, 1.5708, mAz)) * elevFall * smoothstep(0.6, 0.85, uNightMix);
+  col = mix(col, uMoonLayer, mw * 0.35);
+
+  // Moon disc glow: tight, cool, night-gated — never a second sun.
   float mg = smoothstep(0.94, 0.995, dot(vd, moonFromCam)) * smoothstep(0.6, 0.85, uNightMix);
   col += uMoonGlow * mg * 0.5;
 
@@ -98,15 +111,16 @@ function buildDomeMaterial(): THREE.ShaderMaterial {
       uNightMix: { value: 0 },
       uSunWorld: { value: SUN_DISC_LOCAL.clone() },
       uMoonWorld: { value: MOON_DISC_LOCAL.clone() },
-      uDayH: { value: new THREE.Color(SKY.dayHorizon) },
-      uDayL: { value: new THREE.Color(SKY.dayLow) },
-      uDayM: { value: new THREE.Color(SKY.dayMid) },
-      uDayZ: { value: new THREE.Color(SKY.dayZenith) },
+      uDayZen: { value: new THREE.Color(SKY.dayZenith) },
+      uDayHor: { value: new THREE.Color(SKY.dayHorizon) },
       uNightH: { value: new THREE.Color(SKY.nightHorizon) },
       uNightL: { value: new THREE.Color(SKY.nightLow) },
       uNightM: { value: new THREE.Color(SKY.nightMid) },
       uNightZ: { value: new THREE.Color(SKY.nightZenith) },
-      uHalo: { value: new THREE.Color(SKY.dayHorizon) },
+      uSunsetDeep: { value: new THREE.Color(SKY.sunsetDeep) },
+      uSunsetGold: { value: new THREE.Color(SKY.sunsetGold) },
+      uSunsetPink: { value: new THREE.Color(SKY.sunsetPink) },
+      uMoonLayer: { value: new THREE.Color(SKY.moonLayer) },
       uMoonGlow: { value: new THREE.Color('#9fb4d8') },
       uWayfind: { value: new THREE.Color(SKY.wayfind) },
     },

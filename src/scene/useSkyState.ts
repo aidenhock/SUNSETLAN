@@ -31,17 +31,24 @@ export const skyRuntime = {
   moonWorld: MOON_DISC_LOCAL.clone(),
 }
 
-/** v3.4 sky stops — 4-stop ramps per the pixel-art sunset references
- * (deep orange → pink → mauve → blue-violet). Tune here, record finals. */
+/** v3.5 directional sky tokens. Base layer is elevation-only blues; the
+ * sunset/moon layers are azimuth-shaped in the dome shader. Fog carries a
+ * warm tint so the sea fade meets the sun-side horizon without a seam. */
 export const SKY = {
-  dayHorizon: '#ff8038',
-  dayLow: '#f8909c',
-  dayMid: '#b083c9',
-  dayZenith: '#6f74c9',
+  // Base layer (elevation-only)
+  dayZenith: '#7189cc',
+  dayHorizon: '#d5dde6', // pale blue-cream
   nightHorizon: '#24304f',
   nightLow: '#1a2340',
   nightMid: '#10182e',
   nightZenith: '#070a14',
+  // Sunset layer (piled at the horizon around the sun)
+  sunsetDeep: '#ff7a33',
+  sunsetGold: '#ffc861',
+  sunsetPink: '#e893b8',
+  // Moon layer
+  moonLayer: '#aebcd8',
+  fogDay: '#f0ba94',
   wayfind: '#31456b',
   dirDay: '#ffd9a0',
   dirNight: '#9fb4ff', // moonlight token
@@ -78,7 +85,7 @@ const _pole = new THREE.Vector3()
 const _lightDir = new THREE.Vector3()
 const _lightSunW = new THREE.Vector3()
 const _lightMoonW = new THREE.Vector3()
-const _fogDay = new THREE.Color(SKY.dayHorizon)
+const _fogDay = new THREE.Color(SKY.fogDay)
 const _fogNight = new THREE.Color(SKY.nightHorizon)
 const _dirDay = new THREE.Color(SKY.dirDay)
 const _dirNight = new THREE.Color(SKY.dirNight)
