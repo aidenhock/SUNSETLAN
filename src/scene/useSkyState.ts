@@ -35,9 +35,12 @@ export const skyRuntime = {
  * sunset/moon layers are azimuth-shaped in the dome shader. Fog carries a
  * warm tint so the sea fade meets the sun-side horizon without a seam. */
 export const SKY = {
-  // Base layer (elevation-only)
-  dayZenith: '#7189cc',
-  dayHorizon: '#d5dde6', // pale blue-cream
+  // Base layer (elevation-only) — v3.6: the day sky is genuinely BLUE,
+  // never near-white; a chroma floor in the dome shader backs this up.
+  dayZenith: '#5e97d8',
+  dayMid: '#8fb8e8',
+  dayHorizon: '#b7d0ee', // light but clearly blue
+  antiHaze: '#7fa6d8', // deeper soft blue on the anti-sun day horizon
   nightHorizon: '#24304f',
   nightLow: '#1a2340',
   nightMid: '#10182e',
@@ -46,9 +49,12 @@ export const SKY = {
   sunsetDeep: '#ff7a33',
   sunsetGold: '#ffc861',
   sunsetPink: '#e893b8',
+  /** Saturated bridge tone: the sunset→blue blend routes through this so
+   * warm-into-blue never passes through gray (v3.6 blend hazard rule). */
+  sunsetBridge: '#f4a5b2',
   // Moon layer
   moonLayer: '#aebcd8',
-  fogDay: '#f0ba94',
+  fogDay: '#b7d0ee',
   wayfind: '#31456b',
   dirDay: '#ffd9a0',
   dirNight: '#9fb4ff', // moonlight token

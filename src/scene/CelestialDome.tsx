@@ -33,9 +33,9 @@ const DOME_FRAG = /* glsl */ `
 uniform float uNightMix;
 uniform vec3 uSunWorld;  // unit, from planet center
 uniform vec3 uMoonWorld; // unit, from planet center
-uniform vec3 uDayZen; uniform vec3 uDayHor;
+uniform vec3 uDayZen; uniform vec3 uDayMid; uniform vec3 uDayHor; uniform vec3 uAntiHaze;
 uniform vec3 uNightH; uniform vec3 uNightL; uniform vec3 uNightM; uniform vec3 uNightZ;
-uniform vec3 uSunsetDeep; uniform vec3 uSunsetGold; uniform vec3 uSunsetPink;
+uniform vec3 uSunsetDeep; uniform vec3 uSunsetGold; uniform vec3 uSunsetPink; uniform vec3 uBridge;
 uniform vec3 uMoonLayer; uniform vec3 uMoonGlow; uniform vec3 uWayfind;
 varying vec3 vWorldPos;
 
@@ -49,9 +49,10 @@ void main() {
   vec3 vd = normalize(vWorldPos - cameraPosition); // view direction
   float elev = vd.y;                               // player-relative elevation
 
-  // Base layer: elevation-only blues (v3.5) — day cream-blue → soft blue,
-  // night keeps the 4-stop blue→black ramp.
-  vec3 dayBase = mix(uDayHor, uDayZen, smoothstep(-0.05, 0.4, elev));
+  // Base layer (v3.6): a genuinely BLUE day ramp — never near-white; night
+  // keeps the 4-stop blue→black ramp.
+  vec3 dayBase = mix(uDayHor, uDayMid, smoothstep(-0.05, 0.22, elev));
+  dayBase = mix(dayBase, uDayZen, smoothstep(0.2, 0.55, elev));
   vec3 nightBase = stops4(uNightH, uNightL, uNightM, uNightZ, elev);
   vec3 col = mix(dayBase, nightBase, uNightMix);
 
@@ -71,7 +72,15 @@ void main() {
   float w = azFall * elevFall * (1.0 - smoothstep(0.55, 0.85, uNightMix));
   vec3 warm = mix(uSunsetPink, uSunsetDeep, smoothstep(0.15, 0.7, w));
   warm = mix(warm, uSunsetGold, smoothstep(0.72, 0.95, w));
-  col = mix(col, warm, smoothstep(0.02, 0.6, w));
+  // Blend hazard rule (v3.6): warm→blue through plain RGB passes through
+  // gray — route via the saturated pink/peach bridge instead.
+  float t = smoothstep(0.02, 0.6, w);
+  col = mix(mix(col, uBridge, clamp(t * 2.0, 0.0, 1.0)), warm, clamp(t * 2.0 - 1.0, 0.0, 1.0));
+
+  // Anti-sun day horizon: slightly deeper soft blue haze (evening air).
+  float antiW = smoothstep(1.5708, 3.1416, azDist) * elevFall
+    * (1.0 - smoothstep(0.55, 0.85, uNightMix));
+  col = mix(col, uAntiHaze, antiW * 0.45);
 
   // Moon layer: same shape, subtle silver-blue, night-gated.
   vec3 moonFromCam = normalize(uMoonWorld * ${BODY_R.toFixed(1)} - cameraPosition);
@@ -89,6 +98,11 @@ void main() {
     * (1.0 - smoothstep(0.10, 0.30, elev)) * smoothstep(-0.35, -0.06, elev)
     * smoothstep(0.78, 0.92, uNightMix);
   col = mix(col, uWayfind, wf * 0.55);
+
+  // Minimum-chroma floor (v3.6): no sky fragment may render near-white or
+  // gray — near-neutral pixels get nudged toward blue.
+  float chroma = max(col.r, max(col.g, col.b)) - min(col.r, min(col.g, col.b));
+  col = mix(col * vec3(0.93, 0.97, 1.08), col, smoothstep(0.03, 0.09, chroma));
 
   // Screen-space hash dither (~±1/255): shallow gradients band on 8-bit
   // displays even when the math is smooth — the standard zero-cost fix.
@@ -112,7 +126,9 @@ function buildDomeMaterial(): THREE.ShaderMaterial {
       uSunWorld: { value: SUN_DISC_LOCAL.clone() },
       uMoonWorld: { value: MOON_DISC_LOCAL.clone() },
       uDayZen: { value: new THREE.Color(SKY.dayZenith) },
+      uDayMid: { value: new THREE.Color(SKY.dayMid) },
       uDayHor: { value: new THREE.Color(SKY.dayHorizon) },
+      uAntiHaze: { value: new THREE.Color(SKY.antiHaze) },
       uNightH: { value: new THREE.Color(SKY.nightHorizon) },
       uNightL: { value: new THREE.Color(SKY.nightLow) },
       uNightM: { value: new THREE.Color(SKY.nightMid) },
@@ -120,6 +136,7 @@ function buildDomeMaterial(): THREE.ShaderMaterial {
       uSunsetDeep: { value: new THREE.Color(SKY.sunsetDeep) },
       uSunsetGold: { value: new THREE.Color(SKY.sunsetGold) },
       uSunsetPink: { value: new THREE.Color(SKY.sunsetPink) },
+      uBridge: { value: new THREE.Color(SKY.sunsetBridge) },
       uMoonLayer: { value: new THREE.Color(SKY.moonLayer) },
       uMoonGlow: { value: new THREE.Color('#9fb4d8') },
       uWayfind: { value: new THREE.Color(SKY.wayfind) },
