@@ -125,13 +125,18 @@ function bandParamsAt(
 const _bandA = new THREE.Color()
 const _bandB = new THREE.Color()
 
-/** 0 at a band boundary → 1 beyond ~1.5°, so jitter can't expose an edge. */
+/** 0 at a band boundary → 1 beyond ~1.5°, so jitter can't expose an edge.
+ * The lower beach (final ~5° above the waterline) additionally tapers to
+ * 20% jitter: the surf cycle raises the live waterline, and full-amplitude
+ * facet dips there would let water pool through the sand inland. */
 function edgeJitterScale(polarDeg: number, bands: TerrainBand[]): number {
   let scale = 1
   for (let i = 0; i < bands.length - 1; i++) {
     const d = Math.abs(polarDeg - bands[i].untilPolarDeg)
     scale = Math.min(scale, THREE.MathUtils.smoothstep(d, 0.3, 1.5))
   }
+  const waterline = bands[bands.length - 2]?.untilPolarDeg ?? 75
+  scale *= 1 - 0.8 * THREE.MathUtils.smoothstep(polarDeg, waterline - 5.5, waterline - 1)
   return scale
 }
 
