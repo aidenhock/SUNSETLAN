@@ -145,6 +145,19 @@ export const CELESTIAL_ELEVATION_WATERLINE_DEG = -15.8
  * — the disc and its glitter lane stay clearly visible at full set. */
 export const CELESTIAL_ELEVATION_WADING_MIN_DEG = -16.2
 export const CELESTIAL = { sunLongDeg: 0, moonLongDeg: 180 } as const
+
+/** Glitter lane tuning (v3.11): endpoints lerped by the body's apparent
+ * elevation above the ocean limb — tight/bright when setting, broad/faint
+ * when inland-high. */
+export const GLITTER = {
+  powerLow: 80,
+  powerHigh: 12,
+  intensityLow: 0.95,
+  intensityHigh: 0.42,
+  /** Elevation range (deg above the limb) mapping low → high. */
+  elevLowDeg: 0,
+  elevHighDeg: 35,
+} as const
 /** The solved disc polar angle is clamped to the home side: never higher
  * than this (keeps the far side's body below the horizon under world
  * rotation), never lower than the set anchor. */

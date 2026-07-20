@@ -85,6 +85,38 @@ async function main() {
         const fullRadius = (maxX - minX) / 2 // widest chord = true diameter
         const visibleHeight = maxY - minY
         const fraction = Math.min(visibleHeight / (2 * fullRadius), 1)
+        // v3.11 lane geometry: sample rows just below the disc base. Lane
+        // pixels = notably brighter than their row median. The lane must be
+        // at least as wide as the disc AND touch the disc's base (no gap).
+        const cx2 = Math.floor((minX + maxX) / 2)
+        const laneWidthAt = (y) => {
+          const lum = []
+          const x0 = Math.max(0, cx2 - 420)
+          const x1 = Math.min(w, cx2 + 420)
+          for (let x = x0; x < x1; x += 2) {
+            const i = (y * w + x) * 4
+            lum.push((d[i] + d[i + 1] + d[i + 2]) / 765)
+          }
+          const sorted = [...lum].sort((a, b) => a - b)
+          const median = sorted[Math.floor(sorted.length / 2)]
+          let best = 0
+          let run = 0
+          for (const l of lum) {
+            if (l > median + 0.045) {
+              run += 2
+              if (run > best) best = run
+            } else run = 0
+          }
+          return best
+        }
+        let laneMaxWidth = 0
+        for (let y = maxY + 8; y < Math.min(maxY + 46, h - 1); y += 4) {
+          laneMaxWidth = Math.max(laneMaxWidth, laneWidthAt(y))
+        }
+        let touchWidth = 0
+        for (let y = maxY + 1; y < Math.min(maxY + 12, h - 1); y += 2) {
+          touchWidth = Math.max(touchWidth, laneWidthAt(y))
+        }
         // Glitter lane: brightness of the strip under the disc vs a control
         // strip offset to the side, both in the water region below maxY.
         const cx = (minX + maxX) / 2
@@ -101,7 +133,16 @@ async function main() {
         }
         const lane = strip(cx)
         const control = (strip(cx - 340) + strip(cx + 340)) / 2
-        return { found: true, fraction, lane, control, count }
+        return {
+          found: true,
+          fraction,
+          lane,
+          control,
+          count,
+          discWidth: maxX - minX,
+          laneMaxWidth,
+          touchWidth,
+        }
       },
       { disc: spot.disc, dataUrl },
     )
@@ -113,12 +154,16 @@ async function main() {
     }
     const fracOk = r.fraction >= FRACTION_MIN
     const laneOk = r.lane - r.control >= LANE_MARGIN
+    // v3.11: lane at least disc-wide just below the limb, flush to the base.
+    const widthOk = r.laneMaxWidth >= r.discWidth * 0.9
+    const touchOk = r.touchWidth > r.discWidth * 0.3
     console.log(
-      `${spot.name}: visible fraction ${(r.fraction * 100).toFixed(0)}% ` +
-        `(${fracOk ? 'OK' : 'FAIL'}); lane ${r.lane.toFixed(3)} vs control ${r.control.toFixed(3)} ` +
-        `(${laneOk ? 'OK' : 'FAIL'})`,
+      `${spot.name}: fraction ${(r.fraction * 100).toFixed(0)}% (${fracOk ? 'OK' : 'FAIL'}); ` +
+        `lane ${r.lane.toFixed(3)} vs ${r.control.toFixed(3)} (${laneOk ? 'OK' : 'FAIL'}); ` +
+        `width ${r.laneMaxWidth}px vs disc ${r.discWidth}px (${widthOk ? 'OK' : 'FAIL'}); ` +
+        `base-touch ${r.touchWidth}px (${touchOk ? 'OK' : 'FAIL'})`,
     )
-    if (!fracOk || !laneOk) failed = true
+    if (!fracOk || !laneOk || !widthOk || !touchOk) failed = true
   }
 
   await browser.close()

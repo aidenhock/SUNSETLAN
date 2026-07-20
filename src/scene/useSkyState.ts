@@ -146,6 +146,11 @@ export const skyRuntime = {
   moonLocal: MOON_HOME_LOCAL.clone(),
   sunWorld: SUN_HOME_LOCAL.clone(),
   moonWorld: MOON_HOME_LOCAL.clone(),
+  /** Apparent elevation of each disc ABOVE the ocean limb (deg), from the
+   * live camera — drives the glitter spread (v3.11). Inherits the arc
+   * smoothing via the smoothed disc solve. */
+  sunElevAboveLimbDeg: 45,
+  moonElevAboveLimbDeg: 45,
 }
 
 /** v3.5 directional sky tokens. Base layer is elevation-only blues; the
@@ -273,6 +278,11 @@ export function useSkyState({
     skyRuntime.moonLocal.set(0, Math.cos(moonTh), -Math.sin(moonTh))
     skyRuntime.sunWorld.copy(skyRuntime.sunLocal).applyQuaternion(planet.quaternion)
     skyRuntime.moonWorld.copy(skyRuntime.moonLocal).applyQuaternion(planet.quaternion)
+    const limbDeg = limbElevationDeg(_camLocal.length())
+    skyRuntime.sunElevAboveLimbDeg =
+      discElevFromCameraDeg(_discSmooth.sun, 1, _camLocal) - limbDeg
+    skyRuntime.moonElevAboveLimbDeg =
+      discElevFromCameraDeg(_discSmooth.moon, -1, _camLocal) - limbDeg
 
     // Fog + background = the current sky horizon stop (v3.2), so terrain
     // fade and the dome horizon always agree.

@@ -3,6 +3,7 @@ import { useMemo } from 'react'
 import * as THREE from 'three'
 import { controlsRuntime } from '../controls/usePlanetController'
 import {
+  GLITTER,
   GRASS_ALTITUDE,
   PLANET_RADIUS,
   SAND_ALTITUDE,
@@ -45,6 +46,11 @@ export function Water() {
       shader.uniforms.uCamObj = { value: new THREE.Vector3(0, 60, 0) }
       shader.uniforms.uSunObj = { value: skyRuntime.sunLocal.clone().multiplyScalar(230) }
       shader.uniforms.uMoonObj = { value: skyRuntime.moonLocal.clone().multiplyScalar(230) }
+      // v3.11: lane spread/intensity ride the body's apparent elevation.
+      shader.uniforms.uSunPow = { value: GLITTER.powerLow }
+      shader.uniforms.uSunInt = { value: GLITTER.intensityLow }
+      shader.uniforms.uMoonPow = { value: GLITTER.powerLow }
+      shader.uniforms.uMoonInt = { value: GLITTER.intensityLow }
       const consts = /* glsl */ `
         const float PLATEAU_END = ${TERRAIN.plateauEndDeg.toFixed(1)};
         const float SHOULDER_END = ${TERRAIN.shoulderEndDeg.toFixed(1)};
@@ -84,7 +90,7 @@ export function Water() {
           vObjPos = position;`,
         )
       shader.fragmentShader =
-        `varying float vDepth;\nvarying vec3 vSphereDir;\nvarying vec3 vObjPos;\nuniform float uTime;\nuniform float uNightMix;\nuniform vec3 uCamObj;\nuniform vec3 uSunObj;\nuniform vec3 uMoonObj;\n` +
+        `varying float vDepth;\nvarying vec3 vSphereDir;\nvarying vec3 vObjPos;\nuniform float uTime;\nuniform float uNightMix;\nuniform vec3 uCamObj;\nuniform vec3 uSunObj;\nuniform vec3 uMoonObj;\nuniform float uSunPow;\nuniform float uSunInt;\nuniform float uMoonPow;\nuniform float uMoonInt;\n` +
         shader.fragmentShader.replace(
           'vec4 diffuseColor = vec4( diffuse, opacity );',
           /* glsl */ `
@@ -128,13 +134,19 @@ export function Water() {
           vec3 V = normalize(uCamObj - vObjPos);
           vec3 Lsun = normalize(uSunObj - vObjPos);
           vec3 Lmoon = normalize(uMoonObj - vObjPos);
-          // v3.9: wider lane, larger/softer glints — reads from the beach.
-          float sunGlint = smoothstep(0.04, 0.75, pow(max(dot(N, normalize(V + Lsun)), 0.0), 30.0));
-          float moonGlint = smoothstep(0.04, 0.75, pow(max(dot(N, normalize(V + Lmoon)), 0.0), 30.0));
+          // v3.11 DISC light: subtract the body's angular radius before the
+          // falloff — the lane can never be narrower than the disc and
+          // meets its base flush at the horizon. Power/intensity ride the
+          // apparent elevation (tight+bright setting, broad+faint high).
+          vec3 R = reflect(-V, N);
+          float aSun = max(0.0, acos(clamp(dot(R, Lsun), -1.0, 1.0)) - 0.0656);
+          float aMoon = max(0.0, acos(clamp(dot(R, Lmoon), -1.0, 1.0)) - 0.0482);
+          float sunGlint = smoothstep(0.04, 0.75, pow(cos(min(aSun, 1.5707)), uSunPow));
+          float moonGlint = smoothstep(0.04, 0.75, pow(cos(min(aMoon, 1.5707)), uMoonPow));
           float gDay = 1.0 - smoothstep(0.45, 0.7, uNightMix);
           float gNight = smoothstep(0.6, 0.85, uNightMix);
-          diffuseColor.rgb += (vec3(1.0, 0.85, 0.63) * sunGlint * gDay
-            + vec3(0.81, 0.88, 1.0) * moonGlint * gNight) * gDist * 0.85;`,
+          diffuseColor.rgb += (vec3(1.0, 0.85, 0.63) * sunGlint * gDay * uSunInt
+            + vec3(0.81, 0.88, 1.0) * moonGlint * gNight * uMoonInt) * gDist;`,
         )
       mat.userData.shader = shader
     }
@@ -152,6 +164,10 @@ export function Water() {
             uCamObj: { value: THREE.Vector3 }
             uSunObj: { value: THREE.Vector3 }
             uMoonObj: { value: THREE.Vector3 }
+            uSunPow: { value: number }
+            uSunInt: { value: number }
+            uMoonPow: { value: number }
+            uMoonInt: { value: number }
           }
         }
       | undefined
@@ -167,6 +183,20 @@ export function Water() {
       ;(shader.uniforms.uMoonObj.value as THREE.Vector3)
         .copy(skyRuntime.moonLocal)
         .multiplyScalar(230)
+      const tSun = THREE.MathUtils.smoothstep(
+        skyRuntime.sunElevAboveLimbDeg,
+        GLITTER.elevLowDeg,
+        GLITTER.elevHighDeg,
+      )
+      const tMoon = THREE.MathUtils.smoothstep(
+        skyRuntime.moonElevAboveLimbDeg,
+        GLITTER.elevLowDeg,
+        GLITTER.elevHighDeg,
+      )
+      shader.uniforms.uSunPow.value = THREE.MathUtils.lerp(GLITTER.powerLow, GLITTER.powerHigh, tSun)
+      shader.uniforms.uSunInt.value = THREE.MathUtils.lerp(GLITTER.intensityLow, GLITTER.intensityHigh, tSun)
+      shader.uniforms.uMoonPow.value = THREE.MathUtils.lerp(GLITTER.powerLow, GLITTER.powerHigh, tMoon)
+      shader.uniforms.uMoonInt.value = THREE.MathUtils.lerp(GLITTER.intensityLow, GLITTER.intensityHigh, tMoon)
     }
   })
 
