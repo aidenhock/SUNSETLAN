@@ -48,6 +48,10 @@ export const controlsRuntime = {
   /** Body world yaw + camera pitch, published for the head look-at (v3.3). */
   avatarYaw: 0,
   camPitch: 0.35,
+  /** Ground height and jump altitude published separately (v3.4): the blob
+   * shadow takes groundY ONLY — it must never ride the jump. */
+  groundY: 55.55,
+  jumpOffset: 0,
   /** Camera distance override (meters); null = default follow distance. */
   camDist: null as number | null,
   /** Set to snap the camera pitch next frame (consumed once) — e2e/sweep. */
@@ -243,6 +247,8 @@ export function usePlanetController({ planetRef, avatarRef }: ControllerRefs) {
     avatar.position.y = groundY + jumpOffset
     avatar.rotation.y = yaw.current
     controlsRuntime.avatarYaw = yaw.current
+    controlsRuntime.groundY = groundY
+    controlsRuntime.jumpOffset = jumpOffset
     controlsRuntime.locomotion = !inputActive ? 'idle' : sprinting ? 'run' : 'walk'
     controlsRuntime.airborne = jumpT.current !== null
   })
