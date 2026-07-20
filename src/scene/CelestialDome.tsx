@@ -20,9 +20,6 @@ import { MOON_DISC_LOCAL, SKY, skyRuntime, SUN_DISC_LOCAL } from './useSkyState'
 
 const DOME_R = 240 // inside camera far 400
 const BODY_R = 230 // sun/moon/stars sit just inside the dome
-/** Pixel-art gradient banding (v3.4): ~10 steps, 0 disables. Kept only if
- * it reads as intentional style — judge in the sweep. */
-const SKY_BAND_STEPS = 10
 
 const DOME_VERT = /* glsl */ `
 varying vec3 vWorldPos;
@@ -34,7 +31,6 @@ void main() {
 
 const DOME_FRAG = /* glsl */ `
 uniform float uNightMix;
-uniform float uBandSteps; // > 0.5 → quantize the ramp (pixel-art banding)
 uniform vec3 uSunWorld;  // unit, from planet center
 uniform vec3 uMoonWorld; // unit, from planet center
 uniform vec3 uDayH; uniform vec3 uDayL; uniform vec3 uDayM; uniform vec3 uDayZ;
@@ -51,7 +47,6 @@ vec3 stops4(vec3 h, vec3 l, vec3 m, vec3 z, float e) {
 void main() {
   vec3 vd = normalize(vWorldPos - cameraPosition); // view direction
   float elev = vd.y;                               // player-relative elevation
-  if (uBandSteps > 0.5) elev = floor(elev * uBandSteps) / uBandSteps;
   vec3 col = mix(
     stops4(uDayH, uDayL, uDayM, uDayZ, elev),
     stops4(uNightH, uNightL, uNightM, uNightZ, elev),
@@ -82,6 +77,10 @@ void main() {
     * smoothstep(0.78, 0.92, uNightMix);
   col = mix(col, uWayfind, wf * 0.55);
 
+  // Screen-space hash dither (~±1/255): shallow gradients band on 8-bit
+  // displays even when the math is smooth — the standard zero-cost fix.
+  col += (fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453) - 0.5) / 127.5;
+
   gl_FragColor = vec4(col, 1.0);
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
@@ -97,7 +96,6 @@ function buildDomeMaterial(): THREE.ShaderMaterial {
     fog: false,
     uniforms: {
       uNightMix: { value: 0 },
-      uBandSteps: { value: SKY_BAND_STEPS },
       uSunWorld: { value: SUN_DISC_LOCAL.clone() },
       uMoonWorld: { value: MOON_DISC_LOCAL.clone() },
       uDayH: { value: new THREE.Color(SKY.dayHorizon) },
