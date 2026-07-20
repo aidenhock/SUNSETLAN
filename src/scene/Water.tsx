@@ -95,14 +95,17 @@ export function Water() {
           float gPolar = degrees(acos(clamp(vSphereDir.y, -1.0, 1.0)));
           vec2 gDirH = normalize(vSphereDir.xz + vec2(1e-6, 0.0));
           float gDist = (1.0 - smoothstep(80.0, 100.0, gPolar)) * smoothstep(74.5, 78.0, gPolar);
-          float gSparkle = smoothstep(0.55, 0.95,
-            fract(sin(dot(floor(vSphereDir.xz * 220.0), vec2(12.9898, 78.233))) * 43758.5453 + vWave * 7.0));
+          // Two overlapping fine grids, soft threshold — small irregular
+          // glints, not large hard angular patches (v3.5 soften).
+          float gN1 = fract(sin(dot(floor(vSphereDir.xz * 420.0), vec2(12.9898, 78.233))) * 43758.5453 + vWave * 7.0);
+          float gN2 = fract(sin(dot(floor(vSphereDir.xz * 730.0), vec2(39.3468, 11.135))) * 24634.6345 + vWave * 5.0);
+          float gSparkle = smoothstep(0.55, 1.0, gN1 * 0.5 + gN2 * 0.5);
           float gSun = smoothstep(0.9976, 0.9998, gDirH.y);
           float gMoon = smoothstep(0.9976, 0.9998, -gDirH.y);
           float gDay = 1.0 - smoothstep(0.45, 0.7, uNightMix);
           float gNight = smoothstep(0.6, 0.85, uNightMix);
           vec3 glitter = vec3(1.0, 0.85, 0.63) * gSun * gDay + vec3(0.81, 0.88, 1.0) * gMoon * gNight;
-          diffuseColor.rgb += glitter * gSparkle * gDist * 0.65;`,
+          diffuseColor.rgb += glitter * gSparkle * gDist * 0.4;`,
         )
       mat.userData.shader = shader
     }
