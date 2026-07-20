@@ -1,3 +1,4 @@
+import * as THREE from 'three'
 import { describe, expect, it } from 'vitest'
 import { latLongToUnit } from '../controls/planetMath'
 import { MOON_DISC_LOCAL, nightMixFromPoleZ, SUN_DISC_LOCAL } from './useSkyState'
@@ -41,15 +42,18 @@ describe('nightMixFromPoleZ (two skies)', () => {
     expect(prev).toBeGreaterThan(0.99)
   })
 
-  it('anchors both discs at the waterline ~90° from their own beaches (v3.3)', () => {
-    // Sun on the long-0 side, deep below the pole so it grazes the sea
-    // horizon from the sunset beach; moon mirrored on the long-180 side.
-    expect(SUN_DISC_LOCAL.z).toBeGreaterThan(0.2)
-    expect(SUN_DISC_LOCAL.y).toBeLessThan(-0.9)
-    expect(MOON_DISC_LOCAL.z).toBeLessThan(-0.2)
-    expect(MOON_DISC_LOCAL.y).toBeLessThan(-0.9)
-    // ~90° of arc from the beach standing points (lat 17 on each side).
-    expect(SUN_DISC_LOCAL.angleTo(latLongToUnit(17, 0))).toBeGreaterThan(Math.PI / 2 - 0.06)
-    expect(MOON_DISC_LOCAL.angleTo(latLongToUnit(17.5, 180))).toBeGreaterThan(Math.PI / 2 - 0.06)
+  it('anchors both discs ~15° above the sea horizon from their beaches (v3.4)', () => {
+    // The elevation solver lands each disc 70–85° of arc from its beach:
+    // in the sky, clearly over the water, below the pole.
+    expect(SUN_DISC_LOCAL.z).toBeGreaterThan(0.3)
+    expect(SUN_DISC_LOCAL.y).toBeLessThan(-0.5)
+    expect(MOON_DISC_LOCAL.z).toBeLessThan(-0.3)
+    expect(MOON_DISC_LOCAL.y).toBeLessThan(-0.5)
+    const sunArc = SUN_DISC_LOCAL.angleTo(latLongToUnit(17, 0))
+    const moonArc = MOON_DISC_LOCAL.angleTo(latLongToUnit(17.5, 180))
+    for (const arc of [sunArc, moonArc]) {
+      expect(arc).toBeGreaterThan(THREE.MathUtils.degToRad(70))
+      expect(arc).toBeLessThan(THREE.MathUtils.degToRad(85))
+    }
   })
 })

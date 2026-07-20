@@ -52,11 +52,14 @@ const STATES: Record<'idle' | 'walk' | 'run' | 'air', Params> = {
 
 /** Airborne pose angles (rad) — asymmetric so the jump reads dynamic. */
 const AIR_POSE = { legL: -0.45, legR: 0.25, armL: -0.65, armR: -0.5, splay: 0.22 }
-/** Head look-at (v3.3): clamps from body forward, blend time constant, and
- * the subtle glance allowance while moving. */
+/** Head look-at (v3.4): clamps from body forward, blend time constant, the
+ * subtle glance allowance while moving, and the frontal-cone handoff — eye
+ * contact inside ~±70°, the camera's aim point beyond it. */
 const HEAD_YAW_MAX = THREE.MathUtils.degToRad(60)
 const HEAD_PITCH_MAX = THREE.MathUtils.degToRad(25)
 const HEAD_GLANCE_MAX = THREE.MathUtils.degToRad(10)
+const HEAD_CONE_IN = THREE.MathUtils.degToRad(55)
+const HEAD_CONE_OUT = THREE.MathUtils.degToRad(85)
 const HEAD_TAU = 0.2
 
 const wrapPi = (a: number) => Math.atan2(Math.sin(a), Math.cos(a))
@@ -255,11 +258,18 @@ export function BlockyCharacter({
       let yawTarget: number
       let pitchTarget: number
       if (idleness > 0.5) {
-        yawTarget = Math.abs(rel) <= HEAD_YAW_MAX ? rel : 0
-        pitchTarget =
-          Math.abs(rel) <= HEAD_YAW_MAX
-            ? -THREE.MathUtils.clamp(m.camPitch * 0.7, -HEAD_PITCH_MAX, HEAD_PITCH_MAX)
-            : 0
+        // Two targets with a blended handoff (v3.4): eye contact with the
+        // camera in the frontal cone; the camera's AIM POINT (its forward,
+        // which passes through the avatar toward the scene) when the camera
+        // sits behind/beside — the character glances where the player looks.
+        const eyeYaw = THREE.MathUtils.clamp(rel, -HEAD_YAW_MAX, HEAD_YAW_MAX)
+        const eyePitch = -THREE.MathUtils.clamp(m.camPitch * 0.7, -HEAD_PITCH_MAX, HEAD_PITCH_MAX)
+        const aimRel = wrapPi(rel + Math.PI)
+        const aimYaw = THREE.MathUtils.clamp(aimRel, -HEAD_YAW_MAX, HEAD_YAW_MAX)
+        const aimPitch = THREE.MathUtils.clamp(m.camPitch * 0.3, -HEAD_PITCH_MAX, HEAD_PITCH_MAX)
+        const w = THREE.MathUtils.smoothstep(Math.abs(rel), HEAD_CONE_IN, HEAD_CONE_OUT)
+        yawTarget = THREE.MathUtils.lerp(eyeYaw, aimYaw, w)
+        pitchTarget = THREE.MathUtils.lerp(eyePitch, aimPitch, w)
       } else {
         yawTarget = THREE.MathUtils.clamp(wrapPi(rel), -HEAD_GLANCE_MAX, HEAD_GLANCE_MAX)
         pitchTarget = 0

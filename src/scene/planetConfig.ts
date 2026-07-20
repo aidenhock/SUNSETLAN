@@ -128,20 +128,47 @@ export function surfOffset(polarRad: number, timeS: number): number {
 }
 
 /**
- * Celestial disc anchors (v3.3): each body sits ~90° of arc from its own
- * beach so that, viewed from that beach, the disc hovers just above the sea
- * horizon (apparent elevation ≈ −14° vs the water edge at ≈ −17° from eye
- * height on the 55 m planet) — the setting-into-the-ocean framing. Each
- * body sets into the sea behind you as you cross. From spawn both discs are
- * below the horizon: the dome halo/gradient carries the mood there and the
- * intro swoop sees the discs from altitude. Lighting uses its own higher
- * anchors (see useSkyState) — a disc at the waterline must not light the
- * scene from below.
+ * Celestial disc anchors (v3.4): each body's latitude is SOLVED from
+ * CELESTIAL_ELEVATION_DEG — the disc center's apparent elevation above the
+ * sea horizon as seen from its home beach. ~15° puts each disc in the sky,
+ * clearly over the water, and each still sets into the sea behind you as
+ * you cross (a little later than the old waterline placement). Lighting
+ * uses its own higher anchors (see useSkyState) — a low disc must not
+ * light the scene from below.
  */
+export const CELESTIAL_ELEVATION_DEG = 15
+/** Must match CelestialDome's BODY_R (discs sit just inside the dome). */
+const DOME_BODY_R = 230
+const EYE_R = PLANET_RADIUS + 2.4
+/** Sea-horizon dip below horizontal from eye height (deg). */
+const HORIZON_DIP_DEG = THREE.MathUtils.radToDeg(Math.acos(PLANET_RADIUS / EYE_R))
+
+/** Apparent elevation (deg) of a dome body `arc` radians from the viewer. */
+function apparentElevationDeg(arcRad: number): number {
+  return THREE.MathUtils.radToDeg(
+    Math.atan2(DOME_BODY_R * Math.cos(arcRad) - EYE_R, DOME_BODY_R * Math.sin(arcRad)),
+  )
+}
+
+/** Disc latitude whose apparent elevation from the beach hits the target. */
+function discLatFor(beachLatDeg: number, elevationAboveSeaDeg: number): number {
+  const targetDeg = elevationAboveSeaDeg - HORIZON_DIP_DEG
+  let bestArc = 90
+  let bestErr = Infinity
+  for (let d = 40; d <= 110; d += 0.25) {
+    const err = Math.abs(apparentElevationDeg(THREE.MathUtils.degToRad(d)) - targetDeg)
+    if (err < bestErr) {
+      bestErr = err
+      bestArc = d
+    }
+  }
+  return beachLatDeg - bestArc
+}
+
 export const CELESTIAL = {
-  sunLatDeg: -73,
+  sunLatDeg: discLatFor(17, CELESTIAL_ELEVATION_DEG),
   sunLongDeg: 0,
-  moonLatDeg: -72,
+  moonLatDeg: discLatFor(17.5, CELESTIAL_ELEVATION_DEG),
   moonLongDeg: 180,
 } as const
 
