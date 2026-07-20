@@ -106,6 +106,27 @@ export const MAP = {
   rowboat: { lat: 18, long: 210 },
 } as const
 
+/** Surf cycle (v3.3) — the single source for the water shader AND the wade
+ * ripple: a slow vertical swing of the near-shore water surface that walks
+ * the waterline up and down the sand ramp. */
+export const SURF = {
+  periodS: 5.2,
+  amplitudeM: 0.06,
+  /** Shore weighting ramps in across this polar band (degrees). */
+  startDeg: 68,
+  endDeg: ISLAND_POLAR_DEG,
+} as const
+
+/** Vertical surf offset (m) of the live water surface at polar/time. */
+export function surfOffset(polarRad: number, timeS: number): number {
+  const shore = THREE.MathUtils.smoothstep(
+    THREE.MathUtils.radToDeg(polarRad),
+    SURF.startDeg,
+    SURF.endDeg,
+  )
+  return Math.sin((timeS * Math.PI * 2) / SURF.periodS) * SURF.amplitudeM * shore
+}
+
 /**
  * Celestial disc anchors (v3.3): each body sits ~90° of arc from its own
  * beach so that, viewed from that beach, the disc hovers just above the sea

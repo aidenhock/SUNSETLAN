@@ -5,7 +5,6 @@ import * as THREE from 'three'
 import { interactables } from '../content/interactables'
 import {
   blockers,
-  GRASS_ALTITUDE,
   INTERACT_ARC_M,
   INTERACT_EXIT_ARC_M,
   MAX_POLAR_RAD,
@@ -13,6 +12,7 @@ import {
   PLANET_RADIUS,
   SPRINT_JOY_THRESHOLD,
   SPRINT_SPEED,
+  surfOffset,
 } from '../scene/planetConfig'
 import { useStore } from '../store/useStore'
 import {
@@ -86,9 +86,9 @@ export function usePlanetController({ planetRef, avatarRef }: ControllerRefs) {
   const jumpT = useRef<number | null>(null) // seconds since jump start, null = grounded
   const yaw = useRef(0)
   const targetYaw = useRef(0)
-  // Spawn stands on grass — initializing at sea level would fire a phantom
-  // ripple on the first frame.
-  const lastGroundY = useRef(PLANET_RADIUS + GRASS_ALTITUDE)
+  // Wet/dry state against the LIVE waterline (sea level + surf). Spawn is
+  // dry; initializing wet would fire a phantom ripple on the first frame.
+  const lastWet = useRef(false)
 
   const interactableUnits = useMemo(
     () =>
@@ -225,16 +225,17 @@ export function usePlanetController({ planetRef, avatarRef }: ControllerRefs) {
     }
 
     const groundY = groundHeightAt(_poleAfter)
-    // Any grounded transition across sea level is a waterline crossing
-    // (wading in down the real slope, back out, or stepping off the dock
-    // end) → ripple. Suppressed mid-jump: feet aren't in the water.
-    if (
-      jumpT.current === null &&
-      groundY < SEA_LEVEL !== lastGroundY.current < SEA_LEVEL
-    ) {
+    // Wet/dry transition against the LIVE waterline (sea level + surf —
+    // the same surfOffset the water shader displaces by, v3.3): wading in
+    // down the slope, back out, stepping off the dock end, or the surf
+    // washing over your feet while you stand at the edge → ripple.
+    // Suppressed mid-jump: feet aren't in the water.
+    const polarAfter = Math.acos(THREE.MathUtils.clamp(_poleAfter.y, -1, 1))
+    const wet = groundY < SEA_LEVEL + surfOffset(polarAfter, state.clock.elapsedTime)
+    if (jumpT.current === null && wet !== lastWet.current) {
       controlsRuntime.wadeRippleTime = state.clock.elapsedTime
     }
-    lastGroundY.current = groundY
+    lastWet.current = wet
 
     avatar.position.y = groundY + jumpOffset
     avatar.rotation.y = yaw.current
