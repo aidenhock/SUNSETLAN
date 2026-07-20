@@ -9,10 +9,10 @@ import { chromium } from '@playwright/test'
 const BASE = process.env.SWEEP_URL || 'http://localhost:4173'
 const deg = (d) => (d * Math.PI) / 180
 
-// Near-white: high lightness with low saturation. Slightly generous
-// thresholds — the dither adds ±1/255 noise.
-const LIGHTNESS_MIN = 0.86
-const SATURATION_MAX = 0.11
+// Near-white: high lightness with low saturation. Raised in v3.8 alongside
+// the real-blue ramp so a pale band can never regress back in.
+const LIGHTNESS_MIN = 0.8
+const SATURATION_MAX = 0.16
 /** Sky region: top fraction of the frame (safely above the horizon). */
 const SKY_FRACTION = 0.42
 /** Exclusion radius (px) around the brightest sky pixel (the disc/halo core). */

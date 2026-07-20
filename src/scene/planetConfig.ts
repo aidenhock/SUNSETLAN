@@ -135,13 +135,19 @@ export function surfOffset(polarRad: number, timeS: number): number {
  * config owns the endpoints and the arc↔elevation geometry.
  */
 export const CELESTIAL_ELEVATION_INLAND_DEG = 45
-export const CELESTIAL_ELEVATION_WATERLINE_DEG = 12
+/** v3.8 TRUE SET: elevations are horizontal-relative; the sea horizon sits
+ * at ≈ −16.6° from eye height. −15.8° puts the disc center 0.75° above the
+ * sea line → ~40% of the sun disc (3.7° radius) submerged at the waterline;
+ * the ocean geometry physically occludes the rest. */
+export const CELESTIAL_ELEVATION_WATERLINE_DEG = -15.8
+/** Wading lets it sink a touch more, clamped ≈55% submerged — never gone. */
+export const CELESTIAL_ELEVATION_WADING_MIN_DEG = -17.0
 export const CELESTIAL = { sunLongDeg: 0, moonLongDeg: 180 } as const
 /** The solved disc polar angle is clamped to the home side: never higher
  * than this (keeps the far side's body below the horizon under world
- * rotation), never lower than the waterline anchor. */
+ * rotation), never lower than the set anchor. */
 export const DISC_POLAR_MIN_DEG = 45
-export const DISC_POLAR_MAX_DEG = 139
+export const DISC_POLAR_MAX_DEG = 170
 
 /** Must match CelestialDome's BODY_R (discs sit just inside the dome). */
 const DOME_BODY_R = 230
@@ -157,8 +163,9 @@ export function apparentElevationDeg(arcRad: number): number {
 /** Inverse of apparentElevationDeg via a monotone lookup (built once). */
 const ARC_STEP = 0.5
 const ARC_MIN = 20
+const ARC_MAX = 175
 const ARC_TABLE: number[] = []
-for (let d = ARC_MIN; d <= 140; d += ARC_STEP) {
+for (let d = ARC_MIN; d <= ARC_MAX; d += ARC_STEP) {
   ARC_TABLE.push(apparentElevationDeg(THREE.MathUtils.degToRad(d)))
 }
 export function arcForElevationDeg(elevDeg: number): number {
@@ -169,7 +176,7 @@ export function arcForElevationDeg(elevDeg: number): number {
       return ARC_MIN + (i - 1 + f) * ARC_STEP
     }
   }
-  return 140
+  return ARC_MAX
 }
 
 export interface Blocker {

@@ -5,6 +5,7 @@ import {
   arcForElevationDeg,
   CELESTIAL,
   CELESTIAL_ELEVATION_INLAND_DEG,
+  CELESTIAL_ELEVATION_WADING_MIN_DEG,
   CELESTIAL_ELEVATION_WATERLINE_DEG,
   DISC_POLAR_MAX_DEG,
   DISC_POLAR_MIN_DEG,
@@ -27,12 +28,23 @@ import { paletteMaterial, PROP_COLORS } from './props'
  * so world rotation still rises and sets the bodies as you cross.
  */
 
-/** Target apparent elevation (deg) for the player's polar angle. */
+/** Target apparent elevation (deg, horizontal-relative) for the player's
+ * polar angle. v3.8: the descent ends in a TRUE SET at the waterline
+ * (~40% submerged), sinking to the wading clamp (~55%) past it. */
 export function discElevationDeg(playerPolarDeg: number): number {
-  return THREE.MathUtils.lerp(
+  const base = THREE.MathUtils.lerp(
     CELESTIAL_ELEVATION_INLAND_DEG,
     CELESTIAL_ELEVATION_WATERLINE_DEG,
     THREE.MathUtils.smoothstep(playerPolarDeg, TERRAIN.plateauEndDeg, TERRAIN.waterlineDeg),
+  )
+  return THREE.MathUtils.lerp(
+    base,
+    CELESTIAL_ELEVATION_WADING_MIN_DEG,
+    THREE.MathUtils.smoothstep(
+      playerPolarDeg,
+      TERRAIN.waterlineDeg,
+      TERRAIN.waterlineDeg + 2.7,
+    ),
   )
 }
 
@@ -70,12 +82,12 @@ export const skyRuntime = {
  * sunset/moon layers are azimuth-shaped in the dome shader. Fog carries a
  * warm tint so the sea fade meets the sun-side horizon without a seam. */
 export const SKY = {
-  // Base layer (elevation-only) — v3.6: the day sky is genuinely BLUE,
-  // never near-white; a chroma floor in the dome shader backs this up.
-  dayZenith: '#5e97d8',
-  dayMid: '#8fb8e8',
-  dayHorizon: '#b7d0ee', // light but clearly blue
-  antiHaze: '#7fa6d8', // deeper soft blue on the anti-sun day horizon
+  // Base layer (elevation-only) — v3.8: REAL sky blues, no pale bottom;
+  // the raised saturation clamp + skycheck thresholds guard the floor.
+  dayZenith: '#4c8bd8',
+  dayMid: '#6ca7e2',
+  dayHorizon: '#8fc2ec', // unmistakably blue at the horizon
+  antiHaze: '#6f9ed8', // deeper soft blue on the anti-sun day horizon
   nightHorizon: '#24304f',
   nightLow: '#1a2340',
   nightMid: '#10182e',
@@ -89,7 +101,7 @@ export const SKY = {
   sunsetBridge: '#f4a5b2',
   // Moon layer
   moonLayer: '#aebcd8',
-  fogDay: '#a8c6e8', // v3.7: light blue, never cream — matches the day horizon
+  fogDay: '#8fc2ec', // v3.8: matches the day horizon stop exactly
   wayfind: '#31456b',
   dirDay: '#ffd9a0',
   dirNight: '#9fb4ff', // moonlight token

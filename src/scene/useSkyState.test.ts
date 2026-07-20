@@ -5,6 +5,7 @@ import {
   apparentElevationDeg,
   arcForElevationDeg,
   CELESTIAL_ELEVATION_INLAND_DEG,
+  CELESTIAL_ELEVATION_WADING_MIN_DEG,
   CELESTIAL_ELEVATION_WATERLINE_DEG,
   DISC_POLAR_MAX_DEG,
   DISC_POLAR_MIN_DEG,
@@ -51,16 +52,24 @@ describe('nightMixFromPoleZ (two skies)', () => {
     expect(prev).toBeGreaterThan(0.99)
   })
 
-  it('celestial arc: high inland, setting at the waterline (v3.7)', () => {
-    // Elevation rule endpoints + monotone descent across the beach band.
+  it('celestial arc: high inland, TRUE SET at the waterline (v3.8)', () => {
+    // Elevation rule endpoints + monotone descent across the beach band
+    // and on into the wading clamp.
     expect(discElevationDeg(0)).toBeCloseTo(CELESTIAL_ELEVATION_INLAND_DEG, 5)
     expect(discElevationDeg(TERRAIN.plateauEndDeg)).toBeCloseTo(CELESTIAL_ELEVATION_INLAND_DEG, 5)
     expect(discElevationDeg(TERRAIN.waterlineDeg)).toBeCloseTo(
       CELESTIAL_ELEVATION_WATERLINE_DEG,
       5,
     )
+    // The waterline endpoint sits BELOW horizontal (set into the sea) but
+    // above the wading clamp — the disc never fully vanishes.
+    expect(CELESTIAL_ELEVATION_WATERLINE_DEG).toBeLessThan(0)
+    expect(discElevationDeg(TERRAIN.waterlineDeg + 5)).toBeCloseTo(
+      CELESTIAL_ELEVATION_WADING_MIN_DEG,
+      5,
+    )
     let prev = discElevationDeg(TERRAIN.plateauEndDeg)
-    for (let p = TERRAIN.plateauEndDeg; p <= TERRAIN.waterlineDeg; p += 0.5) {
+    for (let p = TERRAIN.plateauEndDeg; p <= TERRAIN.waterlineDeg + 5; p += 0.5) {
       const e = discElevationDeg(p)
       expect(e).toBeLessThanOrEqual(prev + 1e-9)
       prev = e

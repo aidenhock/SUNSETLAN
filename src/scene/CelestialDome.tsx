@@ -99,11 +99,11 @@ void main() {
     * smoothstep(0.78, 0.92, uNightMix);
   col = mix(col, uWayfind, wf * 0.55);
 
-  // Minimum-saturation clamp (v3.7): outside the discs no sky fragment may
-  // trend bright-gray/white — pull offenders toward the palette blue.
+  // Minimum-saturation clamp (raised in v3.8): outside the discs no sky
+  // fragment may trend bright-gray/white — pull offenders to palette blue.
   float maxC = max(col.r, max(col.g, col.b));
   float sat = (maxC - min(col.r, min(col.g, col.b))) / max(maxC, 1e-4);
-  float grayish = (1.0 - smoothstep(0.12, 0.24, sat)) * smoothstep(0.55, 0.75, maxC);
+  float grayish = (1.0 - smoothstep(0.18, 0.30, sat)) * smoothstep(0.5, 0.7, maxC);
   col = mix(col, mix(uDayMid, uNightH, uNightMix) * maxC, grayish * 0.6);
 
   // Screen-space hash dither (~±1/255): shallow gradients band on 8-bit
