@@ -136,7 +136,7 @@ export function surfOffset(polarRad: number, timeS: number): number {
  * uses its own higher anchors (see useSkyState) — a low disc must not
  * light the scene from below.
  */
-export const CELESTIAL_ELEVATION_DEG = 15
+export const CELESTIAL_ELEVATION_DEG = 26
 /** Must match CelestialDome's BODY_R (discs sit just inside the dome). */
 const DOME_BODY_R = 230
 const EYE_R = PLANET_RADIUS + 2.4

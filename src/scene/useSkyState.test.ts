@@ -42,18 +42,18 @@ describe('nightMixFromPoleZ (two skies)', () => {
     expect(prev).toBeGreaterThan(0.99)
   })
 
-  it('anchors both discs ~15° above the sea horizon from their beaches (v3.4)', () => {
-    // The elevation solver lands each disc 70–85° of arc from its beach:
+  it('anchors both discs ~26° above the sea horizon from their beaches (v3.5)', () => {
+    // The elevation solver lands each disc ~60–75° of arc from its beach:
     // in the sky, clearly over the water, below the pole.
-    expect(SUN_DISC_LOCAL.z).toBeGreaterThan(0.3)
-    expect(SUN_DISC_LOCAL.y).toBeLessThan(-0.5)
-    expect(MOON_DISC_LOCAL.z).toBeLessThan(-0.3)
-    expect(MOON_DISC_LOCAL.y).toBeLessThan(-0.5)
+    expect(SUN_DISC_LOCAL.z).toBeGreaterThan(0.4)
+    expect(SUN_DISC_LOCAL.y).toBeLessThan(-0.4)
+    expect(MOON_DISC_LOCAL.z).toBeLessThan(-0.4)
+    expect(MOON_DISC_LOCAL.y).toBeLessThan(-0.4)
     const sunArc = SUN_DISC_LOCAL.angleTo(latLongToUnit(17, 0))
     const moonArc = MOON_DISC_LOCAL.angleTo(latLongToUnit(17.5, 180))
     for (const arc of [sunArc, moonArc]) {
-      expect(arc).toBeGreaterThan(THREE.MathUtils.degToRad(70))
-      expect(arc).toBeLessThan(THREE.MathUtils.degToRad(85))
+      expect(arc).toBeGreaterThan(THREE.MathUtils.degToRad(58))
+      expect(arc).toBeLessThan(THREE.MathUtils.degToRad(76))
     }
   })
 })
