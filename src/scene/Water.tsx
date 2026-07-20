@@ -8,6 +8,7 @@ import {
   SURF,
   TERRAIN,
 } from './planetConfig'
+import { skyRuntime } from './useSkyState'
 
 /**
  * Sphere-wrapping ocean with cheap vertex waves plus the v3.3 surf-foam
@@ -32,6 +33,7 @@ export function Water() {
     })
     mat.onBeforeCompile = (shader) => {
       shader.uniforms.uTime = { value: 0 }
+      shader.uniforms.uNightMix = { value: 0 }
       const consts = /* glsl */ `
         const float PLATEAU_END = ${TERRAIN.plateauEndDeg.toFixed(1)};
         const float SHOULDER_END = ${TERRAIN.shoulderEndDeg.toFixed(1)};
@@ -53,7 +55,7 @@ export function Water() {
         }
       `
       shader.vertexShader =
-        `uniform float uTime;\nvarying float vDepth;\nvarying vec3 vSphereDir;\n${consts}\n` +
+        `uniform float uTime;\nvarying float vDepth;\nvarying float vWave;\nvarying vec3 vSphereDir;\n${consts}\n` +
         shader.vertexShader.replace(
           '#include <begin_vertex>',
           /* glsl */ `#include <begin_vertex>
@@ -67,10 +69,11 @@ export function Water() {
           wave += sin(uTime * 6.2831853 / SURF_PERIOD) * SURF_AMP * smoothstep(SURF_START, SURF_END, polarDeg);
           transformed += dir * wave;
           vDepth = wave - profileAlt(polarDeg);
+          vWave = wave;
           vSphereDir = dir;`,
         )
       shader.fragmentShader =
-        `varying float vDepth;\nvarying vec3 vSphereDir;\nuniform float uTime;\n` +
+        `varying float vDepth;\nvarying float vWave;\nvarying vec3 vSphereDir;\nuniform float uTime;\nuniform float uNightMix;\n` +
         shader.fragmentShader.replace(
           'vec4 diffuseColor = vec4( diffuse, opacity );',
           /* glsl */ `
@@ -84,7 +87,22 @@ export function Water() {
           float foam = smoothstep(0.3, 0.8, 1.0 - smoothstep(0.0, bandWidth, vDepth));
           // Only where water actually covers terrain (depth > 0-ish).
           foam *= smoothstep(-0.04, 0.01, vDepth);
-          vec4 diffuseColor = vec4(mix(diffuse, vec3(1.0), foam * 0.9), mix(opacity, 0.97, foam));`,
+          vec4 diffuseColor = vec4(mix(diffuse, vec3(1.0), foam * 0.9), mix(opacity, 0.97, foam));
+
+          // Glitter paths (v3.4): broken shimmer bands on the sea toward the
+          // sun (warm, day) and moon (pale cool, night), riding the live
+          // wave value so cells flicker as waves pass. No reflections.
+          float gPolar = degrees(acos(clamp(vSphereDir.y, -1.0, 1.0)));
+          vec2 gDirH = normalize(vSphereDir.xz + vec2(1e-6, 0.0));
+          float gDist = (1.0 - smoothstep(80.0, 100.0, gPolar)) * smoothstep(74.5, 78.0, gPolar);
+          float gSparkle = smoothstep(0.55, 0.95,
+            fract(sin(dot(floor(vSphereDir.xz * 220.0), vec2(12.9898, 78.233))) * 43758.5453 + vWave * 7.0));
+          float gSun = smoothstep(0.9976, 0.9998, gDirH.y);
+          float gMoon = smoothstep(0.9976, 0.9998, -gDirH.y);
+          float gDay = 1.0 - smoothstep(0.45, 0.7, uNightMix);
+          float gNight = smoothstep(0.6, 0.85, uNightMix);
+          vec3 glitter = vec3(1.0, 0.85, 0.63) * gSun * gDay + vec3(0.81, 0.88, 1.0) * gMoon * gNight;
+          diffuseColor.rgb += glitter * gSparkle * gDist * 0.65;`,
         )
       mat.userData.shader = shader
     }
@@ -93,9 +111,12 @@ export function Water() {
 
   useFrame((state) => {
     const shader = waterMaterial.userData.shader as
-      | { uniforms: { uTime: { value: number } } }
+      | { uniforms: { uTime: { value: number }; uNightMix: { value: number } } }
       | undefined
-    if (shader) shader.uniforms.uTime.value = state.clock.elapsedTime
+    if (shader) {
+      shader.uniforms.uTime.value = state.clock.elapsedTime
+      shader.uniforms.uNightMix.value = skyRuntime.nightMix
+    }
   })
 
   return (
