@@ -9,7 +9,7 @@ import {
   SURF,
   TERRAIN,
 } from './planetConfig'
-import { MOON_DISC_LOCAL, skyRuntime, SUN_DISC_LOCAL } from './useSkyState'
+import { skyRuntime } from './useSkyState'
 
 const _qInv = new THREE.Quaternion()
 
@@ -38,9 +38,13 @@ export function Water() {
       shader.uniforms.uTime = { value: 0 }
       shader.uniforms.uNightMix = { value: 0 }
       // Camera position in the water's OBJECT space (the planet rotates, so
-      // this is inverse-rotated per frame); the disc lights are planet-local
-      // constants, so Blinn runs entirely in object space.
+      // this is inverse-rotated per frame). The disc positions are also
+      // object-space uniforms (v3.7 — they ride the celestial arc), so
+      // Blinn runs entirely in object space and the glitter lanes track
+      // the discs automatically.
       shader.uniforms.uCamObj = { value: new THREE.Vector3(0, 60, 0) }
+      shader.uniforms.uSunObj = { value: skyRuntime.sunLocal.clone().multiplyScalar(230) }
+      shader.uniforms.uMoonObj = { value: skyRuntime.moonLocal.clone().multiplyScalar(230) }
       const consts = /* glsl */ `
         const float PLATEAU_END = ${TERRAIN.plateauEndDeg.toFixed(1)};
         const float SHOULDER_END = ${TERRAIN.shoulderEndDeg.toFixed(1)};
@@ -80,7 +84,7 @@ export function Water() {
           vObjPos = position;`,
         )
       shader.fragmentShader =
-        `varying float vDepth;\nvarying vec3 vSphereDir;\nvarying vec3 vObjPos;\nuniform float uTime;\nuniform float uNightMix;\nuniform vec3 uCamObj;\n` +
+        `varying float vDepth;\nvarying vec3 vSphereDir;\nvarying vec3 vObjPos;\nuniform float uTime;\nuniform float uNightMix;\nuniform vec3 uCamObj;\nuniform vec3 uSunObj;\nuniform vec3 uMoonObj;\n` +
         shader.fragmentShader.replace(
           'vec4 diffuseColor = vec4( diffuse, opacity );',
           /* glsl */ `
@@ -120,8 +124,8 @@ export function Water() {
           vec3 tGrad = grad - sphereN * dot(grad, sphereN);
           vec3 N = normalize(sphereN - tGrad * 5.0);
           vec3 V = normalize(uCamObj - vObjPos);
-          vec3 Lsun = normalize(vec3(${SUN_DISC_LOCAL.x.toFixed(4)}, ${SUN_DISC_LOCAL.y.toFixed(4)}, ${SUN_DISC_LOCAL.z.toFixed(4)}) * 230.0 - vObjPos);
-          vec3 Lmoon = normalize(vec3(${MOON_DISC_LOCAL.x.toFixed(4)}, ${MOON_DISC_LOCAL.y.toFixed(4)}, ${MOON_DISC_LOCAL.z.toFixed(4)}) * 230.0 - vObjPos);
+          vec3 Lsun = normalize(uSunObj - vObjPos);
+          vec3 Lmoon = normalize(uMoonObj - vObjPos);
           float sunGlint = smoothstep(0.05, 0.8, pow(max(dot(N, normalize(V + Lsun)), 0.0), 60.0));
           float moonGlint = smoothstep(0.05, 0.8, pow(max(dot(N, normalize(V + Lmoon)), 0.0), 60.0));
           float gDay = 1.0 - smoothstep(0.45, 0.7, uNightMix);
@@ -143,6 +147,8 @@ export function Water() {
             uTime: { value: number }
             uNightMix: { value: number }
             uCamObj: { value: THREE.Vector3 }
+            uSunObj: { value: THREE.Vector3 }
+            uMoonObj: { value: THREE.Vector3 }
           }
         }
       | undefined
@@ -152,6 +158,12 @@ export function Water() {
       shader.uniforms.uCamObj.value
         .copy(camera.position)
         .applyQuaternion(_qInv.copy(controlsRuntime.planetQuaternion).invert())
+      ;(shader.uniforms.uSunObj.value as THREE.Vector3)
+        .copy(skyRuntime.sunLocal)
+        .multiplyScalar(230)
+      ;(shader.uniforms.uMoonObj.value as THREE.Vector3)
+        .copy(skyRuntime.moonLocal)
+        .multiplyScalar(230)
     }
   })
 

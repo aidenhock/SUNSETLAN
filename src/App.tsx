@@ -73,10 +73,10 @@ export default function App() {
           dpr={qualityTier === 'low' ? 1 : [1, 2]}
           camera={{ fov: 50, near: 0.1, far: 400, position: [0, 60, 8] }}
         >
-          {/* Mount at the day horizon stop; useSkyState re-lerps per frame. */}
-          <color attach="background" args={['#ff9e5e']} />
+          {/* Mount at the day fog blue; useSkyState re-lerps per frame. */}
+          <color attach="background" args={['#a8c6e8']} />
           {/* Fog softens the horizon so the curvature reads at golden hour. */}
-          <fog attach="fog" args={['#ff9e5e', 60, 220]} />
+          <fog attach="fog" args={['#a8c6e8', 60, 220]} />
           {/* Sustained fps drops flip qualityTier low (DPR 1; 3B/3C also gate
               stars/notes/critters on it). Two flip-flops lock low for good. */}
           {monitorArmed && (

@@ -6,7 +6,7 @@ import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeom
 import { useStore } from '../store/useStore'
 import { mulberry32 } from './geometryUtils'
 import { normalizeForMerge } from './props'
-import { MOON_DISC_LOCAL, skyRuntime, SUN_DISC_LOCAL } from './useSkyState'
+import { skyRuntime } from './useSkyState'
 
 /**
  * Living clouds (v3.5 — replaces the static instanced clusters). A pooled
@@ -72,13 +72,15 @@ interface CloudSlot {
   yaw: number
 }
 
-/** Angular clearance of the whole drift path from both discs. */
+/** Angular clearance of the whole drift path from both discs. The discs
+ * ride the celestial arc, so this checks their CURRENT positions — a slow
+ * disc drift under a live cloud is acceptable; respawns re-check. */
 function pathClear(spawnDir: THREE.Vector3, lifeS: number): boolean {
   for (const t of [0, 0.5, 1]) {
     _q.setFromAxisAngle(WIND_AXIS, WIND_RAD_PER_S * lifeS * t)
     _dir.copy(spawnDir).applyQuaternion(_q)
-    if (_dir.angleTo(SUN_DISC_LOCAL) < AVOID_RAD) return false
-    if (_dir.angleTo(MOON_DISC_LOCAL) < AVOID_RAD) return false
+    if (_dir.angleTo(skyRuntime.sunLocal) < AVOID_RAD) return false
+    if (_dir.angleTo(skyRuntime.moonLocal) < AVOID_RAD) return false
   }
   return true
 }
@@ -172,7 +174,7 @@ export function Clouds() {
 
       // Per-frame tint: warm underlit near the sun's azimuth, cool dark on
       // the night side (angular distance + nightMix).
-      const sunDist = _dir.angleTo(SUN_DISC_LOCAL)
+      const sunDist = _dir.angleTo(skyRuntime.sunLocal)
       const warmW = (1 - THREE.MathUtils.smoothstep(sunDist, 0.5, 1.4)) *
         (1 - THREE.MathUtils.smoothstep(nightMix, 0.55, 0.85))
       const nightW = THREE.MathUtils.smoothstep(nightMix, 0.5, 0.85)

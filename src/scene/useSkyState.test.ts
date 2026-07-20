@@ -1,7 +1,16 @@
 import * as THREE from 'three'
 import { describe, expect, it } from 'vitest'
 import { latLongToUnit } from '../controls/planetMath'
-import { MOON_DISC_LOCAL, nightMixFromPoleZ, SUN_DISC_LOCAL } from './useSkyState'
+import {
+  apparentElevationDeg,
+  arcForElevationDeg,
+  CELESTIAL_ELEVATION_INLAND_DEG,
+  CELESTIAL_ELEVATION_WATERLINE_DEG,
+  DISC_POLAR_MAX_DEG,
+  DISC_POLAR_MIN_DEG,
+  TERRAIN,
+} from './planetConfig'
+import { discElevationDeg, nightMixFromPoleZ, solveDiscPolarDeg } from './useSkyState'
 
 /** nightMix for a visitor standing at (lat, long) — the pole-local z. */
 const mixAt = (lat: number, long: number) => nightMixFromPoleZ(latLongToUnit(lat, long).z)
@@ -42,18 +51,45 @@ describe('nightMixFromPoleZ (two skies)', () => {
     expect(prev).toBeGreaterThan(0.99)
   })
 
-  it('anchors both discs ~26° above the sea horizon from their beaches (v3.5)', () => {
-    // The elevation solver lands each disc ~60–75° of arc from its beach:
-    // in the sky, clearly over the water, below the pole.
-    expect(SUN_DISC_LOCAL.z).toBeGreaterThan(0.4)
-    expect(SUN_DISC_LOCAL.y).toBeLessThan(-0.4)
-    expect(MOON_DISC_LOCAL.z).toBeLessThan(-0.4)
-    expect(MOON_DISC_LOCAL.y).toBeLessThan(-0.4)
-    const sunArc = SUN_DISC_LOCAL.angleTo(latLongToUnit(17, 0))
-    const moonArc = MOON_DISC_LOCAL.angleTo(latLongToUnit(17.5, 180))
-    for (const arc of [sunArc, moonArc]) {
-      expect(arc).toBeGreaterThan(THREE.MathUtils.degToRad(58))
-      expect(arc).toBeLessThan(THREE.MathUtils.degToRad(76))
+  it('celestial arc: high inland, setting at the waterline (v3.7)', () => {
+    // Elevation rule endpoints + monotone descent across the beach band.
+    expect(discElevationDeg(0)).toBeCloseTo(CELESTIAL_ELEVATION_INLAND_DEG, 5)
+    expect(discElevationDeg(TERRAIN.plateauEndDeg)).toBeCloseTo(CELESTIAL_ELEVATION_INLAND_DEG, 5)
+    expect(discElevationDeg(TERRAIN.waterlineDeg)).toBeCloseTo(
+      CELESTIAL_ELEVATION_WATERLINE_DEG,
+      5,
+    )
+    let prev = discElevationDeg(TERRAIN.plateauEndDeg)
+    for (let p = TERRAIN.plateauEndDeg; p <= TERRAIN.waterlineDeg; p += 0.5) {
+      const e = discElevationDeg(p)
+      expect(e).toBeLessThanOrEqual(prev + 1e-9)
+      prev = e
     }
+  })
+
+  it('solved disc yields the wanted apparent elevation on the home walk', () => {
+    // Player on the long-0 meridian at the waterline: the solved sun disc
+    // should sit ~12° above the sea horizon (arc solver round-trip).
+    const p = latLongToUnit(15, 0)
+    const arc = arcForElevationDeg(CELESTIAL_ELEVATION_WATERLINE_DEG)
+    const polar = solveDiscPolarDeg(p.y, p.z, arc)
+    const disc = latLongToUnit(90 - polar, 0)
+    const actualArc = THREE.MathUtils.radToDeg(disc.angleTo(p))
+    expect(
+      apparentElevationDeg(THREE.MathUtils.degToRad(actualArc)),
+    ).toBeCloseTo(CELESTIAL_ELEVATION_WATERLINE_DEG, 0)
+  })
+
+  it('clamps keep the far body below the horizon (sun set at deep night)', () => {
+    // Player at the night beach: the sun solve clamps to the home side and
+    // the disc ends up far over the planet's shoulder — not visible.
+    const p = latLongToUnit(17.5, 179)
+    const arc = arcForElevationDeg(discElevationDeg(72.5))
+    const polar = solveDiscPolarDeg(p.y, p.z, arc)
+    expect(polar).toBeGreaterThanOrEqual(DISC_POLAR_MIN_DEG)
+    expect(polar).toBeLessThanOrEqual(DISC_POLAR_MAX_DEG)
+    const disc = latLongToUnit(90 - polar, 0)
+    const arcToPlayer = THREE.MathUtils.radToDeg(disc.angleTo(p))
+    expect(apparentElevationDeg(THREE.MathUtils.degToRad(arcToPlayer))).toBeLessThan(-10)
   })
 })

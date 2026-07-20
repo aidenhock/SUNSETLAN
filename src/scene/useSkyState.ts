@@ -1,7 +1,15 @@
 import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { latLongToUnit, poleInPlanetSpace } from '../controls/planetMath'
-import { CELESTIAL } from './planetConfig'
+import {
+  arcForElevationDeg,
+  CELESTIAL,
+  CELESTIAL_ELEVATION_INLAND_DEG,
+  CELESTIAL_ELEVATION_WATERLINE_DEG,
+  DISC_POLAR_MAX_DEG,
+  DISC_POLAR_MIN_DEG,
+  TERRAIN,
+} from './planetConfig'
 import { paletteMaterial, PROP_COLORS } from './props'
 
 /**
@@ -12,23 +20,50 @@ import { paletteMaterial, PROP_COLORS } from './props'
  * useFrame. Everything mutates in place — zero allocations per frame.
  */
 
-/** DISC anchors (v3.3): at the waterline ~90° from their own beaches —
- * CELESTIAL in planetConfig is the single source. */
-export const SUN_DISC_LOCAL = latLongToUnit(CELESTIAL.sunLatDeg, CELESTIAL.sunLongDeg)
-export const MOON_DISC_LOCAL = latLongToUnit(CELESTIAL.moonLatDeg, CELESTIAL.moonLongDeg)
+/**
+ * Celestial arc (v3.7): disc elevation follows the player — high inland,
+ * setting at the shore. The solved disc polar angle lives on each body's
+ * home meridian (azimuth stays 0 / 180) and is clamped to the home side,
+ * so world rotation still rises and sets the bodies as you cross.
+ */
 
-/** LIGHT anchors: higher than the discs — the directional light keeps a
- * flattering low-side angle; a waterline disc must never light the scene
- * from below the horizon. The dome halo only uses the azimuth (identical). */
-const LIGHT_SUN_LOCAL = latLongToUnit(16, 0)
-const LIGHT_MOON_LOCAL = latLongToUnit(17, 180)
+/** Target apparent elevation (deg) for the player's polar angle. */
+export function discElevationDeg(playerPolarDeg: number): number {
+  return THREE.MathUtils.lerp(
+    CELESTIAL_ELEVATION_INLAND_DEG,
+    CELESTIAL_ELEVATION_WATERLINE_DEG,
+    THREE.MathUtils.smoothstep(playerPolarDeg, TERRAIN.plateauEndDeg, TERRAIN.waterlineDeg),
+  )
+}
 
-/** Read-only for other systems (dome, discs, clouds, TV glow, meteors) —
- * written every frame. World unit dirs of the DISC anchors. */
+/**
+ * Disc polar angle (deg from the pole, on the home meridian) whose arc to
+ * the player yields the wanted elevation. py/pzMeridian are the player's
+ * pole-local components in the body's meridian plane (pz sign-flipped for
+ * the moon). Closed form: P·M(θ) = R·cos(θ − φ) = cos(arc).
+ */
+export function solveDiscPolarDeg(py: number, pzMeridian: number, arcDeg: number): number {
+  const R = Math.max(Math.hypot(py, pzMeridian), 1e-4)
+  const phi = Math.atan2(pzMeridian, py)
+  const inner = THREE.MathUtils.clamp(Math.cos(THREE.MathUtils.degToRad(arcDeg)) / R, -1, 1)
+  const theta = THREE.MathUtils.radToDeg(phi + Math.acos(inner))
+  return THREE.MathUtils.clamp(theta, DISC_POLAR_MIN_DEG, DISC_POLAR_MAX_DEG)
+}
+
+/** Spawn-time defaults (player at the pole): E = inland elevation. */
+const SPAWN_ARC = arcForElevationDeg(CELESTIAL_ELEVATION_INLAND_DEG)
+const SUN_HOME_LOCAL = latLongToUnit(90 - solveDiscPolarDeg(1, 0, SPAWN_ARC), CELESTIAL.sunLongDeg)
+const MOON_HOME_LOCAL = latLongToUnit(90 - solveDiscPolarDeg(1, 0, SPAWN_ARC), CELESTIAL.moonLongDeg)
+
+/** Read-only for other systems (dome, discs, water, clouds, TV glow,
+ * meteors) — written every frame. Planet-LOCAL and WORLD unit dirs of the
+ * dynamic disc anchors. */
 export const skyRuntime = {
   nightMix: 0,
-  sunWorld: SUN_DISC_LOCAL.clone(),
-  moonWorld: MOON_DISC_LOCAL.clone(),
+  sunLocal: SUN_HOME_LOCAL.clone(),
+  moonLocal: MOON_HOME_LOCAL.clone(),
+  sunWorld: SUN_HOME_LOCAL.clone(),
+  moonWorld: MOON_HOME_LOCAL.clone(),
 }
 
 /** v3.5 directional sky tokens. Base layer is elevation-only blues; the
@@ -54,7 +89,7 @@ export const SKY = {
   sunsetBridge: '#f4a5b2',
   // Moon layer
   moonLayer: '#aebcd8',
-  fogDay: '#b7d0ee',
+  fogDay: '#a8c6e8', // v3.7: light blue, never cream — matches the day horizon
   wayfind: '#31456b',
   dirDay: '#ffd9a0',
   dirNight: '#9fb4ff', // moonlight token
@@ -89,8 +124,10 @@ const FLAME_NIGHT = 1.1
 // Frame-loop scratch.
 const _pole = new THREE.Vector3()
 const _lightDir = new THREE.Vector3()
-const _lightSunW = new THREE.Vector3()
-const _lightMoonW = new THREE.Vector3()
+const _discSmooth = {
+  sun: solveDiscPolarDeg(1, 0, SPAWN_ARC),
+  moon: solveDiscPolarDeg(1, 0, SPAWN_ARC),
+}
 const _fogDay = new THREE.Color(SKY.fogDay)
 const _fogNight = new THREE.Color(SKY.nightHorizon)
 const _dirDay = new THREE.Color(SKY.dirDay)
@@ -115,14 +152,30 @@ export function useSkyState({
 }) {
   const { scene } = useThree()
 
-  useFrame(() => {
+  useFrame((_state, dt) => {
     const planet = planetRef.current
     if (!planet) return
     poleInPlanetSpace(planet.quaternion, _pole)
     const nightMix = nightMixFromPoleZ(_pole.z)
     skyRuntime.nightMix = nightMix
-    skyRuntime.sunWorld.copy(SUN_DISC_LOCAL).applyQuaternion(planet.quaternion)
-    skyRuntime.moonWorld.copy(MOON_DISC_LOCAL).applyQuaternion(planet.quaternion)
+
+    // Celestial arc (v3.7): elevation follows shore proximity, smoothed
+    // ~0.6 s so the sun sinks with you. Solved on each home meridian.
+    const playerPolarDeg = THREE.MathUtils.radToDeg(
+      Math.acos(THREE.MathUtils.clamp(_pole.y, -1, 1)),
+    )
+    const arcDeg = arcForElevationDeg(discElevationDeg(playerPolarDeg))
+    const sunTarget = solveDiscPolarDeg(_pole.y, _pole.z, arcDeg)
+    const moonTarget = solveDiscPolarDeg(_pole.y, -_pole.z, arcDeg)
+    const k = 1 - Math.exp(-dt / 0.6)
+    _discSmooth.sun += (sunTarget - _discSmooth.sun) * k
+    _discSmooth.moon += (moonTarget - _discSmooth.moon) * k
+    const sunTh = THREE.MathUtils.degToRad(_discSmooth.sun)
+    const moonTh = THREE.MathUtils.degToRad(_discSmooth.moon)
+    skyRuntime.sunLocal.set(0, Math.cos(sunTh), Math.sin(sunTh))
+    skyRuntime.moonLocal.set(0, Math.cos(moonTh), -Math.sin(moonTh))
+    skyRuntime.sunWorld.copy(skyRuntime.sunLocal).applyQuaternion(planet.quaternion)
+    skyRuntime.moonWorld.copy(skyRuntime.moonLocal).applyQuaternion(planet.quaternion)
 
     // Fog + background = the current sky horizon stop (v3.2), so terrain
     // fade and the dome horizon always agree.
@@ -134,13 +187,13 @@ export function useSkyState({
     if (d) {
       d.color.lerpColors(_dirDay, _dirNight, nightMix)
       d.intensity = THREE.MathUtils.lerp(DIR_DAY_I, DIR_NIGHT_I, nightMix)
-      // Light direction follows the LIGHT anchors (not the waterline
-      // discs); the 0.4–0.6 blend kills the sun→moon pop.
-      _lightSunW.copy(LIGHT_SUN_LOCAL).applyQuaternion(planet.quaternion)
-      _lightMoonW.copy(LIGHT_MOON_LOCAL).applyQuaternion(planet.quaternion)
+      // Light direction follows the dynamic discs (v3.7 — on the active
+      // side the arc keeps the disc ≥ the waterline elevation, so the
+      // scene is never lit from below); the 0.4–0.6 blend kills the
+      // sun→moon pop.
       _lightDir.lerpVectors(
-        _lightSunW,
-        _lightMoonW,
+        skyRuntime.sunWorld,
+        skyRuntime.moonWorld,
         THREE.MathUtils.smoothstep(nightMix, 0.4, 0.6),
       )
       if (_lightDir.lengthSq() > 1e-4) {

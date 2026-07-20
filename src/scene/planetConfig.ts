@@ -128,49 +128,49 @@ export function surfOffset(polarRad: number, timeS: number): number {
 }
 
 /**
- * Celestial disc anchors (v3.4): each body's latitude is SOLVED from
- * CELESTIAL_ELEVATION_DEG — the disc center's apparent elevation above the
- * sea horizon as seen from its home beach. ~15° puts each disc in the sky,
- * clearly over the water, and each still sets into the sea behind you as
- * you cross (a little later than the old waterline placement). Lighting
- * uses its own higher anchors (see useSkyState) — a low disc must not
- * light the scene from below.
+ * Celestial arc (v3.7): disc elevation is DYNAMIC — a smooth function of
+ * the player's polar angle from island center. High in the sky inland,
+ * easing down across the beach band to hover just above the sea at the
+ * waterline. The elevation rule + meridian solve live in useSkyState; this
+ * config owns the endpoints and the arc↔elevation geometry.
  */
-export const CELESTIAL_ELEVATION_DEG = 26
+export const CELESTIAL_ELEVATION_INLAND_DEG = 45
+export const CELESTIAL_ELEVATION_WATERLINE_DEG = 12
+export const CELESTIAL = { sunLongDeg: 0, moonLongDeg: 180 } as const
+/** The solved disc polar angle is clamped to the home side: never higher
+ * than this (keeps the far side's body below the horizon under world
+ * rotation), never lower than the waterline anchor. */
+export const DISC_POLAR_MIN_DEG = 45
+export const DISC_POLAR_MAX_DEG = 139
+
 /** Must match CelestialDome's BODY_R (discs sit just inside the dome). */
 const DOME_BODY_R = 230
 const EYE_R = PLANET_RADIUS + 2.4
-/** Sea-horizon dip below horizontal from eye height (deg). */
-const HORIZON_DIP_DEG = THREE.MathUtils.radToDeg(Math.acos(PLANET_RADIUS / EYE_R))
 
 /** Apparent elevation (deg) of a dome body `arc` radians from the viewer. */
-function apparentElevationDeg(arcRad: number): number {
+export function apparentElevationDeg(arcRad: number): number {
   return THREE.MathUtils.radToDeg(
     Math.atan2(DOME_BODY_R * Math.cos(arcRad) - EYE_R, DOME_BODY_R * Math.sin(arcRad)),
   )
 }
 
-/** Disc latitude whose apparent elevation from the beach hits the target. */
-function discLatFor(beachLatDeg: number, elevationAboveSeaDeg: number): number {
-  const targetDeg = elevationAboveSeaDeg - HORIZON_DIP_DEG
-  let bestArc = 90
-  let bestErr = Infinity
-  for (let d = 40; d <= 110; d += 0.25) {
-    const err = Math.abs(apparentElevationDeg(THREE.MathUtils.degToRad(d)) - targetDeg)
-    if (err < bestErr) {
-      bestErr = err
-      bestArc = d
+/** Inverse of apparentElevationDeg via a monotone lookup (built once). */
+const ARC_STEP = 0.5
+const ARC_MIN = 20
+const ARC_TABLE: number[] = []
+for (let d = ARC_MIN; d <= 140; d += ARC_STEP) {
+  ARC_TABLE.push(apparentElevationDeg(THREE.MathUtils.degToRad(d)))
+}
+export function arcForElevationDeg(elevDeg: number): number {
+  // Elevation decreases monotonically with arc — scan for the crossing.
+  for (let i = 1; i < ARC_TABLE.length; i++) {
+    if (ARC_TABLE[i] <= elevDeg) {
+      const f = (ARC_TABLE[i - 1] - elevDeg) / (ARC_TABLE[i - 1] - ARC_TABLE[i] || 1)
+      return ARC_MIN + (i - 1 + f) * ARC_STEP
     }
   }
-  return beachLatDeg - bestArc
+  return 140
 }
-
-export const CELESTIAL = {
-  sunLatDeg: discLatFor(17, CELESTIAL_ELEVATION_DEG),
-  sunLongDeg: 0,
-  moonLatDeg: discLatFor(17.5, CELESTIAL_ELEVATION_DEG),
-  moonLongDeg: 180,
-} as const
 
 export interface Blocker {
   /** Planet-local unit direction of the obstacle. */
