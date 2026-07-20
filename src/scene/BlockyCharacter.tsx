@@ -264,8 +264,11 @@ export function BlockyCharacter({
         // sits behind/beside — the character glances where the player looks.
         const eyeYaw = THREE.MathUtils.clamp(rel, -HEAD_YAW_MAX, HEAD_YAW_MAX)
         const eyePitch = -THREE.MathUtils.clamp(m.camPitch * 0.7, -HEAD_PITCH_MAX, HEAD_PITCH_MAX)
+        // 1.35× gain: a rear glance is seen from behind the head, where
+        // small yaws vanish under the hair cap — amplify toward the clamp
+        // so the glance actually reads in-game.
         const aimRel = wrapPi(rel + Math.PI)
-        const aimYaw = THREE.MathUtils.clamp(aimRel, -HEAD_YAW_MAX, HEAD_YAW_MAX)
+        const aimYaw = THREE.MathUtils.clamp(aimRel * 1.35, -HEAD_YAW_MAX, HEAD_YAW_MAX)
         const aimPitch = THREE.MathUtils.clamp(m.camPitch * 0.3, -HEAD_PITCH_MAX, HEAD_PITCH_MAX)
         const w = THREE.MathUtils.smoothstep(Math.abs(rel), HEAD_CONE_IN, HEAD_CONE_OUT)
         yawTarget = THREE.MathUtils.lerp(eyeYaw, aimYaw, w)
