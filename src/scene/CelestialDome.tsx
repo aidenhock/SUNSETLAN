@@ -1,6 +1,7 @@
 import { useFrame } from '@react-three/fiber'
 import { useMemo, useRef } from 'react'
 import * as THREE from 'three'
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { useStore } from '../store/useStore'
 import { mulberry32 } from './geometryUtils'
 import { MOON_DISC_LOCAL, SKY, skyRuntime, SUN_DISC_LOCAL } from './useSkyState'
@@ -19,6 +20,9 @@ import { MOON_DISC_LOCAL, SKY, skyRuntime, SUN_DISC_LOCAL } from './useSkyState'
 
 const DOME_R = 240 // inside camera far 400
 const BODY_R = 230 // sun/moon/stars sit just inside the dome
+/** Pixel-art gradient banding (v3.4): ~10 steps, 0 disables. Kept only if
+ * it reads as intentional style — judge in the sweep. */
+const SKY_BAND_STEPS = 10
 
 const DOME_VERT = /* glsl */ `
 varying vec3 vWorldPos;
@@ -30,24 +34,27 @@ void main() {
 
 const DOME_FRAG = /* glsl */ `
 uniform float uNightMix;
+uniform float uBandSteps; // > 0.5 → quantize the ramp (pixel-art banding)
 uniform vec3 uSunWorld;  // unit, from planet center
 uniform vec3 uMoonWorld; // unit, from planet center
-uniform vec3 uDayH; uniform vec3 uDayM; uniform vec3 uDayZ;
-uniform vec3 uNightH; uniform vec3 uNightM; uniform vec3 uNightZ;
+uniform vec3 uDayH; uniform vec3 uDayL; uniform vec3 uDayM; uniform vec3 uDayZ;
+uniform vec3 uNightH; uniform vec3 uNightL; uniform vec3 uNightM; uniform vec3 uNightZ;
 uniform vec3 uHalo; uniform vec3 uMoonGlow; uniform vec3 uWayfind;
 varying vec3 vWorldPos;
 
-vec3 stops(vec3 h, vec3 m, vec3 z, float e) {
-  vec3 c = mix(h, m, smoothstep(0.02, 0.35, e));
-  return mix(c, z, smoothstep(0.30, 0.75, e));
+vec3 stops4(vec3 h, vec3 l, vec3 m, vec3 z, float e) {
+  vec3 c = mix(h, l, smoothstep(0.0, 0.16, e));
+  c = mix(c, m, smoothstep(0.14, 0.42, e));
+  return mix(c, z, smoothstep(0.38, 0.75, e));
 }
 
 void main() {
   vec3 vd = normalize(vWorldPos - cameraPosition); // view direction
   float elev = vd.y;                               // player-relative elevation
+  if (uBandSteps > 0.5) elev = floor(elev * uBandSteps) / uBandSteps;
   vec3 col = mix(
-    stops(uDayH, uDayM, uDayZ, elev),
-    stops(uNightH, uNightM, uNightZ, elev),
+    stops4(uDayH, uDayL, uDayM, uDayZ, elev),
+    stops4(uNightH, uNightL, uNightM, uNightZ, elev),
     uNightMix
   );
 
@@ -90,12 +97,15 @@ function buildDomeMaterial(): THREE.ShaderMaterial {
     fog: false,
     uniforms: {
       uNightMix: { value: 0 },
+      uBandSteps: { value: SKY_BAND_STEPS },
       uSunWorld: { value: SUN_DISC_LOCAL.clone() },
       uMoonWorld: { value: MOON_DISC_LOCAL.clone() },
       uDayH: { value: new THREE.Color(SKY.dayHorizon) },
+      uDayL: { value: new THREE.Color(SKY.dayLow) },
       uDayM: { value: new THREE.Color(SKY.dayMid) },
       uDayZ: { value: new THREE.Color(SKY.dayZenith) },
       uNightH: { value: new THREE.Color(SKY.nightHorizon) },
+      uNightL: { value: new THREE.Color(SKY.nightLow) },
       uNightM: { value: new THREE.Color(SKY.nightMid) },
       uNightZ: { value: new THREE.Color(SKY.nightZenith) },
       uHalo: { value: new THREE.Color(SKY.dayHorizon) },
@@ -137,6 +147,21 @@ function buildStars(count: number): [THREE.BufferGeometry, THREE.BufferGeometry]
   return [geoOf(points.slice(0, split)), geoOf(points.slice(split))]
 }
 
+/** Maria blotches (v3.4): flat circles merged per gray — subtle, within the
+ * disc (r 11), so the moon still reads as glowing. */
+const mariaCircle = (r: number, x: number, y: number) =>
+  new THREE.CircleGeometry(r, 14).applyMatrix4(new THREE.Matrix4().makeTranslation(x, y, 0))
+const mariaGeoA = mergeGeometries([
+  mariaCircle(3.1, -2.6, 2.2),
+  mariaCircle(2.2, 2.8, 0.6),
+  mariaCircle(1.6, -0.6, -3.4),
+])
+const mariaGeoB = mergeGeometries([
+  mariaCircle(1.9, 1.4, 3.9),
+  mariaCircle(1.4, -4.3, -1.6),
+  mariaCircle(1.1, 3.4, -3.0),
+])
+
 const starMaterial = (size: number) =>
   new THREE.PointsMaterial({
     color: '#fff3d6', // starlight token
@@ -162,9 +187,12 @@ export function CelestialDome() {
   const moonPos = useMemo(() => MOON_DISC_LOCAL.clone().multiplyScalar(BODY_R), [])
   const moonQ = useMemo(() => facingCenter(MOON_DISC_LOCAL), [])
   const sunGroup = useRef<THREE.Group>(null)
-  const sunHaloMat = useRef<THREE.MeshBasicMaterial>(null)
-  const sunDiscMat = useRef<THREE.MeshBasicMaterial>(null)
+  const sunOuterMat = useRef<THREE.MeshBasicMaterial>(null)
+  const sunInnerMat = useRef<THREE.MeshBasicMaterial>(null)
+  const sunCoreMat = useRef<THREE.MeshBasicMaterial>(null)
   const moonMat = useRef<THREE.MeshBasicMaterial>(null)
+  const mariaMatA = useRef<THREE.MeshBasicMaterial>(null)
+  const mariaMatB = useRef<THREE.MeshBasicMaterial>(null)
 
   useFrame(() => {
     const u = domeMaterial.uniforms
@@ -176,20 +204,22 @@ export function CelestialDome() {
     const fade = THREE.MathUtils.smoothstep(nightMix, 0.55, 0.9)
     starMatSmall.opacity = 0.85 * fade
     starMatBig.opacity = 0.95 * fade
-    // v3.3 side gating: sun disc + halo are gone by nightMix ~0.6; the moon
-    // is a faint daytime ghost that only reaches full brightness past 0.75.
+    // v3.3 side gating: sun stages are gone by nightMix ~0.6; the moon is a
+    // faint daytime ghost that only reaches full brightness past 0.75.
     const dayGate = 1 - THREE.MathUtils.smoothstep(nightMix, 0.35, 0.6)
-    if (sunHaloMat.current) sunHaloMat.current.opacity = 0.35 * dayGate
-    if (sunDiscMat.current) sunDiscMat.current.opacity = dayGate
+    if (sunOuterMat.current) sunOuterMat.current.opacity = 0.22 * dayGate
+    if (sunInnerMat.current) sunInnerMat.current.opacity = 0.5 * dayGate
+    if (sunCoreMat.current) sunCoreMat.current.opacity = dayGate
     const g = sunGroup.current
     if (g) g.visible = dayGate > 0.01
-    if (moonMat.current) {
-      moonMat.current.opacity = THREE.MathUtils.lerp(
-        0.22,
-        1,
-        THREE.MathUtils.smoothstep(nightMix, 0.5, 0.75),
-      )
-    }
+    const moonOpacity = THREE.MathUtils.lerp(
+      0.22,
+      1,
+      THREE.MathUtils.smoothstep(nightMix, 0.5, 0.75),
+    )
+    if (moonMat.current) moonMat.current.opacity = moonOpacity
+    if (mariaMatA.current) mariaMatA.current.opacity = 0.8 * moonOpacity
+    if (mariaMatB.current) mariaMatB.current.opacity = 0.7 * moonOpacity
   })
 
   return (
@@ -201,25 +231,36 @@ export function CelestialDome() {
       <points geometry={starsSmall} material={starMatSmall} renderOrder={-9} />
       <points geometry={starsBig} material={starMatBig} renderOrder={-9} />
 
-      {/* Sun: soft halo behind a warm disc, kissing the long-0 waterline.
-          Fades out entirely by nightMix ~0.6 (side gating, v3.3). */}
+      {/* Sun (v3.4): bright near-white core with a two-stage glow — tight
+          warm inner, wide soft outer. All stages fade by nightMix ~0.6. */}
       <group ref={sunGroup} position={sunPos} quaternion={sunQ}>
         <mesh renderOrder={-9}>
-          <circleGeometry args={[24, 24]} />
+          <circleGeometry args={[34, 28]} />
           <meshBasicMaterial
-            ref={sunHaloMat}
-            color="#ffd9a0"
+            ref={sunOuterMat}
+            color="#ff9e5e"
             transparent
-            opacity={0.35}
+            opacity={0.22}
             fog={false}
             depthWrite={false}
           />
         </mesh>
-        <mesh position={[0, 0, 0.5]} renderOrder={-8}>
-          <circleGeometry args={[15, 24]} />
+        <mesh position={[0, 0, 0.4]} renderOrder={-8}>
+          <circleGeometry args={[19, 26]} />
           <meshBasicMaterial
-            ref={sunDiscMat}
-            color="#ffe9b4"
+            ref={sunInnerMat}
+            color="#ffb36b"
+            transparent
+            opacity={0.5}
+            fog={false}
+            depthWrite={false}
+          />
+        </mesh>
+        <mesh position={[0, 0, 0.8]} renderOrder={-8}>
+          <circleGeometry args={[14, 26]} />
+          <meshBasicMaterial
+            ref={sunCoreMat}
+            color="#fff3d9"
             transparent
             fog={false}
             depthWrite={false}
@@ -227,9 +268,10 @@ export function CelestialDome() {
         </mesh>
       </group>
 
-      {/* Moon: full disc at the long-180 waterline — a pale ghost in
-          residual daylight, full brightness past nightMix ~0.75; its
-          tight cool glow lives in the dome shader. */}
+      {/* Moon: full disc over the night sea — a pale ghost in residual
+          daylight, full past nightMix ~0.75 — with flat maria blotches in
+          two darker grays (v3.4; meshes, not textures). Its tight cool
+          glow lives in the dome shader. */}
       <group position={moonPos} quaternion={moonQ}>
         <mesh renderOrder={-8}>
           <circleGeometry args={[11, 24]} />
@@ -238,6 +280,26 @@ export function CelestialDome() {
             color="#f4ecd8"
             transparent
             opacity={0.22}
+            fog={false}
+            depthWrite={false}
+          />
+        </mesh>
+        <mesh geometry={mariaGeoA} position={[0, 0, 0.3]} renderOrder={-7}>
+          <meshBasicMaterial
+            ref={mariaMatA}
+            color="#ddd3bd"
+            transparent
+            opacity={0}
+            fog={false}
+            depthWrite={false}
+          />
+        </mesh>
+        <mesh geometry={mariaGeoB} position={[0, 0, 0.4]} renderOrder={-7}>
+          <meshBasicMaterial
+            ref={mariaMatB}
+            color="#cbc0a9"
+            transparent
+            opacity={0}
             fog={false}
             depthWrite={false}
           />

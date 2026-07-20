@@ -31,13 +31,16 @@ export const skyRuntime = {
   moonWorld: MOON_DISC_LOCAL.clone(),
 }
 
-/** v3.2 sky stops (CLAUDE.md Two Skies — tune here, record finals). */
+/** v3.4 sky stops — 4-stop ramps per the pixel-art sunset references
+ * (deep orange → pink → mauve → blue-violet). Tune here, record finals. */
 export const SKY = {
-  dayHorizon: '#ff9e5e',
-  dayMid: '#ffc98b',
-  dayZenith: '#8fb8d8',
+  dayHorizon: '#ff8038',
+  dayLow: '#f8909c',
+  dayMid: '#b083c9',
+  dayZenith: '#6f74c9',
   nightHorizon: '#24304f',
-  nightMid: '#141b33',
+  nightLow: '#1a2340',
+  nightMid: '#10182e',
   nightZenith: '#070a14',
   wayfind: '#31456b',
   dirDay: '#ffd9a0',

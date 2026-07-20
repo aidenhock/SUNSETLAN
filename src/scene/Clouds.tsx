@@ -25,9 +25,15 @@ const VARIANT_SEEDS = [4001, 4013, 4027]
 const WARM_MATERIAL = new THREE.MeshLambertMaterial({ color: '#fff1dd', flatShading: true })
 WARM_MATERIAL.emissive.set('#fff1dd')
 WARM_MATERIAL.emissiveIntensity = 0.42
+// v3.4: clouds near the sun's longitude carry a warm underlit tint.
+const SUNSET_MATERIAL = new THREE.MeshLambertMaterial({ color: '#ffd2ad', flatShading: true })
+SUNSET_MATERIAL.emissive.set('#ff9e5e')
+SUNSET_MATERIAL.emissiveIntensity = 0.45
 const NIGHT_MATERIAL = new THREE.MeshLambertMaterial({ color: '#8f9ec4', flatShading: true })
 NIGHT_MATERIAL.emissive.set('#8f9ec4')
 NIGHT_MATERIAL.emissiveIntensity = 0.3
+/** Warm clouds within this |longitude| get the underlit sunset material. */
+const SUNSET_TINT_LONG_DEG = 45
 
 /** Altitude band above the surface (planet radius 55) — sky layer, not ground. */
 const ALT_MIN = 38
@@ -114,9 +120,13 @@ function buildPopulationMatrices(
   pop: CloudPopulation,
   count: number,
   variantCount: number,
-): THREE.Matrix4[][] {
+  /** When set, clouds within this |wrapped longitude| land in `near` —
+   * the sunset-underlit bucket (v3.4). */
+  splitAbsLongDeg?: number,
+): { near: THREE.Matrix4[][]; far: THREE.Matrix4[][] } {
   const rand = mulberry32(pop.seed)
-  const perVariant: THREE.Matrix4[][] = Array.from({ length: variantCount }, () => [])
+  const near: THREE.Matrix4[][] = Array.from({ length: variantCount }, () => [])
+  const far: THREE.Matrix4[][] = Array.from({ length: variantCount }, () => [])
   for (let i = 0; i < count; i++) {
     const lat = THREE.MathUtils.lerp(pop.latMin, pop.latMax, rand())
     const long = pop.longCenter + (rand() * 2 - 1) * pop.longSpread
@@ -124,9 +134,12 @@ function buildPopulationMatrices(
     const yaw = rand() * Math.PI * 2
     const scale = THREE.MathUtils.lerp(0.8, 1.5, rand())
     const variant = Math.min(variantCount - 1, Math.floor(rand() * variantCount))
-    perVariant[variant].push(surfacePartMatrix(lat, long, altitude, yaw, ORIGIN, IDENTITY_Q, scale))
+    const wrapped = Math.abs(((long + 180) % 360) - 180)
+    const bucket =
+      splitAbsLongDeg !== undefined && wrapped <= splitAbsLongDeg ? near : far
+    bucket[variant].push(surfacePartMatrix(lat, long, altitude, yaw, ORIGIN, IDENTITY_Q, scale))
   }
-  return perVariant
+  return { near, far }
 }
 
 export function Clouds() {
@@ -136,7 +149,13 @@ export function Clouds() {
   const variants = useMemo(() => VARIANT_SEEDS.map(buildCloudVariant), [])
 
   const warm = useMemo(
-    () => buildPopulationMatrices(WARM_POP, qualityTier === 'low' ? WARM_POP.countLow : WARM_POP.countHigh, variants.length),
+    () =>
+      buildPopulationMatrices(
+        WARM_POP,
+        qualityTier === 'low' ? WARM_POP.countLow : WARM_POP.countHigh,
+        variants.length,
+        SUNSET_TINT_LONG_DEG,
+      ),
     [qualityTier, variants.length],
   )
   const night = useMemo(
@@ -154,14 +173,20 @@ export function Clouds() {
     <group ref={driftRef}>
       {variants.map(
         (geo, i) =>
-          warm[i].length > 0 && (
-            <StaticInstances key={`warm-${i}`} geometry={geo} material={WARM_MATERIAL} matrices={warm[i]} />
+          warm.near[i].length > 0 && (
+            <StaticInstances key={`sunset-${i}`} geometry={geo} material={SUNSET_MATERIAL} matrices={warm.near[i]} />
           ),
       )}
       {variants.map(
         (geo, i) =>
-          night[i].length > 0 && (
-            <StaticInstances key={`night-${i}`} geometry={geo} material={NIGHT_MATERIAL} matrices={night[i]} />
+          warm.far[i].length > 0 && (
+            <StaticInstances key={`warm-${i}`} geometry={geo} material={WARM_MATERIAL} matrices={warm.far[i]} />
+          ),
+      )}
+      {variants.map(
+        (geo, i) =>
+          night.far[i].length > 0 && (
+            <StaticInstances key={`night-${i}`} geometry={geo} material={NIGHT_MATERIAL} matrices={night.far[i]} />
           ),
       )}
     </group>
