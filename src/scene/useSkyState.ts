@@ -147,10 +147,14 @@ export const skyRuntime = {
   sunWorld: SUN_HOME_LOCAL.clone(),
   moonWorld: MOON_HOME_LOCAL.clone(),
   /** Apparent elevation of each disc ABOVE the ocean limb (deg), from the
-   * live camera — drives the glitter spread (v3.11). Inherits the arc
-   * smoothing via the smoothed disc solve. */
+   * live camera — eases the glitter intensity. Inherits the arc smoothing
+   * via the smoothed disc solve. */
   sunElevAboveLimbDeg: 45,
   moonElevAboveLimbDeg: 45,
+  /** Visible fraction of each disc above the limb (0..1) — the glitter's
+   * submergence gate (v3.12). */
+  sunVisibleFrac: 1,
+  moonVisibleFrac: 1,
 }
 
 /** v3.5 directional sky tokens. Base layer is elevation-only blues; the
@@ -283,6 +287,16 @@ export function useSkyState({
       discElevFromCameraDeg(_discSmooth.sun, 1, _camLocal) - limbDeg
     skyRuntime.moonElevAboveLimbDeg =
       discElevFromCameraDeg(_discSmooth.moon, -1, _camLocal) - limbDeg
+    skyRuntime.sunVisibleFrac = THREE.MathUtils.clamp(
+      (skyRuntime.sunElevAboveLimbDeg + SUN_DISC_ANG_RAD_DEG) / (2 * SUN_DISC_ANG_RAD_DEG),
+      0,
+      1,
+    )
+    skyRuntime.moonVisibleFrac = THREE.MathUtils.clamp(
+      (skyRuntime.moonElevAboveLimbDeg + MOON_DISC_ANG_RAD_DEG) / (2 * MOON_DISC_ANG_RAD_DEG),
+      0,
+      1,
+    )
 
     // Fog + background = the current sky horizon stop (v3.2), so terrain
     // fade and the dome horizon always agree.

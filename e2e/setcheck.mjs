@@ -99,18 +99,25 @@ async function main() {
           }
           const sorted = [...lum].sort((a, b) => a - b)
           const median = sorted[Math.floor(sorted.length / 2)]
+          const rowMax = sorted[sorted.length - 1]
+          // Core-lane threshold: 75% of the way from median to row max —
+          // the lane core is distinctly brighter than the broad moonlit
+          // sheen, soft wedge edges, and glow bleed.
+          const thresh = median + Math.max(0.045, 0.75 * (rowMax - median))
           let best = 0
           let run = 0
           for (const l of lum) {
-            if (l > median + 0.045) {
+            if (l > thresh) {
               run += 2
               if (run > best) best = run
             } else run = 0
           }
           return best
         }
+        // Sample below the disc-glow junction at the water line (the halo
+        // meeting the water is legitimately bright and wide).
         let laneMaxWidth = 0
-        for (let y = maxY + 8; y < Math.min(maxY + 46, h - 1); y += 4) {
+        for (let y = maxY + 16; y < Math.min(maxY + 42, h - 1); y += 4) {
           laneMaxWidth = Math.max(laneMaxWidth, laneWidthAt(y))
         }
         let touchWidth = 0
@@ -154,8 +161,11 @@ async function main() {
     }
     const fracOk = r.fraction >= FRACTION_MIN
     const laneOk = r.lane - r.control >= LANE_MARGIN
-    // v3.11: lane at least disc-wide just below the limb, flush to the base.
-    const widthOk = r.laneMaxWidth >= r.discWidth * 0.9
+    // v3.12: apex band — just below the limb the wedge must match the
+    // disc's GEOMETRIC width. The disc detector under-measures (bright core
+    // only, soft rim excluded) by ~25%, so the band allows up to 1.8× of
+    // the measured width while still catching a doubled/spread apex.
+    const widthOk = r.laneMaxWidth >= r.discWidth * 0.9 && r.laneMaxWidth <= r.discWidth * 1.8
     const touchOk = r.touchWidth > r.discWidth * 0.3
     console.log(
       `${spot.name}: fraction ${(r.fraction * 100).toFixed(0)}% (${fracOk ? 'OK' : 'FAIL'}); ` +
@@ -166,12 +176,149 @@ async function main() {
     if (!fracOk || !laneOk || !widthOk || !touchOk) failed = true
   }
 
+  // Shared frame analyzer: decode the screenshot and measure lane-vs-control
+  // luminance over an explicit pixel region (probe-calibrated per pose).
+  const regionStats = async (cfg) => {
+    const shot = await page.screenshot()
+    const dataUrl = 'data:image/png;base64,' + shot.toString('base64')
+    return page.evaluate(async ({ cfg, dataUrl }) => {
+      const img = new Image()
+      img.src = dataUrl
+      await img.decode()
+      const w = img.width
+      const h = img.height
+      const c2d = document.createElement('canvas')
+      c2d.width = w
+      c2d.height = h
+      const ctx = c2d.getContext('2d')
+      ctx.drawImage(img, 0, 0)
+      const d = ctx.getImageData(0, 0, w, h).data
+      const lumAt = (x, y) => {
+        const i = (y * w + x) * 4
+        return (d[i] + d[i + 1] + d[i + 2]) / 765
+      }
+      if (cfg.mode === 'laneVsControl') {
+        // Per water row: max luminance inside the lane window vs inside the
+        // control window (open sea to the side). Continuity = fraction of
+        // rows where the lane clearly wins.
+        let rows = 0, bright = 0, laneSum = 0, ctrlSum = 0
+        for (let y = cfg.y0; y <= cfg.y1; y += 3) {
+          let lane = 0
+          for (let x = cfg.laneX0; x < cfg.laneX1; x += 2) lane = Math.max(lane, lumAt(x, y))
+          let ctrl = 0
+          for (let x = cfg.ctrlX0; x < cfg.ctrlX1; x += 2) ctrl = Math.max(ctrl, lumAt(x, y))
+          rows++
+          laneSum += lane
+          ctrlSum += ctrl
+          if (lane > ctrl + 0.03) bright++
+        }
+        return { continuity: bright / rows, laneMean: laneSum / rows, ctrlMean: ctrlSum / rows }
+      }
+      // mode 'noCore': widest contiguous bright run of the BODY'S OWN TINT
+      // (vs row median) across the water bands — a real lane at waterline
+      // height measures 70px+, so any run under the cap is foam/facet
+      // noise. Color-gating matters: once one body sets, the OTHER may
+      // legitimately rise near the antipode with its own lane (warm sun
+      // vs cool moon), and the avatar's warm-lit head sits mid-frame.
+      const tintAt = (x, y) => {
+        const i = (y * w + x) * 4
+        return (d[i] - d[i + 2]) / 255 // r − b: warm > 0 > cool
+      }
+      let widest = 0
+      for (let y = cfg.y0; y <= cfg.y1; y += 6) {
+        const cols = []
+        for (const [x0, x1] of cfg.bands) {
+          for (let x = x0; x < x1; x += 2) {
+            cols.push([lumAt(x, y), tintAt(x, y)])
+          }
+        }
+        const sorted = cols.map((c) => c[0]).sort((a, b) => a - b)
+        const median = sorted[Math.floor(sorted.length / 2)]
+        let run = 0
+        for (const [l, t] of cols) {
+          const tintOk = cfg.tint === 'warm' ? t > 0.04 : t < -0.02
+          if (l > median + 0.05 && tintOk) {
+            run += 2
+            if (run > widest) widest = run
+          } else run = 0
+        }
+      }
+      return { widest }
+    }, { cfg, dataUrl })
+  }
+
+  // v3.12 (b): risen body — the lane must cross ALL visible open water
+  // toward the body. From mid-island (lat 22) the planet's bulge hides the
+  // near water, so the visible sea is the band under the limb; the poses
+  // sit 12° off the home meridians so the dock stays out of the corridor.
+  // Windows calibrated from probe-risen-day2/night2 (deterministic pose +
+  // viewport): lane patch x≈400–540, open-sea control to the right, sea
+  // band rows ≈342–371.
+  const RISEN = [
+    { name: 'day-risen', lat: 22, long: 348, az: deg(348) + Math.PI },
+    { name: 'night-risen', lat: 22, long: 168, az: deg(168) + Math.PI },
+  ]
+  for (const spot of RISEN) {
+    await page.evaluate(
+      ({ lat, long, az }) => {
+        window.__controls.poseOverride = { lat, long }
+        window.__controls.azimuthOverride = az
+      },
+      spot,
+    )
+    await page.waitForTimeout(2400)
+    const r = await regionStats({
+      mode: 'laneVsControl',
+      y0: 342, y1: 371,
+      laneX0: 400, laneX1: 540,
+      ctrlX0: 660, ctrlX1: 880,
+    })
+    const ok = r.continuity >= 0.7 && r.laneMean - r.ctrlMean >= 0.02
+    console.log(
+      `${spot.name}: lane continuity ${(r.continuity * 100).toFixed(0)}% of water rows, ` +
+        `mean ${r.laneMean.toFixed(3)} vs ${r.ctrlMean.toFixed(3)} → ${ok ? 'OK' : 'FAIL'}`,
+    )
+    if (!ok) failed = true
+  }
+
+  // v3.12 (c): walk-away set — the body's own lane is absent once its gate
+  // is dead. The lockstep monotone fade itself is asserted in vitest
+  // against the gate math (deterministic); pixels assert final absence
+  // from the waterline facing straight out (sea fills mid-frame). Regions
+  // hug the sea bulge (sky at the sides excluded) and skip the avatar
+  // column; tint-gating keeps the OTHER body's legitimate lane out.
+  for (const end of [
+    { name: 'moon-walkaway', lat: 15, long: 90, tint: 'cool' },
+    { name: 'sun-walkaway', lat: 15, long: 128, tint: 'warm' },
+  ]) {
+    await page.evaluate(
+      ({ lat, long, az }) => {
+        window.__controls.poseOverride = { lat, long }
+        window.__controls.azimuthOverride = az
+      },
+      { lat: end.lat, long: end.long, az: deg(end.long) + Math.PI },
+    )
+    await page.waitForTimeout(2400)
+    const r = await regionStats({
+      mode: 'noCore',
+      tint: end.tint,
+      bands: [[400, 575], [705, 880]],
+      y0: 351,
+      y1: 470,
+    })
+    const ok = r.widest < 34
+    console.log(
+      `${end.name}: own lane absent once submerged (widest ${end.tint} run ${r.widest}px) → ${ok ? 'OK' : 'FAIL'}`,
+    )
+    if (!ok) failed = true
+  }
+
   await browser.close()
   if (failed) {
     console.error('SETCHECK FAILED')
     process.exit(1)
   }
-  console.log('setcheck passed — floor and glitter hold at the shore, both sides')
+  console.log('setcheck passed — wedge, floor, continuity, and lockstep fade hold')
 }
 
 main().catch((e) => {

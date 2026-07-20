@@ -129,6 +129,20 @@ describe('nightMixFromPoleZ (two skies)', () => {
     expect(floorDiscPolarDeg(high, 1, camLocal, SUN_DISC_ANG_RAD_DEG)).toBe(high)
   })
 
+  it('walk-away: lane multiplier fades in lockstep with the disc gate (v3.12)', () => {
+    // The lane gate uses the disc fade (1 − smoothstep(0.35, 0.6, nightMix))
+    // so both vanish together; assert monotone decay across the crossing.
+    const mult = (longDeg: number) => {
+      const z = latLongToUnit(20, longDeg).z
+      const nm = nightMixFromPoleZ(z)
+      return 1 - THREE.MathUtils.smoothstep(nm, 0.35, 0.6)
+    }
+    const m = [mult(30), mult(105), mult(128)]
+    expect(m[0]).toBeGreaterThan(m[1])
+    expect(m[1]).toBeGreaterThan(m[2])
+    expect(m[2]).toBeLessThan(0.02)
+  })
+
   it('clamps keep the far body below the horizon (sun set at deep night)', () => {
     // Player at the night beach: the sun solve clamps to the home side and
     // the disc ends up far over the planet's shoulder — not visible.

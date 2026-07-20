@@ -46,11 +46,10 @@ export function Water() {
       shader.uniforms.uCamObj = { value: new THREE.Vector3(0, 60, 0) }
       shader.uniforms.uSunObj = { value: skyRuntime.sunLocal.clone().multiplyScalar(230) }
       shader.uniforms.uMoonObj = { value: skyRuntime.moonLocal.clone().multiplyScalar(230) }
-      // v3.11: lane spread/intensity ride the body's apparent elevation.
-      shader.uniforms.uSunPow = { value: GLITTER.powerLow }
-      shader.uniforms.uSunInt = { value: GLITTER.intensityLow }
-      shader.uniforms.uMoonPow = { value: GLITTER.powerLow }
-      shader.uniforms.uMoonInt = { value: GLITTER.intensityLow }
+      // v3.12: one lane multiplier per body — elevation-eased intensity ×
+      // the submergence gate (visible-disc fraction).
+      shader.uniforms.uSunLane = { value: GLITTER.intensitySet }
+      shader.uniforms.uMoonLane = { value: GLITTER.intensitySet }
       const consts = /* glsl */ `
         const float PLATEAU_END = ${TERRAIN.plateauEndDeg.toFixed(1)};
         const float SHOULDER_END = ${TERRAIN.shoulderEndDeg.toFixed(1)};
@@ -90,7 +89,7 @@ export function Water() {
           vObjPos = position;`,
         )
       shader.fragmentShader =
-        `varying float vDepth;\nvarying vec3 vSphereDir;\nvarying vec3 vObjPos;\nuniform float uTime;\nuniform float uNightMix;\nuniform vec3 uCamObj;\nuniform vec3 uSunObj;\nuniform vec3 uMoonObj;\nuniform float uSunPow;\nuniform float uSunInt;\nuniform float uMoonPow;\nuniform float uMoonInt;\n` +
+        `varying float vDepth;\nvarying vec3 vSphereDir;\nvarying vec3 vObjPos;\nuniform float uTime;\nuniform float uNightMix;\nuniform vec3 uCamObj;\nuniform vec3 uSunObj;\nuniform vec3 uMoonObj;\nuniform float uSunLane;\nuniform float uMoonLane;\n` +
         shader.fragmentShader.replace(
           'vec4 diffuseColor = vec4( diffuse, opacity );',
           /* glsl */ `
@@ -114,10 +113,11 @@ export function Water() {
           // are planet-local constants; only the camera is inverse-rotated).
           // The lane lives between the VIEWER and the light: it travels with
           // the player and swings with the camera.
-          // Distance fade extends past the horizon water (v3.9) so the lane
-          // still connects the viewer to a half-set disc.
+          // Shore-side gate only (v3.12): a far polar fade is unnecessary —
+          // water past the limb is backface-culled — and it was muting the
+          // lane exactly where inland viewers see the sea (near the limb).
           float gPolar = degrees(acos(clamp(vSphereDir.y, -1.0, 1.0)));
-          float gDist = (1.0 - smoothstep(90.0, 118.0, gPolar)) * smoothstep(74.5, 78.0, gPolar);
+          float gDist = smoothstep(74.5, 78.0, gPolar);
           vec3 sphereN = normalize(vSphereDir);
           float wa1 = vObjPos.x * 0.35 + uTime * 1.1;
           float wa2 = vObjPos.z * 0.28 - uTime * 0.9;
@@ -134,19 +134,47 @@ export function Water() {
           vec3 V = normalize(uCamObj - vObjPos);
           vec3 Lsun = normalize(uSunObj - vObjPos);
           vec3 Lmoon = normalize(uMoonObj - vObjPos);
-          // v3.11 DISC light: subtract the body's angular radius before the
-          // falloff — the lane can never be narrower than the disc and
-          // meets its base flush at the horizon. Power/intensity ride the
-          // apparent elevation (tight+bright setting, broad+faint high).
+          // v3.12 WEDGE lane: a corridor anchored to the disc — apex at the
+          // disc base on the limb at EXACTLY disc width, widening to
+          // spread× at the near shore — filled with the disc-light wave
+          // shimmer. Coherent whenever the body shows; uSunLane/uMoonLane
+          // carry elevation ease × submergence gate.
+          vec3 camUp = normalize(uCamObj);
+          vec3 fragDir = normalize(vObjPos - uCamObj);
+          float fragElev = asin(clamp(dot(fragDir, camUp), -1.0, 1.0));
+          // 0 at the near water underfoot → 1 at the ocean limb. The far
+          // edge sits just below the limb elevation (~-0.335 rad) so the
+          // apex fully converges to disc width AT the limb.
+          float tFar = smoothstep(-0.85, -0.37, fragElev);
+          vec3 fragHp = normalize(fragDir - camUp * dot(fragDir, camUp));
           vec3 R = reflect(-V, N);
+
+          vec3 sunDirC = normalize(uSunObj - uCamObj);
+          vec3 sunHp = normalize(sunDirC - camUp * dot(sunDirC, camUp));
+          float azSun = acos(clamp(dot(sunHp, fragHp), -1.0, 1.0));
+          float halfWSun = mix(0.0656 * ${GLITTER.spread.toFixed(1)}, 0.0656, tFar);
+          float wedgeSun = 1.0 - smoothstep(halfWSun * 0.85, halfWSun, azSun);
           float aSun = max(0.0, acos(clamp(dot(R, Lsun), -1.0, 1.0)) - 0.0656);
+          float shimmerSun = 0.45 + 0.55 * smoothstep(0.1, 0.9, pow(max(cos(aSun), 0.0), 6.0));
+
+          vec3 moonDirC = normalize(uMoonObj - uCamObj);
+          vec3 moonHp = normalize(moonDirC - camUp * dot(moonDirC, camUp));
+          float azMoon = acos(clamp(dot(moonHp, fragHp), -1.0, 1.0));
+          float halfWMoon = mix(0.0482 * ${GLITTER.spread.toFixed(1)}, 0.0482, tFar);
+          float wedgeMoon = 1.0 - smoothstep(halfWMoon * 0.85, halfWMoon, azMoon);
           float aMoon = max(0.0, acos(clamp(dot(R, Lmoon), -1.0, 1.0)) - 0.0482);
-          float sunGlint = smoothstep(0.04, 0.75, pow(cos(min(aSun, 1.5707)), uSunPow));
-          float moonGlint = smoothstep(0.04, 0.75, pow(cos(min(aMoon, 1.5707)), uMoonPow));
-          float gDay = 1.0 - smoothstep(0.45, 0.7, uNightMix);
-          float gNight = smoothstep(0.6, 0.85, uNightMix);
-          diffuseColor.rgb += (vec3(1.0, 0.85, 0.63) * sunGlint * gDay * uSunInt
-            + vec3(0.81, 0.88, 1.0) * moonGlint * gNight * uMoonInt) * gDist;`,
+          float shimmerMoon = 0.45 + 0.55 * smoothstep(0.1, 0.9, pow(max(cos(aMoon), 0.0), 6.0));
+
+          // Gates match each DISC's own fade exactly (sun 0.35–0.6, moon
+          // 0.5–0.75) — the lane disappears in lockstep with its body.
+          float gDay = 1.0 - smoothstep(0.35, 0.6, uNightMix);
+          float gNight = smoothstep(0.5, 0.75, uNightMix);
+          diffuseColor.rgb += (vec3(1.0, 0.85, 0.63) * wedgeSun * shimmerSun * gDay * uSunLane
+            + vec3(0.81, 0.88, 1.0) * wedgeMoon * shimmerMoon * gNight * uMoonLane) * gDist;
+          // Far water goes opaque (v3.12): the translucent sheet let the
+          // bright dome glow bleed through below the limb, reading as a
+          // ghost band under the horizon.
+          diffuseColor.a = max(diffuseColor.a, mix(diffuseColor.a, 0.985, smoothstep(0.5, 0.9, tFar)));`,
         )
       mat.userData.shader = shader
     }
@@ -164,10 +192,8 @@ export function Water() {
             uCamObj: { value: THREE.Vector3 }
             uSunObj: { value: THREE.Vector3 }
             uMoonObj: { value: THREE.Vector3 }
-            uSunPow: { value: number }
-            uSunInt: { value: number }
-            uMoonPow: { value: number }
-            uMoonInt: { value: number }
+            uSunLane: { value: number }
+            uMoonLane: { value: number }
           }
         }
       | undefined
@@ -183,6 +209,7 @@ export function Water() {
       ;(shader.uniforms.uMoonObj.value as THREE.Vector3)
         .copy(skyRuntime.moonLocal)
         .multiplyScalar(230)
+      // Elevation only softens; submergence is the only fade-out (v3.12).
       const tSun = THREE.MathUtils.smoothstep(
         skyRuntime.sunElevAboveLimbDeg,
         GLITTER.elevLowDeg,
@@ -193,10 +220,12 @@ export function Water() {
         GLITTER.elevLowDeg,
         GLITTER.elevHighDeg,
       )
-      shader.uniforms.uSunPow.value = THREE.MathUtils.lerp(GLITTER.powerLow, GLITTER.powerHigh, tSun)
-      shader.uniforms.uSunInt.value = THREE.MathUtils.lerp(GLITTER.intensityLow, GLITTER.intensityHigh, tSun)
-      shader.uniforms.uMoonPow.value = THREE.MathUtils.lerp(GLITTER.powerLow, GLITTER.powerHigh, tMoon)
-      shader.uniforms.uMoonInt.value = THREE.MathUtils.lerp(GLITTER.intensityLow, GLITTER.intensityHigh, tMoon)
+      shader.uniforms.uSunLane.value =
+        THREE.MathUtils.lerp(GLITTER.intensitySet, GLITTER.intensityHigh, tSun) *
+        THREE.MathUtils.smoothstep(skyRuntime.sunVisibleFrac, 0, 0.5)
+      shader.uniforms.uMoonLane.value =
+        THREE.MathUtils.lerp(GLITTER.intensitySet, GLITTER.intensityHigh, tMoon) *
+        THREE.MathUtils.smoothstep(skyRuntime.moonVisibleFrac, 0, 0.5)
     }
   })
 

@@ -146,15 +146,15 @@ export const CELESTIAL_ELEVATION_WATERLINE_DEG = -15.8
 export const CELESTIAL_ELEVATION_WADING_MIN_DEG = -16.2
 export const CELESTIAL = { sunLongDeg: 0, moonLongDeg: 180 } as const
 
-/** Glitter lane tuning (v3.11): endpoints lerped by the body's apparent
- * elevation above the ocean limb — tight/bright when setting, broad/faint
- * when inland-high. */
+/** Glitter wedge tuning (v3.12): the lane is a corridor anchored to the
+ * disc — apex at disc width on the limb, `spread`× at the near shore.
+ * Elevation only softens intensity; submergence is the only fade-out. */
 export const GLITTER = {
-  powerLow: 80,
-  powerHigh: 12,
-  intensityLow: 0.95,
-  intensityHigh: 0.42,
-  /** Elevation range (deg above the limb) mapping low → high. */
+  /** Near-shore wedge width as a multiple of the disc width (apex = 1×). */
+  spread: 3,
+  intensitySet: 0.95,
+  intensityHigh: 0.68,
+  /** Elevation range (deg above the limb) easing set → inland-high. */
   elevLowDeg: 0,
   elevHighDeg: 35,
 } as const
