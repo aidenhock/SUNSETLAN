@@ -1,6 +1,7 @@
 import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { latLongToUnit, poleInPlanetSpace } from '../controls/planetMath'
+import { CELESTIAL } from './planetConfig'
 import { paletteMaterial, PROP_COLORS } from './props'
 
 /**
@@ -11,18 +12,23 @@ import { paletteMaterial, PROP_COLORS } from './props'
  * useFrame. Everything mutates in place — zero allocations per frame.
  */
 
-/** Planet-local anchors: sun low over the water at long 0, moon at 180.
- * Both at ~lat 16 so each hangs just over the horizon as seen from spawn
- * (and rises overhead as you walk toward it — the tiny-planet sunrise). */
-export const SUN_LOCAL = latLongToUnit(16, 0)
-export const MOON_LOCAL = latLongToUnit(17, 180)
+/** DISC anchors (v3.3): at the waterline ~90° from their own beaches —
+ * CELESTIAL in planetConfig is the single source. */
+export const SUN_DISC_LOCAL = latLongToUnit(CELESTIAL.sunLatDeg, CELESTIAL.sunLongDeg)
+export const MOON_DISC_LOCAL = latLongToUnit(CELESTIAL.moonLatDeg, CELESTIAL.moonLongDeg)
 
-/** Read-only for other systems (dome, clouds, TV glow, meteors) — written
- * every frame. sunWorld/moonWorld are unit dirs from the planet center. */
+/** LIGHT anchors: higher than the discs — the directional light keeps a
+ * flattering low-side angle; a waterline disc must never light the scene
+ * from below the horizon. The dome halo only uses the azimuth (identical). */
+const LIGHT_SUN_LOCAL = latLongToUnit(16, 0)
+const LIGHT_MOON_LOCAL = latLongToUnit(17, 180)
+
+/** Read-only for other systems (dome, discs, clouds, TV glow, meteors) —
+ * written every frame. World unit dirs of the DISC anchors. */
 export const skyRuntime = {
   nightMix: 0,
-  sunWorld: SUN_LOCAL.clone(),
-  moonWorld: MOON_LOCAL.clone(),
+  sunWorld: SUN_DISC_LOCAL.clone(),
+  moonWorld: MOON_DISC_LOCAL.clone(),
 }
 
 /** v3.2 sky stops (CLAUDE.md Two Skies — tune here, record finals). */
@@ -67,6 +73,8 @@ const FLAME_NIGHT = 1.1
 // Frame-loop scratch.
 const _pole = new THREE.Vector3()
 const _lightDir = new THREE.Vector3()
+const _lightSunW = new THREE.Vector3()
+const _lightMoonW = new THREE.Vector3()
 const _fogDay = new THREE.Color(SKY.dayHorizon)
 const _fogNight = new THREE.Color(SKY.nightHorizon)
 const _dirDay = new THREE.Color(SKY.dirDay)
@@ -97,8 +105,8 @@ export function useSkyState({
     poleInPlanetSpace(planet.quaternion, _pole)
     const nightMix = nightMixFromPoleZ(_pole.z)
     skyRuntime.nightMix = nightMix
-    skyRuntime.sunWorld.copy(SUN_LOCAL).applyQuaternion(planet.quaternion)
-    skyRuntime.moonWorld.copy(MOON_LOCAL).applyQuaternion(planet.quaternion)
+    skyRuntime.sunWorld.copy(SUN_DISC_LOCAL).applyQuaternion(planet.quaternion)
+    skyRuntime.moonWorld.copy(MOON_DISC_LOCAL).applyQuaternion(planet.quaternion)
 
     // Fog + background = the current sky horizon stop (v3.2), so terrain
     // fade and the dome horizon always agree.
@@ -110,11 +118,13 @@ export function useSkyState({
     if (d) {
       d.color.lerpColors(_dirDay, _dirNight, nightMix)
       d.intensity = THREE.MathUtils.lerp(DIR_DAY_I, DIR_NIGHT_I, nightMix)
-      // Light direction follows the sun (moon past the handover); the
-      // 0.4–0.6 blend kills the pop.
+      // Light direction follows the LIGHT anchors (not the waterline
+      // discs); the 0.4–0.6 blend kills the sun→moon pop.
+      _lightSunW.copy(LIGHT_SUN_LOCAL).applyQuaternion(planet.quaternion)
+      _lightMoonW.copy(LIGHT_MOON_LOCAL).applyQuaternion(planet.quaternion)
       _lightDir.lerpVectors(
-        skyRuntime.sunWorld,
-        skyRuntime.moonWorld,
+        _lightSunW,
+        _lightMoonW,
         THREE.MathUtils.smoothstep(nightMix, 0.4, 0.6),
       )
       if (_lightDir.lengthSq() > 1e-4) {

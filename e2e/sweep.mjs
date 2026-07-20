@@ -39,7 +39,8 @@ const SHOTS = [
   { name: '22-night-pan-s', lat: 17.5, long: 179, az: deg(179) + Math.PI, note: 'deep night facing the open sea: no warm glow' },
   { name: '23-night-pan-w', lat: 17.5, long: 179, az: deg(179) + Math.PI / 2, note: 'deep night facing west: faint steel-blue wayfinding band only' },
   { name: '24-moon-lookup', lat: 22, long: 180, az: deg(180), pitch: -0.85, note: 'look-up at the night zenith: full moon + glow, stars, avatar silhouetted low' },
-  { name: '25-sunset-sea', lat: 30, long: 0, az: Math.PI, note: 'day beach facing the sea: golden-hour 3-stop sky, horizon matches fog' },
+  { name: '25-sunset-sea', lat: 18, long: 0, az: Math.PI, note: 'day beach at the sand: sun disc kissing the sea horizon (setting into the ocean)' },
+  { name: '26-sun-sets-behind', lat: 20, long: 20, az: deg(20) + Math.PI * 0.75, note: 'mid-crossing looking back southwest: the sun half-sunk into the sea behind you' },
 ]
 
 async function main() {

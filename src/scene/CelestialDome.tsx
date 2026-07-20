@@ -3,7 +3,7 @@ import { useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { useStore } from '../store/useStore'
 import { mulberry32 } from './geometryUtils'
-import { MOON_LOCAL, SKY, skyRuntime, SUN_LOCAL } from './useSkyState'
+import { MOON_DISC_LOCAL, SKY, skyRuntime, SUN_DISC_LOCAL } from './useSkyState'
 
 /**
  * The two skies, v3.2 (CLAUDE.md). The dome is one small ShaderMaterial:
@@ -63,9 +63,10 @@ void main() {
     * (1.0 - smoothstep(0.45, 0.85, uNightMix));
   col += uHalo * halo * 0.55;
 
-  // Moon glow: ~±25° around the moon, gated to night.
+  // Moon glow (v3.3): tighter than the sun's, cool blue-white, and only
+  // past residual daylight — the moon must never read as a second sun.
   vec3 moonFromCam = normalize(uMoonWorld * ${BODY_R.toFixed(1)} - cameraPosition);
-  float mg = smoothstep(0.906, 0.988, dot(vd, moonFromCam)) * smoothstep(0.45, 0.8, uNightMix);
+  float mg = smoothstep(0.94, 0.995, dot(vd, moonFromCam)) * smoothstep(0.6, 0.85, uNightMix);
   col += uMoonGlow * mg * 0.5;
 
   // Deep-night wayfinding: faint steel-blue toward the DAY azimuth only.
@@ -89,8 +90,8 @@ function buildDomeMaterial(): THREE.ShaderMaterial {
     fog: false,
     uniforms: {
       uNightMix: { value: 0 },
-      uSunWorld: { value: SUN_LOCAL.clone() },
-      uMoonWorld: { value: MOON_LOCAL.clone() },
+      uSunWorld: { value: SUN_DISC_LOCAL.clone() },
+      uMoonWorld: { value: MOON_DISC_LOCAL.clone() },
       uDayH: { value: new THREE.Color(SKY.dayHorizon) },
       uDayM: { value: new THREE.Color(SKY.dayMid) },
       uDayZ: { value: new THREE.Color(SKY.dayZenith) },
@@ -98,7 +99,7 @@ function buildDomeMaterial(): THREE.ShaderMaterial {
       uNightM: { value: new THREE.Color(SKY.nightMid) },
       uNightZ: { value: new THREE.Color(SKY.nightZenith) },
       uHalo: { value: new THREE.Color(SKY.dayHorizon) },
-      uMoonGlow: { value: new THREE.Color('#a8b8d8') },
+      uMoonGlow: { value: new THREE.Color('#9fb4d8') },
       uWayfind: { value: new THREE.Color(SKY.wayfind) },
     },
   })
@@ -156,25 +157,39 @@ export function CelestialDome() {
   )
   const starMatSmall = useMemo(() => starMaterial(1.7), [])
   const starMatBig = useMemo(() => starMaterial(2.8), [])
-  const sunPos = useMemo(() => SUN_LOCAL.clone().multiplyScalar(BODY_R), [])
-  const sunQ = useMemo(() => facingCenter(SUN_LOCAL), [])
-  const moonPos = useMemo(() => MOON_LOCAL.clone().multiplyScalar(BODY_R), [])
-  const moonQ = useMemo(() => facingCenter(MOON_LOCAL), [])
+  const sunPos = useMemo(() => SUN_DISC_LOCAL.clone().multiplyScalar(BODY_R), [])
+  const sunQ = useMemo(() => facingCenter(SUN_DISC_LOCAL), [])
+  const moonPos = useMemo(() => MOON_DISC_LOCAL.clone().multiplyScalar(BODY_R), [])
+  const moonQ = useMemo(() => facingCenter(MOON_DISC_LOCAL), [])
   const sunGroup = useRef<THREE.Group>(null)
+  const sunHaloMat = useRef<THREE.MeshBasicMaterial>(null)
+  const sunDiscMat = useRef<THREE.MeshBasicMaterial>(null)
+  const moonMat = useRef<THREE.MeshBasicMaterial>(null)
 
   useFrame(() => {
     const u = domeMaterial.uniforms
-    u.uNightMix.value = skyRuntime.nightMix
+    const nightMix = skyRuntime.nightMix
+    u.uNightMix.value = nightMix
     ;(u.uSunWorld.value as THREE.Vector3).copy(skyRuntime.sunWorld)
     ;(u.uMoonWorld.value as THREE.Vector3).copy(skyRuntime.moonWorld)
     // Stars fade in across nightMix 0.55 → 0.9 (spec v3.2).
-    const fade = THREE.MathUtils.smoothstep(skyRuntime.nightMix, 0.55, 0.9)
+    const fade = THREE.MathUtils.smoothstep(nightMix, 0.55, 0.9)
     starMatSmall.opacity = 0.85 * fade
     starMatBig.opacity = 0.95 * fade
-    // The sun disc + its small halo dim with the same hard gate as the sky
-    // halo, so no warm sprite survives deep night at a grazing angle.
+    // v3.3 side gating: sun disc + halo are gone by nightMix ~0.6; the moon
+    // is a faint daytime ghost that only reaches full brightness past 0.75.
+    const dayGate = 1 - THREE.MathUtils.smoothstep(nightMix, 0.35, 0.6)
+    if (sunHaloMat.current) sunHaloMat.current.opacity = 0.35 * dayGate
+    if (sunDiscMat.current) sunDiscMat.current.opacity = dayGate
     const g = sunGroup.current
-    if (g) g.visible = skyRuntime.nightMix < 0.85
+    if (g) g.visible = dayGate > 0.01
+    if (moonMat.current) {
+      moonMat.current.opacity = THREE.MathUtils.lerp(
+        0.22,
+        1,
+        THREE.MathUtils.smoothstep(nightMix, 0.5, 0.75),
+      )
+    }
   })
 
   return (
@@ -186,11 +201,13 @@ export function CelestialDome() {
       <points geometry={starsSmall} material={starMatSmall} renderOrder={-9} />
       <points geometry={starsBig} material={starMatBig} renderOrder={-9} />
 
-      {/* Sun: soft halo behind a warm disc, low over the long-0 water. */}
+      {/* Sun: soft halo behind a warm disc, kissing the long-0 waterline.
+          Fades out entirely by nightMix ~0.6 (side gating, v3.3). */}
       <group ref={sunGroup} position={sunPos} quaternion={sunQ}>
         <mesh renderOrder={-9}>
           <circleGeometry args={[24, 24]} />
           <meshBasicMaterial
+            ref={sunHaloMat}
             color="#ffd9a0"
             transparent
             opacity={0.35}
@@ -200,16 +217,30 @@ export function CelestialDome() {
         </mesh>
         <mesh position={[0, 0, 0.5]} renderOrder={-8}>
           <circleGeometry args={[15, 24]} />
-          <meshBasicMaterial color="#ffe9b4" fog={false} depthWrite={false} />
+          <meshBasicMaterial
+            ref={sunDiscMat}
+            color="#ffe9b4"
+            transparent
+            fog={false}
+            depthWrite={false}
+          />
         </mesh>
       </group>
 
-      {/* Moon: full disc (v3.2 — no crescent); the cool glow lives in the
-          dome shader so it gates with night like everything else. */}
+      {/* Moon: full disc at the long-180 waterline — a pale ghost in
+          residual daylight, full brightness past nightMix ~0.75; its
+          tight cool glow lives in the dome shader. */}
       <group position={moonPos} quaternion={moonQ}>
         <mesh renderOrder={-8}>
           <circleGeometry args={[11, 24]} />
-          <meshBasicMaterial color="#f4ecd8" fog={false} depthWrite={false} />
+          <meshBasicMaterial
+            ref={moonMat}
+            color="#f4ecd8"
+            transparent
+            opacity={0.22}
+            fog={false}
+            depthWrite={false}
+          />
         </mesh>
       </group>
     </>

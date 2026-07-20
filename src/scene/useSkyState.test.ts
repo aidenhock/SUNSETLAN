@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { latLongToUnit } from '../controls/planetMath'
-import { MOON_LOCAL, nightMixFromPoleZ, SUN_LOCAL } from './useSkyState'
+import { MOON_DISC_LOCAL, nightMixFromPoleZ, SUN_DISC_LOCAL } from './useSkyState'
 
 /** nightMix for a visitor standing at (lat, long) — the pole-local z. */
 const mixAt = (lat: number, long: number) => nightMixFromPoleZ(latLongToUnit(lat, long).z)
@@ -41,10 +41,15 @@ describe('nightMixFromPoleZ (two skies)', () => {
     expect(prev).toBeGreaterThan(0.99)
   })
 
-  it('anchors the sun low over long 0 and the moon over long 180', () => {
-    expect(SUN_LOCAL.z).toBeGreaterThan(0.9)
-    expect(SUN_LOCAL.y).toBeGreaterThan(0.15)
-    expect(MOON_LOCAL.z).toBeLessThan(-0.85)
-    expect(MOON_LOCAL.y).toBeGreaterThan(0.25)
+  it('anchors both discs at the waterline ~90° from their own beaches (v3.3)', () => {
+    // Sun on the long-0 side, deep below the pole so it grazes the sea
+    // horizon from the sunset beach; moon mirrored on the long-180 side.
+    expect(SUN_DISC_LOCAL.z).toBeGreaterThan(0.2)
+    expect(SUN_DISC_LOCAL.y).toBeLessThan(-0.9)
+    expect(MOON_DISC_LOCAL.z).toBeLessThan(-0.2)
+    expect(MOON_DISC_LOCAL.y).toBeLessThan(-0.9)
+    // ~90° of arc from the beach standing points (lat 17 on each side).
+    expect(SUN_DISC_LOCAL.angleTo(latLongToUnit(17, 0))).toBeGreaterThan(Math.PI / 2 - 0.06)
+    expect(MOON_DISC_LOCAL.angleTo(latLongToUnit(17.5, 180))).toBeGreaterThan(Math.PI / 2 - 0.06)
   })
 })

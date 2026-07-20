@@ -106,6 +106,24 @@ export const MAP = {
   rowboat: { lat: 18, long: 210 },
 } as const
 
+/**
+ * Celestial disc anchors (v3.3): each body sits ~90° of arc from its own
+ * beach so that, viewed from that beach, the disc hovers just above the sea
+ * horizon (apparent elevation ≈ −14° vs the water edge at ≈ −17° from eye
+ * height on the 55 m planet) — the setting-into-the-ocean framing. Each
+ * body sets into the sea behind you as you cross. From spawn both discs are
+ * below the horizon: the dome halo/gradient carries the mood there and the
+ * intro swoop sees the discs from altitude. Lighting uses its own higher
+ * anchors (see useSkyState) — a disc at the waterline must not light the
+ * scene from below.
+ */
+export const CELESTIAL = {
+  sunLatDeg: -73,
+  sunLongDeg: 0,
+  moonLatDeg: -72,
+  moonLongDeg: 180,
+} as const
+
 export interface Blocker {
   /** Planet-local unit direction of the obstacle. */
   unit: THREE.Vector3
