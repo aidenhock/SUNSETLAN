@@ -23,6 +23,12 @@ import { normalizeForMerge } from './props'
 export interface MotionState {
   locomotion: 'idle' | 'walk' | 'run'
   airborne: boolean
+  /** Camera azimuth around the character (world yaw of the camera dir). */
+  azimuth: number
+  /** The body's current world yaw (facing). */
+  avatarYaw: number
+  /** Camera elevation — the head tilts up toward a high camera. */
+  camPitch: number
 }
 
 interface Params {
@@ -46,6 +52,14 @@ const STATES: Record<'idle' | 'walk' | 'run' | 'air', Params> = {
 
 /** Airborne pose angles (rad) — asymmetric so the jump reads dynamic. */
 const AIR_POSE = { legL: -0.45, legR: 0.25, armL: -0.65, armR: -0.5, splay: 0.22 }
+/** Head look-at (v3.3): clamps from body forward, blend time constant, and
+ * the subtle glance allowance while moving. */
+const HEAD_YAW_MAX = THREE.MathUtils.degToRad(60)
+const HEAD_PITCH_MAX = THREE.MathUtils.degToRad(25)
+const HEAD_GLANCE_MAX = THREE.MathUtils.degToRad(10)
+const HEAD_TAU = 0.2
+
+const wrapPi = (a: number) => Math.atan2(Math.sin(a), Math.cos(a))
 /** Squash & stretch scales, roughly volume-preserving (playbook §2). */
 const STRETCH = { xz: 0.93, y: 1.14 }
 const SQUASH = { xz: 1.09, y: 0.85 }
@@ -175,6 +189,7 @@ export function BlockyCharacter({
   const armR = useRef<THREE.Group>(null)
   const legL = useRef<THREE.Group>(null)
   const legR = useRef<THREE.Group>(null)
+  const head = useRef<THREE.Group>(null)
 
   // Live animation state — mutated in place every frame, zero allocations.
   const live = useRef({
@@ -185,6 +200,8 @@ export function BlockyCharacter({
     scaleY: 1,
     landT: 0,
     wasAirborne: false,
+    headYaw: 0,
+    headPitch: 0,
   })
 
   useFrame((state, dt) => {
@@ -227,6 +244,35 @@ export function BlockyCharacter({
     armL.current.rotation.z = 0.08 + sway + AIR_POSE.splay * p.air
     armR.current.rotation.z = -0.08 - sway - AIR_POSE.splay * p.air
 
+    // Head look-at (v3.3): ease toward the camera when idle (clamped ±60°
+    // yaw / ±25° pitch — beyond the clamp, ease back to neutral); while
+    // moving, follow travel with only a subtle glance. Gentle sway keeps
+    // standing still alive (blink skipped: eyes are merged into the head).
+    const h = head.current
+    if (h) {
+      const rel = wrapPi(m.azimuth - m.avatarYaw)
+      const idleness = 1 - Math.min(1, p.swingAmp / 0.4)
+      let yawTarget: number
+      let pitchTarget: number
+      if (idleness > 0.5) {
+        yawTarget = Math.abs(rel) <= HEAD_YAW_MAX ? rel : 0
+        pitchTarget =
+          Math.abs(rel) <= HEAD_YAW_MAX
+            ? -THREE.MathUtils.clamp(m.camPitch * 0.7, -HEAD_PITCH_MAX, HEAD_PITCH_MAX)
+            : 0
+      } else {
+        yawTarget = THREE.MathUtils.clamp(wrapPi(rel), -HEAD_GLANCE_MAX, HEAD_GLANCE_MAX)
+        pitchTarget = 0
+      }
+      const hk = 1 - Math.exp(-dt / HEAD_TAU)
+      s.headYaw += (yawTarget - s.headYaw) * hk
+      s.headPitch += (pitchTarget - s.headPitch) * hk
+      const sway = idleness * ground
+      h.rotation.y = s.headYaw + Math.sin(t * 0.5) * 0.035 * sway
+      h.rotation.x = s.headPitch
+      h.rotation.z = Math.sin(t * 0.31) * 0.02 * sway
+    }
+
     // Body: bob (idle breathes, steps sync at 2× swing), lean, squash/stretch.
     g.position.y = Math.abs(Math.sin(s.bobPhase)) * p.bobAmp * ground
     g.rotation.x = p.lean
@@ -253,7 +299,7 @@ export function BlockyCharacter({
         <group ref={armR} position={[dims.shoulderX, dims.shoulderY, 0]}>
           <mesh geometry={nodes.arm} material={characterMaterial} />
         </group>
-        <group position={[0, dims.torsoH, 0]}>
+        <group ref={head} position={[0, dims.torsoH, 0]}>
           <mesh geometry={nodes.head} material={characterMaterial} />
         </group>
       </group>

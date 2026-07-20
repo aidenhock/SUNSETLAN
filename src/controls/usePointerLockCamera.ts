@@ -200,5 +200,6 @@ export function usePointerLockCamera({
     }
     camera.lookAt(target.current)
     controlsRuntime.azimuth = azimuth.current
+    controlsRuntime.camPitch = pitch.current
   })
 }

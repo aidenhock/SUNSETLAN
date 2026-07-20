@@ -45,6 +45,9 @@ export const controlsRuntime = {
   /** Written every frame for the animated avatar's clip selection. */
   locomotion: 'idle' as 'idle' | 'walk' | 'run',
   airborne: false,
+  /** Body world yaw + camera pitch, published for the head look-at (v3.3). */
+  avatarYaw: 0,
+  camPitch: 0.35,
   /** Camera distance override (meters); null = default follow distance. */
   camDist: null as number | null,
   /** Set to snap the camera pitch next frame (consumed once) — e2e/sweep. */
@@ -239,6 +242,7 @@ export function usePlanetController({ planetRef, avatarRef }: ControllerRefs) {
 
     avatar.position.y = groundY + jumpOffset
     avatar.rotation.y = yaw.current
+    controlsRuntime.avatarYaw = yaw.current
     controlsRuntime.locomotion = !inputActive ? 'idle' : sprinting ? 'run' : 'walk'
     controlsRuntime.airborne = jumpT.current !== null
   })
