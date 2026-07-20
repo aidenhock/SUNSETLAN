@@ -5,103 +5,56 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js'
 import { useStore } from '../store/useStore'
 import { mulberry32 } from './geometryUtils'
-import { IDENTITY_Q, StaticInstances, surfacePartMatrix } from './instancing'
 import { normalizeForMerge } from './props'
+import { MOON_DISC_LOCAL, skyRuntime, SUN_DISC_LOCAL } from './useSkyState'
 
 /**
- * Hand-built box-cluster clouds (playbook §4 — Aviator pattern). NEVER drei
- * <Cloud>/<Clouds> (billboard sprites needing a texture); these are merged
- * geometry, flat-shaded, no textures. Mounted inside the rotating planet
- * group by the caller, so every placement here is planet-local: a warm,
- * plentiful population welded over the sunset-side water and a sparse cool
- * population over the night side, drifting together as one slow rotation.
+ * Living clouds (v3.5 — replaces the static instanced clusters). A pooled
+ * system of primitive box-cluster clouds (playbook §4 shapes, style bible),
+ * planet-local at ~25 m altitude. Each slot: fade+scale in over ~3 s, drift
+ * along a great circle on one global wind, live 60–120 s, fade out, respawn
+ * somewhere new — never within ~18° of the sun or moon disc (spawn OR
+ * drift path). Tint is per-frame: warm underlit near the sun's azimuth,
+ * cool dark on the night side. One mesh per slot (8 high / 5 low tier —
+ * within the ≤8 extra draw call budget); transparent + depthWrite:false so
+ * fades never sort-glitch. The frame loop mutates refs/materials only.
  */
 
-/** 2–3 seeded cluster variants; each seed is a full deterministic build. */
+const ALTITUDE_R = 80 // planet 55 + ~25 m
+const POOL_HIGH = 8
+const POOL_LOW = 5
+const WIND_RAD_PER_S = 0.75 / ALTITUDE_R // one global wind, ~0.75 m/s
+const FADE_S = 3
+const LIFE_MIN_S = 60
+const LIFE_MAX_S = 120
+const AVOID_RAD = THREE.MathUtils.degToRad(18)
+const SPAWN_POLAR_MIN = THREE.MathUtils.degToRad(18)
+const SPAWN_POLAR_MAX = THREE.MathUtils.degToRad(70)
+/** Fixed planet-local wind axis — oblique so paths cross the island. */
+const WIND_AXIS = new THREE.Vector3(0.35, 0.8, 0.49).normalize()
+
 const VARIANT_SEEDS = [4001, 4013, 4027]
 
-// Soft self-emissive lifts the Lambert undersides — pure lit clouds read
-// grey-brown against the warm sky; cozy clouds stay bright all around.
-const WARM_MATERIAL = new THREE.MeshLambertMaterial({ color: '#fff1dd', flatShading: true })
-WARM_MATERIAL.emissive.set('#fff1dd')
-WARM_MATERIAL.emissiveIntensity = 0.42
-// v3.4: clouds near the sun's longitude carry a warm underlit tint.
-const SUNSET_MATERIAL = new THREE.MeshLambertMaterial({ color: '#ffd2ad', flatShading: true })
-SUNSET_MATERIAL.emissive.set('#ff9e5e')
-SUNSET_MATERIAL.emissiveIntensity = 0.45
-const NIGHT_MATERIAL = new THREE.MeshLambertMaterial({ color: '#8f9ec4', flatShading: true })
-NIGHT_MATERIAL.emissive.set('#8f9ec4')
-NIGHT_MATERIAL.emissiveIntensity = 0.3
-/** Warm clouds within this |longitude| get the underlit sunset material. */
-const SUNSET_TINT_LONG_DEG = 45
+const NEUTRAL = new THREE.Color('#fff1dd')
+const WARM = new THREE.Color('#ffd2ad')
+const WARM_EMISSIVE = new THREE.Color('#ff9e5e')
+const NIGHT_COL = new THREE.Color('#8f9ec4')
 
-/** Altitude band above the surface (planet radius 55) — sky layer, not ground. */
-const ALT_MIN = 38
-const ALT_MAX = 48
-
-const ORIGIN = new THREE.Vector3()
-/** Drift is an oscillating sway, not an accumulating spin: a one-way yaw
- * walks the warm population onto the night side (wrong tint) within
- * minutes. ±0.06 rad over a ~2 min period reads as slow wander forever. */
-const DRIFT_AMP_RAD = 0.06
-const DRIFT_FREQ = 0.05
-
-interface CloudPopulation {
-  latMin: number
-  latMax: number
-  longCenter: number
-  longSpread: number
-  countHigh: number
-  countLow: number
-  seed: number
-}
-
-/** Plentiful, warm — day-leaning side. */
-const WARM_POP: CloudPopulation = {
-  latMin: 8,
-  latMax: 65,
-  longCenter: 0,
-  longSpread: 75,
-  countHigh: 14,
-  countLow: 8,
-  seed: 9001,
-}
-
-/** Sparse, cool — night side. */
-const NIGHT_POP: CloudPopulation = {
-  latMin: 8,
-  latMax: 55,
-  longCenter: 180,
-  longSpread: 60,
-  countHigh: 5,
-  countLow: 3,
-  seed: 9101,
-}
-
-/**
- * One puffy cluster: 4–6 flattened RoundedBox chunks (segments 1 → already
- * non-indexed, playbook §4) scattered to overlap into a ~6–9 m blob, merged
- * into a single draw-call geometry. mergeGeometries needs identical, all-
- * non-indexed attribute sets across pieces (props.test.ts pattern) —
- * normalizeForMerge guarantees that here too.
- */
+/** One puffy cluster: 4–6 flattened RoundedBox chunks merged (all pieces
+ * normalized non-indexed — mixing index-ness returns null). */
 function buildCloudVariant(seed: number): THREE.BufferGeometry {
   const rand = mulberry32(seed)
-  const chunkCount = 4 + Math.floor(rand() * 3) // 4..6
-  const flattenY = THREE.MathUtils.lerp(0.5, 0.6, rand()) // one squash per cluster
+  const chunkCount = 4 + Math.floor(rand() * 3)
+  const flattenY = THREE.MathUtils.lerp(0.5, 0.6, rand())
   const pieces: THREE.BufferGeometry[] = []
   for (let i = 0; i < chunkCount; i++) {
     const w = THREE.MathUtils.lerp(1.6, 3.0, rand())
     const d = THREE.MathUtils.lerp(1.6, 3.0, rand())
     const h = THREE.MathUtils.lerp(1.0, 1.7, rand())
     const chunk = new RoundedBoxGeometry(w, h, d, 1, 0.4)
-    const x = (rand() - 0.5) * 4.4
-    const z = (rand() - 0.5) * 4.4
-    const y = (rand() - 0.5) * 0.4
-    const yaw = rand() * Math.PI * 2
     const matrix = new THREE.Matrix4().compose(
-      new THREE.Vector3(x, y, z),
-      new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), yaw),
+      new THREE.Vector3((rand() - 0.5) * 4.4, (rand() - 0.5) * 0.4, (rand() - 0.5) * 4.4),
+      new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), rand() * Math.PI * 2),
       new THREE.Vector3(1, flattenY, 1),
     )
     pieces.push(normalizeForMerge(chunk).applyMatrix4(matrix))
@@ -111,84 +64,147 @@ function buildCloudVariant(seed: number): THREE.BufferGeometry {
   return merged
 }
 
-/**
- * Placement matrices for one population, bucketed by cluster variant so each
- * bucket becomes one StaticInstances draw call. Deterministic per population
- * seed: lat/long/altitude/yaw/scale/variant all pulled from one stream.
- */
-function buildPopulationMatrices(
-  pop: CloudPopulation,
-  count: number,
-  variantCount: number,
-  /** When set, clouds within this |wrapped longitude| land in `near` —
-   * the sunset-underlit bucket (v3.4). */
-  splitAbsLongDeg?: number,
-): { near: THREE.Matrix4[][]; far: THREE.Matrix4[][] } {
-  const rand = mulberry32(pop.seed)
-  const near: THREE.Matrix4[][] = Array.from({ length: variantCount }, () => [])
-  const far: THREE.Matrix4[][] = Array.from({ length: variantCount }, () => [])
-  for (let i = 0; i < count; i++) {
-    const lat = THREE.MathUtils.lerp(pop.latMin, pop.latMax, rand())
-    const long = pop.longCenter + (rand() * 2 - 1) * pop.longSpread
-    const altitude = THREE.MathUtils.lerp(ALT_MIN, ALT_MAX, rand())
-    const yaw = rand() * Math.PI * 2
-    const scale = THREE.MathUtils.lerp(0.8, 1.5, rand())
-    const variant = Math.min(variantCount - 1, Math.floor(rand() * variantCount))
-    const wrapped = Math.abs(((long + 180) % 360) - 180)
-    const bucket =
-      splitAbsLongDeg !== undefined && wrapped <= splitAbsLongDeg ? near : far
-    bucket[variant].push(surfacePartMatrix(lat, long, altitude, yaw, ORIGIN, IDENTITY_Q, scale))
-  }
-  return { near, far }
+interface CloudSlot {
+  spawnDir: THREE.Vector3
+  age: number
+  lifeS: number
+  baseScale: number
+  yaw: number
 }
+
+/** Angular clearance of the whole drift path from both discs. */
+function pathClear(spawnDir: THREE.Vector3, lifeS: number): boolean {
+  for (const t of [0, 0.5, 1]) {
+    _q.setFromAxisAngle(WIND_AXIS, WIND_RAD_PER_S * lifeS * t)
+    _dir.copy(spawnDir).applyQuaternion(_q)
+    if (_dir.angleTo(SUN_DISC_LOCAL) < AVOID_RAD) return false
+    if (_dir.angleTo(MOON_DISC_LOCAL) < AVOID_RAD) return false
+  }
+  return true
+}
+
+function respawn(slot: CloudSlot): void {
+  for (let tries = 0; tries < 24; tries++) {
+    const polar = THREE.MathUtils.lerp(SPAWN_POLAR_MIN, SPAWN_POLAR_MAX, Math.random())
+    const az = Math.random() * Math.PI * 2
+    slot.spawnDir.set(
+      Math.sin(polar) * Math.sin(az),
+      Math.cos(polar),
+      Math.sin(polar) * Math.cos(az),
+    )
+    slot.lifeS = THREE.MathUtils.lerp(LIFE_MIN_S, LIFE_MAX_S, Math.random())
+    if (pathClear(slot.spawnDir, slot.lifeS)) break
+  }
+  slot.age = 0
+  slot.baseScale = THREE.MathUtils.lerp(0.8, 1.5, Math.random())
+  slot.yaw = Math.random() * Math.PI * 2
+}
+
+// Frame-loop scratch.
+const _q = new THREE.Quaternion()
+const _dir = new THREE.Vector3()
+const _up = new THREE.Vector3(0, 1, 0)
+const _c = new THREE.Color()
+const _e = new THREE.Color()
 
 export function Clouds() {
   const qualityTier = useStore((s) => s.qualityTier)
-  const driftRef = useRef<THREE.Group>(null)
+  const poolSize = qualityTier === 'low' ? POOL_LOW : POOL_HIGH
 
   const variants = useMemo(() => VARIANT_SEEDS.map(buildCloudVariant), [])
-
-  const warm = useMemo(
+  const materials = useMemo(
     () =>
-      buildPopulationMatrices(
-        WARM_POP,
-        qualityTier === 'low' ? WARM_POP.countLow : WARM_POP.countHigh,
-        variants.length,
-        SUNSET_TINT_LONG_DEG,
-      ),
-    [qualityTier, variants.length],
+      Array.from({ length: POOL_HIGH }, () => {
+        const m = new THREE.MeshLambertMaterial({
+          color: '#fff1dd',
+          flatShading: true,
+          transparent: true,
+          opacity: 0,
+          depthWrite: false,
+        })
+        m.emissive.set('#fff1dd')
+        m.emissiveIntensity = 0.42
+        return m
+      }),
+    [],
   )
-  const night = useMemo(
-    () => buildPopulationMatrices(NIGHT_POP, qualityTier === 'low' ? NIGHT_POP.countLow : NIGHT_POP.countHigh, variants.length),
-    [qualityTier, variants.length],
+  const meshRefs = useRef<(THREE.Mesh | null)[]>([])
+  const slots = useRef<CloudSlot[]>(
+    Array.from({ length: POOL_HIGH }, (_, i) => {
+      const slot: CloudSlot = {
+        spawnDir: new THREE.Vector3(0, 1, 0),
+        age: 0,
+        lifeS: 90,
+        baseScale: 1,
+        yaw: 0,
+      }
+      respawn(slot)
+      // Stagger initial ages so the pool doesn't breathe in unison.
+      slot.age = (i / POOL_HIGH) * slot.lifeS * 0.8
+      return slot
+    }),
   )
 
-  // Slow planet-local sway — mutate the ref only, no allocations/state.
-  useFrame((state) => {
-    const g = driftRef.current
-    if (g) g.rotation.y = Math.sin(state.clock.elapsedTime * DRIFT_FREQ) * DRIFT_AMP_RAD
+  useFrame((_state, dt) => {
+    const nightMix = skyRuntime.nightMix
+    for (let i = 0; i < poolSize; i++) {
+      const slot = slots.current[i]
+      const mesh = meshRefs.current[i]
+      if (!mesh) continue
+      slot.age += dt
+      if (slot.age >= slot.lifeS) respawn(slot)
+
+      // Position along the great-circle drift; orient up along the normal.
+      _q.setFromAxisAngle(WIND_AXIS, WIND_RAD_PER_S * slot.age)
+      _dir.copy(slot.spawnDir).applyQuaternion(_q)
+      mesh.position.copy(_dir).multiplyScalar(ALTITUDE_R)
+      mesh.quaternion.setFromUnitVectors(_up, _dir)
+      mesh.rotateY(slot.yaw)
+
+      // Fade+scale envelope (in over FADE_S, out over the last FADE_S).
+      const env =
+        THREE.MathUtils.smoothstep(slot.age, 0, FADE_S) *
+        (1 - THREE.MathUtils.smoothstep(slot.age, slot.lifeS - FADE_S, slot.lifeS))
+      const s = slot.baseScale * (0.6 + 0.4 * env)
+      mesh.scale.set(s, s, s)
+      const mat = materials[i]
+      mat.opacity = 0.92 * env
+
+      // Per-frame tint: warm underlit near the sun's azimuth, cool dark on
+      // the night side (angular distance + nightMix).
+      const sunDist = _dir.angleTo(SUN_DISC_LOCAL)
+      const warmW = (1 - THREE.MathUtils.smoothstep(sunDist, 0.5, 1.4)) *
+        (1 - THREE.MathUtils.smoothstep(nightMix, 0.55, 0.85))
+      const nightW = THREE.MathUtils.smoothstep(nightMix, 0.5, 0.85)
+      _c.copy(NEUTRAL).lerp(WARM, warmW).lerp(NIGHT_COL, nightW)
+      _e.copy(NEUTRAL).lerp(WARM_EMISSIVE, warmW).lerp(NIGHT_COL, nightW)
+      mat.color.copy(_c)
+      mat.emissive.copy(_e)
+      mat.emissiveIntensity = THREE.MathUtils.lerp(
+        THREE.MathUtils.lerp(0.42, 0.52, warmW),
+        0.3,
+        nightW,
+      )
+    }
+    // Slots beyond the active pool stay hidden (tier drop mid-session).
+    for (let i = poolSize; i < POOL_HIGH; i++) {
+      const mesh = meshRefs.current[i]
+      if (mesh) materials[i].opacity = 0
+    }
   })
 
   return (
-    <group ref={driftRef}>
-      {variants.map(
-        (geo, i) =>
-          warm.near[i].length > 0 && (
-            <StaticInstances key={`sunset-${i}`} geometry={geo} material={SUNSET_MATERIAL} matrices={warm.near[i]} />
-          ),
-      )}
-      {variants.map(
-        (geo, i) =>
-          warm.far[i].length > 0 && (
-            <StaticInstances key={`warm-${i}`} geometry={geo} material={WARM_MATERIAL} matrices={warm.far[i]} />
-          ),
-      )}
-      {variants.map(
-        (geo, i) =>
-          night.far[i].length > 0 && (
-            <StaticInstances key={`night-${i}`} geometry={geo} material={NIGHT_MATERIAL} matrices={night.far[i]} />
-          ),
-      )}
-    </group>
+    <>
+      {Array.from({ length: POOL_HIGH }, (_, i) => (
+        <mesh
+          key={i}
+          ref={(m) => {
+            meshRefs.current[i] = m
+          }}
+          geometry={variants[i % variants.length]}
+          material={materials[i]}
+        />
+      ))}
+    </>
   )
 }
