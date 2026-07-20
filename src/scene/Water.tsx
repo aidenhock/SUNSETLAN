@@ -108,8 +108,10 @@ export function Water() {
           // are planet-local constants; only the camera is inverse-rotated).
           // The lane lives between the VIEWER and the light: it travels with
           // the player and swings with the camera.
+          // Distance fade extends past the horizon water (v3.9) so the lane
+          // still connects the viewer to a half-set disc.
           float gPolar = degrees(acos(clamp(vSphereDir.y, -1.0, 1.0)));
-          float gDist = (1.0 - smoothstep(80.0, 100.0, gPolar)) * smoothstep(74.5, 78.0, gPolar);
+          float gDist = (1.0 - smoothstep(90.0, 118.0, gPolar)) * smoothstep(74.5, 78.0, gPolar);
           vec3 sphereN = normalize(vSphereDir);
           float wa1 = vObjPos.x * 0.35 + uTime * 1.1;
           float wa2 = vObjPos.z * 0.28 - uTime * 0.9;
@@ -126,12 +128,13 @@ export function Water() {
           vec3 V = normalize(uCamObj - vObjPos);
           vec3 Lsun = normalize(uSunObj - vObjPos);
           vec3 Lmoon = normalize(uMoonObj - vObjPos);
-          float sunGlint = smoothstep(0.05, 0.8, pow(max(dot(N, normalize(V + Lsun)), 0.0), 60.0));
-          float moonGlint = smoothstep(0.05, 0.8, pow(max(dot(N, normalize(V + Lmoon)), 0.0), 60.0));
+          // v3.9: wider lane, larger/softer glints — reads from the beach.
+          float sunGlint = smoothstep(0.04, 0.75, pow(max(dot(N, normalize(V + Lsun)), 0.0), 30.0));
+          float moonGlint = smoothstep(0.04, 0.75, pow(max(dot(N, normalize(V + Lmoon)), 0.0), 30.0));
           float gDay = 1.0 - smoothstep(0.45, 0.7, uNightMix);
           float gNight = smoothstep(0.6, 0.85, uNightMix);
           diffuseColor.rgb += (vec3(1.0, 0.85, 0.63) * sunGlint * gDay
-            + vec3(0.81, 0.88, 1.0) * moonGlint * gNight) * gDist * 0.7;`,
+            + vec3(0.81, 0.88, 1.0) * moonGlint * gNight) * gDist * 0.85;`,
         )
       mat.userData.shader = shader
     }

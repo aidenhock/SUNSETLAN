@@ -60,25 +60,32 @@ void main() {
   float dayGate = 1.0 - smoothstep(0.55, 0.85, uNightMix);
   float nightGate = smoothstep(0.6, 0.85, uNightMix);
 
-  // Sun glow (v3.7): RADIAL around the disc — centered at every elevation,
-  // strongest at the disc, warm at every radius, gone by ~40°.
+  // Sun glow (v3.9): phased by elevation — PINK IS RESERVED FOR THE SUNSET.
+  // One monotone eased ramp (the old two-stage bridge blend painted a
+  // discrete pink ring at mid-weight — structurally removed).
   vec3 sunFromCam = normalize(uSunWorld * ${BODY_R.toFixed(1)} - cameraPosition);
   float sunAng = acos(clamp(dot(vd, sunFromCam), -1.0, 1.0));
-  float radial = (1.0 - smoothstep(0.0, 0.7, sunAng)) * dayGate;
-  vec3 warm = mix(uSunsetPink, uSunsetDeep, smoothstep(0.25, 0.75, radial));
-  warm = mix(warm, uSunsetGold, smoothstep(0.8, 0.97, radial));
-  float rt = smoothstep(0.04, 0.55, radial);
-  col = mix(mix(col, uBridge, clamp(rt * 2.0, 0.0, 1.0)), warm, clamp(rt * 2.0 - 1.0, 0.0, 1.0));
+  // setPhase: 1 below ~18° apparent elevation, 0 above ~25°.
+  float setPhase = 1.0 - smoothstep(0.309, 0.423, sunFromCam.y);
+  // Tighter radius when high (~30°), relaxing toward ~40° at set.
+  float glowR = mix(0.52, 0.7, setPhase);
+  float radial = (1.0 - smoothstep(0.0, glowR, sunAng)) * dayGate;
+  // Stops: gold core → orange → (pink outer only at set) → sky blue.
+  vec3 warmOuter = mix(uSunsetDeep, uSunsetPink, setPhase);
+  vec3 warm = mix(warmOuter, uSunsetDeep, smoothstep(0.35, 0.7, radial));
+  warm = mix(warm, uSunsetGold, smoothstep(0.7, 0.95, radial));
+  float strength = smoothstep(0.03, 0.55, radial);
+  strength *= strength; // eased — a thin transition into blue, no ring edge
+  col = mix(col, warm, strength * 0.9);
 
-  // Horizon-hugging warm band ONLY when the sun is low (< ~18°): beach
-  // sunsets paint the horizon; a high sun has no orphaned band below it.
-  float sunLow = 1.0 - smoothstep(0.17, 0.31, sunFromCam.y);
+  // Setting horizon band: pink-orange stretching along the sea line left
+  // and right (never a circle mid-sky) — only in the set phase.
   vec2 sunH = normalize(sunFromCam.xz + vec2(1e-5, 0.0));
   vec2 dirH = normalize(vd.xz + vec2(1e-5, 0.0));
-  float azBand = smoothstep(0.34, 0.9, dot(sunH, dirH));
-  float band = sunLow * azBand * (1.0 - smoothstep(-0.02, 0.30, elev))
+  float azBand = smoothstep(0.0, 0.7, dot(sunH, dirH));
+  float band = setPhase * azBand * (1.0 - smoothstep(-0.02, 0.24, elev))
     * smoothstep(-0.35, -0.06, elev) * dayGate;
-  col = mix(col, mix(uSunsetDeep, uBridge, 0.35), band * 0.6);
+  col = mix(col, mix(uSunsetDeep, uSunsetPink, 0.55), band * 0.65);
 
   // Anti-sun day horizon: slightly deeper soft blue haze (evening air).
   float azDist = acos(clamp(dot(sunH, dirH), -1.0, 1.0));
@@ -86,11 +93,12 @@ void main() {
   float antiW = smoothstep(1.5708, 3.1416, azDist) * elevFall * dayGate;
   col = mix(col, uAntiHaze, antiW * 0.45);
 
-  // Moon glow (v3.7): radial, cool silver-blue, tighter (~25°), disc
-  // centered, night-gated — no dome-wash.
+  // Moon glow: radial, cool silver-blue (never pink), night-gated —
+  // slightly wider at set (v3.9), disc centered, no dome-wash.
   vec3 moonFromCam = normalize(uMoonWorld * ${BODY_R.toFixed(1)} - cameraPosition);
   float moonAng = acos(clamp(dot(vd, moonFromCam), -1.0, 1.0));
-  float mRadial = (1.0 - smoothstep(0.0, 0.44, moonAng)) * nightGate;
+  float moonSetPhase = 1.0 - smoothstep(0.309, 0.423, moonFromCam.y);
+  float mRadial = (1.0 - smoothstep(0.0, mix(0.44, 0.52, moonSetPhase), moonAng)) * nightGate;
   col = mix(col, uMoonLayer, mRadial * 0.55);
 
   // Deep-night wayfinding: faint steel-blue toward the DAY azimuth only.

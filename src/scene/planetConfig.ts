@@ -140,8 +140,10 @@ export const CELESTIAL_ELEVATION_INLAND_DEG = 45
  * sea line → ~40% of the sun disc (3.7° radius) submerged at the waterline;
  * the ocean geometry physically occludes the rest. */
 export const CELESTIAL_ELEVATION_WATERLINE_DEG = -15.8
-/** Wading lets it sink a touch more, clamped ≈55% submerged — never gone. */
-export const CELESTIAL_ELEVATION_WADING_MIN_DEG = -17.0
+/** v3.9 set floor: wading sinks it only slightly more, clamped so NEITHER
+ * disc ever exceeds ~45% submerged (sun ρ 3.7° → 44%; moon ρ 2.74° → 43%)
+ * — the disc and its glitter lane stay clearly visible at full set. */
+export const CELESTIAL_ELEVATION_WADING_MIN_DEG = -16.2
 export const CELESTIAL = { sunLongDeg: 0, moonLongDeg: 180 } as const
 /** The solved disc polar angle is clamped to the home side: never higher
  * than this (keeps the far side's body below the horizon under world
