@@ -11,7 +11,17 @@ import {
   DISC_POLAR_MIN_DEG,
   TERRAIN,
 } from './planetConfig'
-import { discElevationDeg, nightMixFromPoleZ, solveDiscPolarDeg } from './useSkyState'
+import {
+  discElevationDeg,
+  discElevFromCameraDeg,
+  floorDiscPolarDeg,
+  limbElevationDeg,
+  MOON_DISC_ANG_RAD_DEG,
+  nightMixFromPoleZ,
+  SET_VISIBLE_FLOOR,
+  solveDiscPolarDeg,
+  SUN_DISC_ANG_RAD_DEG,
+} from './useSkyState'
 
 /** nightMix for a visitor standing at (lat, long) — the pole-local z. */
 const mixAt = (lat: number, long: number) => nightMixFromPoleZ(latLongToUnit(lat, long).z)
@@ -87,6 +97,36 @@ describe('nightMixFromPoleZ (two skies)', () => {
     expect(
       apparentElevationDeg(THREE.MathUtils.degToRad(actualArc)),
     ).toBeCloseTo(CELESTIAL_ELEVATION_WATERLINE_DEG, 0)
+  })
+
+  it('screen-space set floor holds ≥55% visible from a low shore camera (v3.10)', () => {
+    // Camera low behind a wading player at the sun's waterline: the raw
+    // dial target sinks the disc too deep; the floored solve must keep
+    // SET_VISIBLE_FLOOR of the disc above the camera's actual ocean limb.
+    for (const [sign, rho] of [
+      [1, SUN_DISC_ANG_RAD_DEG],
+      [-1, MOON_DISC_ANG_RAD_DEG],
+    ] as const) {
+      // The REAL follow camera at the shore sits ~7 m toward the island and
+      // above it (higher limb + extra arc to the disc) — this is the
+      // geometry that sank the disc to a sliver pre-v3.10.
+      const camLocal = latLongToUnit(21.5, sign === 1 ? 0 : 180).multiplyScalar(58.3)
+      const rawTarget = 167.5 // the dial's actual waterline solve
+      const floored = floorDiscPolarDeg(rawTarget, sign, camLocal, rho)
+      const elev = discElevFromCameraDeg(floored, sign, camLocal)
+      const limb = limbElevationDeg(camLocal.length())
+      const visibleFraction = (elev - limb) / (2 * rho) + 0.5
+      expect(visibleFraction).toBeGreaterThanOrEqual(SET_VISIBLE_FLOOR - 0.02)
+      // The correction only engages when the raw target actually violates
+      // (the sun's bigger disc does here; the moon may already satisfy).
+      if (sign === 1) expect(floored).toBeLessThan(rawTarget)
+    }
+  })
+
+  it('the floor never lowers a disc that already satisfies it', () => {
+    const camLocal = latLongToUnit(80, 0).multiplyScalar(59)
+    const high = 60
+    expect(floorDiscPolarDeg(high, 1, camLocal, SUN_DISC_ANG_RAD_DEG)).toBe(high)
   })
 
   it('clamps keep the far body below the horizon (sun set at deep night)', () => {

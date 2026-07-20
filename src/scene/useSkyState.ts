@@ -62,6 +62,76 @@ export function solveDiscPolarDeg(py: number, pzMeridian: number, arcDeg: number
   return THREE.MathUtils.clamp(theta, DISC_POLAR_MIN_DEG, DISC_POLAR_MAX_DEG)
 }
 
+/**
+ * v3.10 SCREEN-SPACE SET FLOOR. The rendered framing composes the solved
+ * disc dir, world rotation, and occlusion by the NEAR ocean limb as seen
+ * from the actual camera — so the floor is enforced on the OUTPUT: the
+ * fraction of the disc visible above the analytically computed limb.
+ */
+/** Ocean radius for the limb, with a wave/surf crest margin. */
+const LIMB_OCEAN_R = 55.2
+const DOME_BODY_R = 230
+/** Disc angular radii (deg) as seen from ~dome distance. */
+export const SUN_DISC_ANG_RAD_DEG = THREE.MathUtils.radToDeg(Math.atan(15 / 228))
+export const MOON_DISC_ANG_RAD_DEG = THREE.MathUtils.radToDeg(Math.atan(11 / 228))
+/** Minimum visible disc fraction at the shore (55–60% band). */
+export const SET_VISIBLE_FLOOR = 0.575
+/** The floor applies only within this longitude gate of the body's home
+ * meridian — the walking-away set stays fully emergent. */
+const FLOOR_GATE_RAD = THREE.MathUtils.degToRad(35)
+
+const _discPos = new THREE.Vector3()
+const _toDisc = new THREE.Vector3()
+const _camUp = new THREE.Vector3()
+
+/** Apparent elevation (deg, camera-horizontal-relative) of the dome disc
+ * at polar θ on the body meridian. meridianSign: +1 sun / −1 moon.
+ * camLocal is the camera position in planet-local space. */
+export function discElevFromCameraDeg(
+  discPolarDeg: number,
+  meridianSign: 1 | -1,
+  camLocal: THREE.Vector3,
+): number {
+  const th = THREE.MathUtils.degToRad(discPolarDeg)
+  _discPos.set(0, Math.cos(th) * DOME_BODY_R, meridianSign * Math.sin(th) * DOME_BODY_R)
+  _toDisc.copy(_discPos).sub(camLocal).normalize()
+  _camUp.copy(camLocal).normalize()
+  return THREE.MathUtils.radToDeg(
+    Math.asin(THREE.MathUtils.clamp(_toDisc.dot(_camUp), -1, 1)),
+  )
+}
+
+/** Ocean limb elevation (deg) from a camera at distance d from center:
+ * the sphere-tangent direction. Analytic — no raycasts. */
+export function limbElevationDeg(camDist: number): number {
+  return (
+    THREE.MathUtils.radToDeg(Math.asin(Math.min(LIMB_OCEAN_R / Math.max(camDist, LIMB_OCEAN_R), 1))) - 90
+  )
+}
+
+/** Raise the disc (shrink θ) until its visible fraction above the limb
+ * meets SET_VISIBLE_FLOOR — monotone bisection, runs only on violation. */
+export function floorDiscPolarDeg(
+  theta0: number,
+  meridianSign: 1 | -1,
+  camLocal: THREE.Vector3,
+  discAngRadDeg: number,
+): number {
+  const cFloor =
+    limbElevationDeg(camLocal.length()) + (2 * SET_VISIBLE_FLOOR - 1) * discAngRadDeg
+  if (discElevFromCameraDeg(theta0, meridianSign, camLocal) >= cFloor) return theta0
+  let lo = DISC_POLAR_MIN_DEG
+  let hi = theta0
+  for (let i = 0; i < 12; i++) {
+    const mid = (lo + hi) / 2
+    if (discElevFromCameraDeg(mid, meridianSign, camLocal) >= cFloor) lo = mid
+    else hi = mid
+  }
+  return lo
+}
+
+const wrapPi = (a: number) => Math.atan2(Math.sin(a), Math.cos(a))
+
 /** Spawn-time defaults (player at the pole): E = inland elevation. */
 const SPAWN_ARC = arcForElevationDeg(CELESTIAL_ELEVATION_INLAND_DEG)
 const SUN_HOME_LOCAL = latLongToUnit(90 - solveDiscPolarDeg(1, 0, SPAWN_ARC), CELESTIAL.sunLongDeg)
@@ -136,6 +206,8 @@ const FLAME_NIGHT = 1.1
 // Frame-loop scratch.
 const _pole = new THREE.Vector3()
 const _lightDir = new THREE.Vector3()
+const _camLocal = new THREE.Vector3()
+const _qInvPlanet = new THREE.Quaternion()
 const _discSmooth = {
   sun: solveDiscPolarDeg(1, 0, SPAWN_ARC),
   moon: solveDiscPolarDeg(1, 0, SPAWN_ARC),
@@ -162,7 +234,7 @@ export function useSkyState({
   dir: React.RefObject<THREE.DirectionalLight | null>
   amb: React.RefObject<THREE.AmbientLight | null>
 }) {
-  const { scene } = useThree()
+  const { scene, camera } = useThree()
 
   useFrame((_state, dt) => {
     const planet = planetRef.current
@@ -177,8 +249,21 @@ export function useSkyState({
       Math.acos(THREE.MathUtils.clamp(_pole.y, -1, 1)),
     )
     const arcDeg = arcForElevationDeg(discElevationDeg(playerPolarDeg))
-    const sunTarget = solveDiscPolarDeg(_pole.y, _pole.z, arcDeg)
-    const moonTarget = solveDiscPolarDeg(_pole.y, -_pole.z, arcDeg)
+    let sunTarget = solveDiscPolarDeg(_pole.y, _pole.z, arcDeg)
+    let moonTarget = solveDiscPolarDeg(_pole.y, -_pole.z, arcDeg)
+    // v3.10 screen-space set floor: within ±35° of a body's meridian,
+    // correct its solve so ≥ SET_VISIBLE_FLOOR of the disc stays above the
+    // camera's actual ocean limb. Off-meridian, the set stays emergent.
+    _camLocal
+      .copy(camera.position)
+      .applyQuaternion(_qInvPlanet.copy(planet.quaternion).invert())
+    const lambda = Math.atan2(_pole.x, _pole.z)
+    if (Math.abs(wrapPi(lambda)) <= FLOOR_GATE_RAD) {
+      sunTarget = floorDiscPolarDeg(sunTarget, 1, _camLocal, SUN_DISC_ANG_RAD_DEG)
+    }
+    if (Math.abs(wrapPi(lambda - Math.PI)) <= FLOOR_GATE_RAD) {
+      moonTarget = floorDiscPolarDeg(moonTarget, -1, _camLocal, MOON_DISC_ANG_RAD_DEG)
+    }
     const k = 1 - Math.exp(-dt / 0.6)
     _discSmooth.sun += (sunTarget - _discSmooth.sun) * k
     _discSmooth.moon += (moonTarget - _discSmooth.moon) * k

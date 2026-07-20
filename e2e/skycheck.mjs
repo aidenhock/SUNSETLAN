@@ -51,16 +51,23 @@ async function main() {
     )
     await page.waitForTimeout(900)
 
+    // NOTE: the WebGL canvas reads back blank via drawImage (no
+    // preserveDrawingBuffer) — analyze the real screenshot instead. The
+    // original in-page readback made this check pass vacuously.
+    const shot = await page.screenshot()
+    const dataUrl = 'data:image/png;base64,' + shot.toString('base64')
     const result = await page.evaluate(
-      ({ skyFraction, lightnessMin, saturationMax, coreRadius }) => {
-        const gl = document.querySelector('canvas')
-        const w = gl.width
-        const h = Math.floor(gl.height * skyFraction)
+      async ({ skyFraction, lightnessMin, saturationMax, coreRadius, dataUrl }) => {
+        const img = new Image()
+        img.src = dataUrl
+        await img.decode()
+        const w = img.width
+        const h = Math.floor(img.height * skyFraction)
         const c2d = document.createElement('canvas')
         c2d.width = w
         c2d.height = h
         const ctx = c2d.getContext('2d')
-        ctx.drawImage(gl, 0, 0, w, h, 0, 0, w, h)
+        ctx.drawImage(img, 0, 0, w, h, 0, 0, w, h)
         const d = ctx.getImageData(0, 0, w, h).data
         // Brightest pixel = disc/halo core to exclude.
         let bx = -1, by = -1, bl = -1
@@ -95,6 +102,7 @@ async function main() {
         lightnessMin: LIGHTNESS_MIN,
         saturationMax: SATURATION_MAX,
         coreRadius: CORE_RADIUS,
+        dataUrl,
       },
     )
 
