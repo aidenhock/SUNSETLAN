@@ -39,6 +39,11 @@ function RenderInfoProbe() {
   return null
 }
 
+/** Dev/e2e-only isolated character viewer (?chartest), code-split. */
+const CharacterShowcase = lazy(() =>
+  import('./scene/CharacterShowcase').then((m) => ({ default: m.CharacterShowcase })),
+)
+
 export default function App() {
   const [sceneReady, setSceneReady] = useState(false)
   // The perf monitor arms a few seconds after the scene mounts — startup
@@ -61,6 +66,14 @@ export default function App() {
     [flags],
   )
   const qualityTier = useStore((s) => s.qualityTier)
+
+  if (flags.has('chartest')) {
+    return (
+      <Suspense fallback={null}>
+        <CharacterShowcase />
+      </Suspense>
+    )
+  }
 
   return (
     <div className="h-full w-full">

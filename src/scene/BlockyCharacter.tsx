@@ -2,17 +2,22 @@ import { useFrame } from '@react-three/fiber'
 import { useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
-import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js'
 import type { CharacterConfig } from '../content/characters'
 import { tintGeometry } from './geometryUtils'
 import { normalizeForMerge } from './props'
 
 /**
- * BlockyCharacter — the style bible's chibi rig (playbook §1–2): oversized
- * rounded head, stubby pivot-group limbs, no fingers, big flat eyes. Each
- * rigid node (torso, head, arm, leg) merges its colored pieces into ONE
- * vertex-colored geometry, so a whole character costs 6 draw calls with a
- * single shared Lambert material.
+ * BlockyCharacter (name kept) — Character 2.0, the ROUNDED AC-villager rig
+ * (playbook §1 rounded recipe): flattened-sphere head with solid hair
+ * volumes, big oval eyes with highlights, egg torso, capsule limbs with
+ * ball hands, lozenge shoes. Each rigid node (torso, head, arm, leg)
+ * merges its colored pieces into ONE vertex-colored geometry, so a whole
+ * character costs 6 draw calls with a single shared Lambert material.
+ *
+ * Characters are the deliberate SMOOTH-shading exception (flatShading
+ * false): matte-plastic AC/Mii toys on a flat-faceted world. The merge
+ * path preserves smooth normals — toNonIndexed() copies the attribute;
+ * computeVertexNormals is never called on character parts.
  *
  * Animation is pure transform math on the pivot groups — no skeleton, no
  * AnimationMixer. One parameter set per state (idle/walk/run/air); the live
@@ -43,10 +48,13 @@ interface Params {
   air: number
 }
 
+// Amplitudes retuned (v3.15) for the rounded volumes: the stubby capsule
+// limbs read smaller than the old boxes, so swings and the run lean come
+// up ~15–20%; idle breathes a touch deeper on the egg torso.
 const STATES: Record<'idle' | 'walk' | 'run' | 'air', Params> = {
-  idle: { bobAmp: 0.022, bobFreq: 2, swingAmp: 0, swingFreq: 0, armRatio: 0, lean: 0, sway: 0.06, air: 0 },
-  walk: { bobAmp: 0.03, bobFreq: 18, swingAmp: 0.5, swingFreq: 9, armRatio: 0.6, lean: 0.03, sway: 0, air: 0 },
-  run: { bobAmp: 0.05, bobFreq: 25, swingAmp: 0.8, swingFreq: 12.5, armRatio: 0.75, lean: 0.14, sway: 0, air: 0 },
+  idle: { bobAmp: 0.026, bobFreq: 2, swingAmp: 0, swingFreq: 0, armRatio: 0, lean: 0, sway: 0.07, air: 0 },
+  walk: { bobAmp: 0.034, bobFreq: 18, swingAmp: 0.58, swingFreq: 9, armRatio: 0.6, lean: 0.035, sway: 0, air: 0 },
+  run: { bobAmp: 0.055, bobFreq: 25, swingAmp: 0.92, swingFreq: 12.5, armRatio: 0.75, lean: 0.16, sway: 0, air: 0 },
   air: { bobAmp: 0, bobFreq: 0, swingAmp: 0, swingFreq: 0, armRatio: 0, lean: 0.05, sway: 0, air: 1 },
 }
 
@@ -69,9 +77,11 @@ const SQUASH = { xz: 1.09, y: 0.85 }
 const LAND_S = 0.18
 const BLEND_TAU = 0.15
 
-/** seg 1 = chamfered box (chunky, cheap); seg 2 only for the hero head. */
-function rounded(w: number, h: number, d: number, r: number, seg = 1): RoundedBoxGeometry {
-  return new RoundedBoxGeometry(w, h, d, seg, Math.min(r, w / 2, h / 2, d / 2))
+/** Sphere scaled into an arbitrary ellipsoid — the rounded rig's staple. */
+function blob(r: number, ws: number, hs: number, sx: number, sy: number, sz: number) {
+  return new THREE.SphereGeometry(r, ws, hs).applyMatrix4(
+    new THREE.Matrix4().makeScale(sx, sy, sz),
+  )
 }
 
 /** Build the four merged node geometries from a config (exported for tests). */
@@ -81,13 +91,8 @@ export function buildNodes(config: CharacterConfig) {
   const legLen = H * 0.22
   const torsoH = H - headH - legLen
   const torsoW = 0.34 * H * build
-  const torsoD = 0.21 * H
-  const headW = headH * 0.95
-  const headD = headH * 0.88
+  const headR = headH * 0.51
   const armLen = torsoH * 0.85
-  const armW = 0.105 * H
-  const legW = 0.12 * H
-  const shoeH = 0.07 * H
 
   const parts = {
     torso: [] as THREE.BufferGeometry[],
@@ -112,46 +117,125 @@ export function buildNodes(config: CharacterConfig) {
     parts[bucket].push(g)
   }
 
-  // Torso: tee over shorts (local origin at the hips / leg tops).
-  add('torso', rounded(torsoW, torsoH * 0.72, torsoD, 0.05), colors.top, [0, torsoH * 0.62, 0])
-  add('torso', rounded(torsoW + 0.015, torsoH * 0.36, torsoD + 0.015, 0.04), colors.bottom, [0, torsoH * 0.18, 0])
-
-  // Head node (local origin at the neck). Oversized rounded box + flat eyes.
-  add('head', rounded(headW, headH, headD, 0.09, 2), colors.skin, [0, headH / 2, 0])
-  const eyeGeo = () =>
-    new THREE.SphereGeometry(headH * 0.082, 8, 6).applyMatrix4(
-      new THREE.Matrix4().makeScale(1, 1.5, 0.45),
-    )
-  for (const sx of [-1, 1]) {
-    add('head', eyeGeo(), colors.eyes, [sx * headW * 0.2, headH * 0.52, headD / 2 - 0.005])
+  // ---- Torso (local origin at the hips / leg tops) --------------------
+  // Egg in top color; intersecting solid volumes hide their seams inside.
+  add('torso', blob(torsoW / 2, 12, 9, 1, 1.11, 0.82), colors.top, [0, torsoH * 0.52, 0])
+  if (config.outfit === 'dress') {
+    // Flared cone skirt from the waist over the hips.
+    add('torso', new THREE.ConeGeometry(torsoW * 0.74, torsoH * 0.52, 14, 1), colors.bottom, [
+      0,
+      torsoH * 0.2,
+      0,
+    ])
+  } else {
+    // Shorts: a squashed band over the egg's lower half.
+    add('torso', blob(torsoW / 2 + 0.008, 10, 7, 1, 0.52, 0.85), colors.bottom, [
+      0,
+      torsoH * 0.14,
+      0,
+    ])
   }
+
+  // ---- Head (local origin at the neck; face = +z) ---------------------
+  add('head', blob(headR, 14, 11, 1, 0.9, 0.95), colors.skin, [0, headH * 0.48, 0])
+  const faceZ = headR * 0.95
+  // Eyes: big vertical ovals, each with a tiny white highlight.
+  for (const sx of [-1, 1]) {
+    add('head', blob(headH * 0.1, 8, 6, 1, 1.55, 0.45), colors.eyes, [
+      sx * headR * 0.38,
+      headH * 0.5,
+      faceZ - 0.02,
+    ])
+    add('head', blob(headH * 0.028, 6, 4, 1, 1, 0.6), '#ffffff', [
+      sx * headR * 0.38 + sx * 0.008,
+      headH * 0.56,
+      faceZ + 0.028,
+    ])
+  }
+  // Micro-arc mouth: partial torus rotated so the arc hangs at the circle's
+  // bottom — endpoints curve upward, reading as the AC smile.
+  add(
+    'head',
+    new THREE.TorusGeometry(headH * 0.055, 0.0075, 4, 8, Math.PI * 0.75),
+    colors.eyes,
+    [0, headH * 0.31, faceZ * 0.92],
+    [0, 0, -Math.PI * 0.875],
+  )
+  if (config.blush) {
+    for (const sx of [-1, 1]) {
+      add('head', blob(headH * 0.07, 6, 4, 1, 0.7, 0.3), '#f0a2a2', [
+        sx * headR * 0.62,
+        headH * 0.37,
+        faceZ * 0.82,
+      ])
+    }
+  }
+  // Hair — SOLID volumes only (open shells backface-cull see-through).
   if (config.hair === 'swoop') {
-    add('head', rounded(headW + 0.05, headH * 0.38, headD + 0.05, 0.08), colors.hair, [0, headH * 0.86, -0.01])
-    add('head', rounded(headW + 0.05, headH * 0.45, 0.12, 0.05), colors.hair, [0, headH * 0.6, -(headD / 2 - 0.02)])
-    // The swoop: a fringe swept to one side across the forehead.
+    add('head', blob(headR * 1.09, 12, 9, 1, 0.76, 1.0), colors.hair, [0, headH * 0.64, -0.02])
+    // Side-swept fringe wedge hugging the upper forehead, above the brow.
     add(
       'head',
-      rounded(headW * 0.62, headH * 0.16, 0.12, 0.04),
+      blob(headR * 0.55, 8, 6, 1.5, 0.4, 0.55),
       colors.hair,
-      [headW * 0.1, headH * 0.72, headD / 2 - 0.03],
-      [0, 0, -0.22],
+      [headR * 0.12, headH * 0.84, faceZ * 0.58],
+      [0.18, 0, -0.25],
+    )
+  } else if (config.hair === 'bob') {
+    // Cap dropping past the ears, receded so the face stays open, plus a
+    // straight fringe tucked high above the brow.
+    add('head', blob(headR * 1.1, 12, 9, 1, 0.92, 0.98), colors.hair, [0, headH * 0.58, -0.055])
+    add(
+      'head',
+      blob(headR * 0.68, 8, 6, 1.3, 0.34, 0.45),
+      colors.hair,
+      [0, headH * 0.87, faceZ * 0.52],
+      [0.28, 0, 0],
     )
   }
   if (config.glasses) {
-    const rim = () => new THREE.TorusGeometry(headH * 0.115, 0.011, 5, 12)
+    const rim = () => new THREE.TorusGeometry(headH * 0.115, 0.011, 4, 10)
     for (const sx of [-1, 1]) {
-      add('head', rim(), config.glasses.color, [sx * headW * 0.2, headH * 0.52, headD / 2 + 0.012])
+      add('head', rim(), config.glasses.color, [sx * headR * 0.38, headH * 0.5, faceZ + 0.02])
     }
-    add('head', new THREE.BoxGeometry(headW * 0.14, 0.02, 0.02), config.glasses.color, [0, headH * 0.52, headD / 2 + 0.012])
+    add('head', new THREE.BoxGeometry(headR * 0.3, 0.018, 0.018), config.glasses.color, [
+      0,
+      headH * 0.5,
+      faceZ + 0.02,
+    ])
   }
 
-  // Arm node (local origin at the shoulder pivot, hangs along −y).
-  add('arm', rounded(armW, armLen, armW, 0.045), colors.skin, [0, -armLen / 2 + 0.02, 0])
-  add('arm', rounded(armW + 0.035, armLen * 0.32, armW + 0.035, 0.04), colors.top, [0, -armLen * 0.12, 0])
+  // ---- Arm (local origin at the shoulder pivot, hangs along −y) --------
+  const armR = 0.052 * (H / 1.25)
+  add('arm', new THREE.CapsuleGeometry(armR, armLen * 0.5, 3, 8), colors.skin, [
+    0,
+    -armLen * 0.38,
+    0,
+  ])
+  // Sleeve: shorter, fatter capsule in top color at the shoulder.
+  add('arm', new THREE.CapsuleGeometry(armR + 0.014, armLen * 0.18, 2, 8), colors.top, [
+    0,
+    -armLen * 0.14,
+    0,
+  ])
+  // Ball hand.
+  add('arm', new THREE.SphereGeometry(armR * 1.35, 8, 6), colors.skin, [0, -armLen * 0.78, 0])
 
-  // Leg node (local origin at the hip pivot): stubby leg + shoe, toe forward.
-  add('leg', rounded(legW, legLen * 0.85, legW, 0.04), colors.skin, [0, -legLen * 0.42, 0])
-  add('leg', rounded(legW + 0.04, shoeH, legW + 0.1, 0.03), colors.shoes, [0, -legLen + shoeH / 2, 0.035])
+  // ---- Leg (local origin at the hip pivot; soles at −legLen) -----------
+  const legR = 0.055 * (H / 1.25)
+  add('leg', new THREE.CapsuleGeometry(legR, legLen * 0.5, 3, 8), colors.skin, [
+    0,
+    -legLen * 0.42,
+    0,
+  ])
+  // Lozenge shoe, toe forward; bottom kisses rig-local y = −legLen so the
+  // planted feet sit exactly at groundHeightAt (blob-shadow contract).
+  const shoeR = legR * 1.45
+  add('leg', blob(shoeR, 10, 7, 1.05, 0.55, 1.5), colors.shoes, [
+    0,
+    -legLen + shoeR * 0.55,
+    0.045,
+  ])
 
   const merge = (list: THREE.BufferGeometry[]) => {
     const merged = mergeGeometries(list)
@@ -169,13 +253,14 @@ export function buildNodes(config: CharacterConfig) {
       legLen,
       torsoH,
       hipX: torsoW * 0.26,
-      shoulderX: torsoW / 2 + armW / 2 - 0.015,
-      shoulderY: torsoH * 0.88,
+      shoulderX: torsoW * 0.46,
+      shoulderY: torsoH * 0.82,
     },
   }
 }
 
-const characterMaterial = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true })
+/** Characters are the deliberate smooth-shading exception (see header). */
+const characterMaterial = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: false })
 
 export function BlockyCharacter({
   config,

@@ -54,66 +54,77 @@ async function main() {
     // NOTE: the WebGL canvas reads back blank via drawImage (no
     // preserveDrawingBuffer) — analyze the real screenshot instead. The
     // original in-page readback made this check pass vacuously.
-    const shot = await page.screenshot()
-    const dataUrl = 'data:image/png;base64,' + shot.toString('base64')
-    const result = await page.evaluate(
-      async ({ skyFraction, lightnessMin, saturationMax, coreRadius, dataUrl }) => {
-        const img = new Image()
-        img.src = dataUrl
-        await img.decode()
-        const w = img.width
-        const h = Math.floor(img.height * skyFraction)
-        const c2d = document.createElement('canvas')
-        c2d.width = w
-        c2d.height = h
-        const ctx = c2d.getContext('2d')
-        ctx.drawImage(img, 0, 0, w, h, 0, 0, w, h)
-        const d = ctx.getImageData(0, 0, w, h).data
-        // Brightest pixel = disc/halo core to exclude.
-        let bx = -1, by = -1, bl = -1
-        for (let y = 0; y < h; y += 4) {
-          for (let x = 0; x < w; x += 4) {
-            const i = (y * w + x) * 4
-            const l = d[i] + d[i + 1] + d[i + 2]
-            if (l > bl) { bl = l; bx = x; by = y }
-          }
-        }
-        let violations = 0
-        const samples = []
-        for (let y = 0; y < h; y += 2) {
-          for (let x = 0; x < w; x += 2) {
-            const dx = x - bx, dy = y - by
-            if (dx * dx + dy * dy < coreRadius * coreRadius) continue
-            const i = (y * w + x) * 4
-            const r = d[i] / 255, g = d[i + 1] / 255, b = d[i + 2] / 255
-            const maxc = Math.max(r, g, b), minc = Math.min(r, g, b)
-            const lightness = (maxc + minc) / 2
-            const sat = maxc === minc ? 0 : (maxc - minc) / (1 - Math.abs(2 * lightness - 1))
-            if (lightness > lightnessMin && sat < saturationMax) {
-              violations++
-              if (samples.length < 5) samples.push({ x, y, r, g, b })
+    const scan = async () => {
+      const shot = await page.screenshot()
+      const dataUrl = 'data:image/png;base64,' + shot.toString('base64')
+      return page.evaluate(
+        async ({ skyFraction, lightnessMin, saturationMax, coreRadius, dataUrl }) => {
+          const img = new Image()
+          img.src = dataUrl
+          await img.decode()
+          const w = img.width
+          const h = Math.floor(img.height * skyFraction)
+          const c2d = document.createElement('canvas')
+          c2d.width = w
+          c2d.height = h
+          const ctx = c2d.getContext('2d')
+          ctx.drawImage(img, 0, 0, w, h, 0, 0, w, h)
+          const d = ctx.getImageData(0, 0, w, h).data
+          // Brightest pixel = disc/halo core to exclude.
+          let bx = -1, by = -1, bl = -1
+          for (let y = 0; y < h; y += 4) {
+            for (let x = 0; x < w; x += 4) {
+              const i = (y * w + x) * 4
+              const l = d[i] + d[i + 1] + d[i + 2]
+              if (l > bl) { bl = l; bx = x; by = y }
             }
           }
-        }
-        return { violations, samples, brightest: { bx, by } }
-      },
-      {
-        skyFraction: SKY_FRACTION,
-        lightnessMin: LIGHTNESS_MIN,
-        saturationMax: SATURATION_MAX,
-        coreRadius: CORE_RADIUS,
-        dataUrl,
-      },
-    )
+          const keys = []
+          const samples = []
+          for (let y = 0; y < h; y += 2) {
+            for (let x = 0; x < w; x += 2) {
+              const dx = x - bx, dy = y - by
+              if (dx * dx + dy * dy < coreRadius * coreRadius) continue
+              const i = (y * w + x) * 4
+              const r = d[i] / 255, g = d[i + 1] / 255, b = d[i + 2] / 255
+              const maxc = Math.max(r, g, b), minc = Math.min(r, g, b)
+              const lightness = (maxc + minc) / 2
+              const sat = maxc === minc ? 0 : (maxc - minc) / (1 - Math.abs(2 * lightness - 1))
+              if (lightness > lightnessMin && sat < saturationMax && keys.length < 50000) {
+                keys.push(y * w + x)
+                if (samples.length < 5) samples.push({ x, y, r, g, b })
+              }
+            }
+          }
+          return { keys, samples, brightest: { bx, by } }
+        },
+        {
+          skyFraction: SKY_FRACTION,
+          lightnessMin: LIGHTNESS_MIN,
+          saturationMax: SATURATION_MAX,
+          coreRadius: CORE_RADIUS,
+          dataUrl,
+        },
+      )
+    }
+    // Two-frame persistence: the sky gradient is static per pose, while
+    // pale MOVERS (seagull cream, drifting cloud white) shift between
+    // frames — only violations at the SAME pixel in both frames count.
+    const a = await scan()
+    await page.waitForTimeout(1500)
+    const b = await scan()
+    const bSet = new Set(b.keys)
+    const persistent = a.keys.filter((k) => bSet.has(k)).length
 
-    const ok = result.violations <= MAX_VIOLATIONS
+    const ok = persistent <= MAX_VIOLATIONS
     console.log(
-      `${pan.name}: ${result.violations} near-white sky pixels ` +
-        `(core excluded @${result.brightest.bx},${result.brightest.by}) → ${ok ? 'OK' : 'FAIL'}`,
+      `${pan.name}: ${persistent} persistent near-white sky pixels ` +
+        `(${a.keys.length}/${b.keys.length} per frame; core excluded ` +
+        `@${a.brightest.bx},${a.brightest.by}) → ${ok ? 'OK' : 'FAIL'}`,
     )
     if (!ok) {
       failed = true
-      console.log('  samples:', JSON.stringify(result.samples))
+      console.log('  samples:', JSON.stringify(a.samples))
     }
   }
 
