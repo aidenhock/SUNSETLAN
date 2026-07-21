@@ -42,13 +42,27 @@ volumes, all still stock three.js primitives, merged per rigid node:
   smile opens upward); optional blush = flattened pink discs on the
   cheeks (config flag). Round glasses (accessory) = thin torus rims + a
   box bridge, floated just off the face.
-- **Body**: egg torso = sphere scaled `(1, ~1.25, ~0.82)`; shorts/skirt
-  as a second squashed sphere (or low cone for a dress) intersecting the
-  egg's lower half — intersections hide inside the volumes, no seams.
-- **Limbs**: arms = `CapsuleGeometry` from the shoulder pivots ending in
-  BALL-hand spheres (sleeve = shorter fatter capsule in top color);
-  legs = stubby capsules; shoes = spheres scaled into lozenges
-  `(1, ~0.55, ~1.4)`, toe forward.
+- **Body = TEARDROP, never an egg-on-end** (v3.16 fix — the egg read
+  widest at the shoulders): a `LatheGeometry` profile with narrow sloped
+  shoulders (≈0.55× head width) widening smoothly to the hips (≈0.8×
+  head width — the body's widest point, near its base). Minimal neck;
+  the head sits just above the collar. Chibi proportions per the base
+  reference: ~2 heads tall, head ≈50% of total height.
+- **Arms**: slim capsules mounted INBOARD and low on the sloped
+  shoulders, resting in a ~12° outward A-pose so they hang with a
+  visible gap from the torso, ending in small BALL hands that sit
+  outside the torso silhouette at hip height. NO fat sleeve capsule
+  (it built linebacker shoulders). Walk/run swing planes angle slightly
+  outward with the swing so nothing ever clips into the wider hips.
+- **Shorts are a GARMENT, not a blob**: a hip band (short cylinder
+  seated at the teardrop's widest point) plus two separate leg cuffs on
+  the upper thighs — cuffs live in the LEG nodes so they swing like
+  fabric — with daylight between the cuffs at the inseam. Never a
+  single rounded mass between the legs. A dress swaps band+cuffs for
+  one flared cone skirt.
+- **Legs**: skin-tone stubby capsules emerging from the cuffs, close
+  together, ending in small rounded shoes (spheres scaled
+  `(1, ~0.6, ~1.3)`, toe forward), soles kissing rig-local y = 0.
 - **Shading exception (deliberate)**: characters use SMOOTH-shaded
   `MeshLambertMaterial` (`flatShading: false`) — matte-plastic AC/Mii
   toys on a flat-faceted world, as Animal Crossing itself does. The
