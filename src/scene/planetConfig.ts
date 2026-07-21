@@ -146,18 +146,51 @@ export const CELESTIAL_ELEVATION_WATERLINE_DEG = -15.8
 export const CELESTIAL_ELEVATION_WADING_MIN_DEG = -16.2
 export const CELESTIAL = { sunLongDeg: 0, moonLongDeg: 180 } as const
 
-/** Glitter wedge tuning (v3.12): the lane is a corridor anchored to the
- * disc — apex at disc width on the limb, `spread`× at the near shore.
- * Elevation only softens intensity; submergence is the only fade-out. */
+/** Glitter wedge tuning (v3.13): ONE width authority — the corridor mask
+ * defines the lane everywhere, from `farWidthDisc`× the disc width at the
+ * disc's base widening monotonically to `nearWidthDisc`× at the near
+ * shore. Rising scales both endpoints up and eases opacity down to a
+ * floor; submergence is the only kill. */
 export const GLITTER = {
-  /** Near-shore wedge width as a multiple of the disc width (apex = 1×). */
-  spread: 3,
-  intensitySet: 0.95,
-  intensityHigh: 0.68,
+  /** Corridor width at the disc base, in disc widths (far end). */
+  farWidthDisc: 0.5,
+  /** Corridor width at the near shore, in disc widths. */
+  nearWidthDisc: 2.75,
+  /** Both endpoint widths scale up to this at inland-high. */
+  highWidthScale: 1.8,
+  /** Lane opacity at set (the vivid column)… */
+  opacityLow: 0.95,
+  /** …easing down to this floor at inland-high — never invisible. */
+  opacityFloor: 0.45,
   /** Elevation range (deg above the limb) easing set → inland-high. */
   elevLowDeg: 0,
   elevHighDeg: 35,
 } as const
+
+const sstep = (x: number, a: number, b: number) => {
+  const t = Math.min(1, Math.max(0, (x - a) / (b - a)))
+  return t * t * (3 - 2 * t)
+}
+
+/** Corridor half-widths (radians of azimuth) + opacity for one body.
+ * `discAngRadRad` is the disc's angular RADIUS in radians, so a corridor
+ * of k disc-widths has half-width k·ρ. The submergence gate rides along:
+ * opacity × smoothstep(visibleFrac 0→0.5). */
+export function laneParams(
+  elevAboveLimbDeg: number,
+  discAngRadRad: number,
+  visibleFrac: number,
+) {
+  const t = sstep(elevAboveLimbDeg, GLITTER.elevLowDeg, GLITTER.elevHighDeg)
+  const scale = 1 + (GLITTER.highWidthScale - 1) * t
+  return {
+    halfFarRad: GLITTER.farWidthDisc * discAngRadRad * scale,
+    halfNearRad: GLITTER.nearWidthDisc * discAngRadRad * scale,
+    opacity:
+      (GLITTER.opacityLow + (GLITTER.opacityFloor - GLITTER.opacityLow) * t) *
+      sstep(visibleFrac, 0, 0.5),
+  }
+}
 /** The solved disc polar angle is clamped to the home side: never higher
  * than this (keeps the far side's body below the horizon under world
  * rotation), never lower than the set anchor. */

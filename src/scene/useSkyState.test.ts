@@ -9,6 +9,8 @@ import {
   CELESTIAL_ELEVATION_WATERLINE_DEG,
   DISC_POLAR_MAX_DEG,
   DISC_POLAR_MIN_DEG,
+  GLITTER,
+  laneParams,
   TERRAIN,
 } from './planetConfig'
 import {
@@ -141,6 +143,34 @@ describe('nightMixFromPoleZ (two skies)', () => {
     expect(m[0]).toBeGreaterThan(m[1])
     expect(m[1]).toBeGreaterThan(m[2])
     expect(m[2]).toBeLessThan(0.02)
+  })
+
+  it('lane corridor (v3.13): monotonic width, bounded height mapping', () => {
+    const rho = 0.0656
+    // Far end always narrower than the near shore — the wedge can never
+    // waist (single width authority, both ends from the same scale).
+    for (let elev = -20; elev <= 60; elev += 5) {
+      const p = laneParams(elev, rho, 1)
+      expect(p.halfFarRad).toBeLessThan(p.halfNearRad)
+    }
+    const low = laneParams(GLITTER.elevLowDeg, rho, 1)
+    const high = laneParams(GLITTER.elevHighDeg, rho, 1)
+    // Set: far end = farWidthDisc disc-widths (half-width = k·ρ), vivid.
+    expect(low.halfFarRad).toBeCloseTo(GLITTER.farWidthDisc * rho, 6)
+    expect(low.halfNearRad).toBeCloseTo(GLITTER.nearWidthDisc * rho, 6)
+    expect(low.opacity).toBeCloseTo(GLITTER.opacityLow, 6)
+    // Inland-high: both endpoints scale by highWidthScale; opacity eases
+    // down but only to the floor — never invisible while the disc shows.
+    expect(high.halfFarRad).toBeCloseTo(low.halfFarRad * GLITTER.highWidthScale, 6)
+    expect(high.halfNearRad).toBeCloseTo(low.halfNearRad * GLITTER.highWidthScale, 6)
+    expect(high.opacity).toBeCloseTo(GLITTER.opacityFloor, 6)
+    for (let elev = 0; elev <= 60; elev += 5) {
+      expect(laneParams(elev, rho, 1).opacity).toBeGreaterThanOrEqual(GLITTER.opacityFloor - 1e-9)
+    }
+    // Submergence is the only kill: opacity rides the visible-disc gate.
+    expect(laneParams(0, rho, 0.5).opacity).toBeCloseTo(GLITTER.opacityLow, 6)
+    expect(laneParams(0, rho, 0.2).opacity).toBeLessThan(GLITTER.opacityLow * 0.6)
+    expect(laneParams(0, rho, 0).opacity).toBe(0)
   })
 
   it('clamps keep the far body below the horizon (sun set at deep night)', () => {
