@@ -12,18 +12,52 @@ Canonical references: Codrops "Creating 3D Characters in Three.js" (Barker,
 2021) and "The Aviator" (Maaloul, 2016). Cute flat-shaded characters built
 entirely from primitives are an established art direction, not a shortcut.
 
-- Structure: root group → body (drei `RoundedBoxGeometry`) → head group
-  (oversized rounded box + low-segment sphere eyes, e.g.
-  `SphereGeometry(r, 12, 8)`) → one pivot group per limb.
 - **The pivot trick** (three.js has no transform-origin): create a group AT the
   shoulder/hip, offset the limb mesh downward by half its length inside it,
   rotate the group. All limb animation happens on these pivot groups.
 - Mii design language (documented): oversized round head carries identity;
-  simple flat face (dot eyes); matte plastic skin; stubby body ~2 heads tall;
+  simple flat face; matte plastic skin; stubby body ~2 heads tall;
   no fingers. Kokeshi dolls are the mental model.
 - Parameterize everything (head size, limb length, colors, hair shape,
   accessory) — the rig is data-driven from `src/content/characters.ts`.
 - Budget: ≤ ~3k triangles per character.
+
+### Character 2.0 — the ROUNDED villager recipe (v3.15, binding)
+
+The blocky-box rig is superseded. Characters are rounded AC-villager
+volumes, all still stock three.js primitives, merged per rigid node:
+
+- **Head**: flattened sphere — `SphereGeometry(r, 16, 12)` scaled
+  `(1, ~0.9, ~0.95)`, oversized (head ≈ height / headsTall, the charm
+  carrier). Local origin stays at the neck.
+- **Hair = SOLID volumes, never open shells** (open shells backface-cull
+  into see-through from below): a cap sphere slightly larger than the
+  skull, squashed and nudged up-back for the helmet read; fringes are
+  smaller squashed spheres laid across the forehead ('swoop' = one wedge
+  rotated ~-0.25 z sweeping to a side; 'bob' = wider cap that drops past
+  the ears + a straight full-width fringe).
+- **Face**: eyes = big vertical-oval flattened dark spheres
+  (`scale(1, ~1.6, 0.45)`) each with a tiny white highlight sphere
+  offset up-outward; mouth = micro torus arc (partial `TorusGeometry`,
+  smile opens upward); optional blush = flattened pink discs on the
+  cheeks (config flag). Round glasses (accessory) = thin torus rims + a
+  box bridge, floated just off the face.
+- **Body**: egg torso = sphere scaled `(1, ~1.25, ~0.82)`; shorts/skirt
+  as a second squashed sphere (or low cone for a dress) intersecting the
+  egg's lower half — intersections hide inside the volumes, no seams.
+- **Limbs**: arms = `CapsuleGeometry` from the shoulder pivots ending in
+  BALL-hand spheres (sleeve = shorter fatter capsule in top color);
+  legs = stubby capsules; shoes = spheres scaled into lozenges
+  `(1, ~0.55, ~1.4)`, toe forward.
+- **Shading exception (deliberate)**: characters use SMOOTH-shaded
+  `MeshLambertMaterial` (`flatShading: false`) — matte-plastic AC/Mii
+  toys on a flat-faceted world, as Animal Crossing itself does. The
+  merge pipeline preserves smooth normals (`toNonIndexed()` copies the
+  normal attribute; never call `computeVertexNormals` on character
+  parts).
+- Structure and everything else is unchanged: one merged vertex-colored
+  geometry per rigid node (torso / head / arm / leg), one shared
+  material, ~6 draw calls per character, pivot groups for animation.
 
 ## 2. Procedural animation (no skeletons, no AnimationMixer)
 
