@@ -146,16 +146,21 @@ export const CELESTIAL_ELEVATION_WATERLINE_DEG = -15.8
 export const CELESTIAL_ELEVATION_WADING_MIN_DEG = -16.2
 export const CELESTIAL = { sunLongDeg: 0, moonLongDeg: 180 } as const
 
-/** Glitter wedge tuning (v3.13): ONE width authority — the corridor mask
- * defines the lane everywhere, from `farWidthDisc`× the disc width at the
- * disc's base widening monotonically to `nearWidthDisc`× at the near
- * shore. Rising scales both endpoints up and eases opacity down to a
- * floor; submergence is the only kill. */
+/** Glitter corridor tuning (v3.14): the corridor centerline is the great
+ * circle from the disc's base through the character; half-widths are
+ * perpendicular arc METERS (an azimuth cone pinches to a point at the
+ * viewer's nadir — banned). Endpoint widths derive from the disc's
+ * apparent width at reference distances: the limb distance (far) and
+ * `nearRefM` (near, held at the shore). Rising scales both endpoints up
+ * and eases opacity down to a floor; submergence is the only kill. */
 export const GLITTER = {
-  /** Corridor width at the disc base, in disc widths (far end). */
-  farWidthDisc: 0.5,
-  /** Corridor width at the near shore, in disc widths. */
-  nearWidthDisc: 2.75,
+  /** Corridor width at the disc base, in apparent disc widths. */
+  farWidthDisc: 0.65,
+  /** Corridor width held at the shoreline, in apparent disc widths… */
+  nearWidthDisc: 3.75,
+  /** …as seen from this reference distance (m) — the near width is a
+   * stable physical width, not a per-frame shore solve. */
+  nearRefM: 3,
   /** Both endpoint widths scale up to this at inland-high. */
   highWidthScale: 1.8,
   /** Lane opacity at set (the vivid column)… */
@@ -165,6 +170,9 @@ export const GLITTER = {
   /** Elevation range (deg above the limb) easing set → inland-high. */
   elevLowDeg: 0,
   elevHighDeg: 35,
+  /** Edge wobble amplitude as a fraction of local width — must stay ≪
+   * the far→near width step so monotonicity survives the wobble. */
+  wobbleAmp: 0.12,
 } as const
 
 const sstep = (x: number, a: number, b: number) => {
@@ -172,10 +180,14 @@ const sstep = (x: number, a: number, b: number) => {
   return t * t * (3 - 2 * t)
 }
 
-/** Corridor half-widths (radians of azimuth) + opacity for one body.
- * `discAngRadRad` is the disc's angular RADIUS in radians, so a corridor
- * of k disc-widths has half-width k·ρ. The submergence gate rides along:
- * opacity × smoothstep(visibleFrac 0→0.5). */
+/** Corridor half-widths + opacity for one body. `discAngRadRad` is the
+ * disc's angular RADIUS in radians. The FAR end is ANGULAR (radians —
+ * the shader multiplies by each fragment's eye distance, so the corridor
+ * always matches the disc's apparent width at the water it crosses,
+ * shore or inland vantage); the NEAR end is METERS (held at the shore —
+ * an angular near end would pinch to a point at the viewer's nadir).
+ * The submergence gate rides along: opacity × smoothstep(visibleFrac
+ * 0→0.5). */
 export function laneParams(
   elevAboveLimbDeg: number,
   discAngRadRad: number,
@@ -185,7 +197,7 @@ export function laneParams(
   const scale = 1 + (GLITTER.highWidthScale - 1) * t
   return {
     halfFarRad: GLITTER.farWidthDisc * discAngRadRad * scale,
-    halfNearRad: GLITTER.nearWidthDisc * discAngRadRad * scale,
+    halfNearM: GLITTER.nearWidthDisc * discAngRadRad * GLITTER.nearRefM * scale,
     opacity:
       (GLITTER.opacityLow + (GLITTER.opacityFloor - GLITTER.opacityLow) * t) *
       sstep(visibleFrac, 0, 0.5),

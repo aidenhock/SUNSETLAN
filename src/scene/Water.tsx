@@ -3,6 +3,7 @@ import { useMemo } from 'react'
 import * as THREE from 'three'
 import { controlsRuntime } from '../controls/usePlanetController'
 import {
+  GLITTER,
   GRASS_ALTITUDE,
   laneParams,
   PLANET_RADIUS,
@@ -14,6 +15,9 @@ import { MOON_DISC_ANG_RAD_DEG, skyRuntime, SUN_DISC_ANG_RAD_DEG } from './useSk
 
 const _qInv = new THREE.Quaternion()
 const _eye = new THREE.Vector3()
+const _eyeUp = new THREE.Vector3()
+const _n = new THREE.Vector3()
+const _fwd = new THREE.Vector3()
 /** Avatar eye height above its ground point (m) — the lane's viewer term
  * is the CHARACTER's eye, not the camera (v3.13 stylization). */
 const EYE_HEIGHT = 1.35
@@ -53,11 +57,17 @@ export function Water() {
       shader.uniforms.uEyeObj = { value: new THREE.Vector3(0, 57, 0) }
       shader.uniforms.uSunObj = { value: skyRuntime.sunLocal.clone().multiplyScalar(230) }
       shader.uniforms.uMoonObj = { value: skyRuntime.moonLocal.clone().multiplyScalar(230) }
-      // v3.13 per body: corridor half-widths (x = far end at the disc
-      // base, y = near shore; radians, height-scaled) and lane opacity
-      // (height-eased to the floor × the submergence gate).
-      shader.uniforms.uSunHalf = { value: new THREE.Vector2(SUN_RHO * 0.5, SUN_RHO * 2.75) }
-      shader.uniforms.uMoonHalf = { value: new THREE.Vector2(MOON_RHO * 0.5, MOON_RHO * 2.75) }
+      // v3.14 per body: corridor half-widths in perpendicular arc METERS
+      // (x = far end at the disc base, y = held at the shoreline), the
+      // centerline great-circle plane normal, the horizontal forward dir
+      // (hemisphere gate), and lane opacity (height-eased to the floor ×
+      // the submergence gate).
+      shader.uniforms.uSunHalf = { value: new THREE.Vector2(0.5, 1.5) }
+      shader.uniforms.uMoonHalf = { value: new THREE.Vector2(0.4, 1.1) }
+      shader.uniforms.uSunN = { value: new THREE.Vector3(1, 0, 0) }
+      shader.uniforms.uMoonN = { value: new THREE.Vector3(1, 0, 0) }
+      shader.uniforms.uSunFwd = { value: new THREE.Vector3(0, 0, 1) }
+      shader.uniforms.uMoonFwd = { value: new THREE.Vector3(0, 0, -1) }
       shader.uniforms.uSunLane = { value: 0.95 }
       shader.uniforms.uMoonLane = { value: 0.95 }
       const consts = /* glsl */ `
@@ -99,7 +109,7 @@ export function Water() {
           vObjPos = position;`,
         )
       shader.fragmentShader =
-        `varying float vDepth;\nvarying vec3 vSphereDir;\nvarying vec3 vObjPos;\nuniform float uTime;\nuniform float uNightMix;\nuniform vec3 uEyeObj;\nuniform vec3 uSunObj;\nuniform vec3 uMoonObj;\nuniform vec2 uSunHalf;\nuniform vec2 uMoonHalf;\nuniform float uSunLane;\nuniform float uMoonLane;\n` +
+        `varying float vDepth;\nvarying vec3 vSphereDir;\nvarying vec3 vObjPos;\nuniform float uTime;\nuniform float uNightMix;\nuniform vec3 uEyeObj;\nuniform vec3 uSunObj;\nuniform vec3 uMoonObj;\nuniform vec2 uSunHalf;\nuniform vec2 uMoonHalf;\nuniform vec3 uSunN;\nuniform vec3 uMoonN;\nuniform vec3 uSunFwd;\nuniform vec3 uMoonFwd;\nuniform float uSunLane;\nuniform float uMoonLane;\n` +
         shader.fragmentShader.replace(
           'vec4 diffuseColor = vec4( diffuse, opacity );',
           /* glsl */ `
@@ -115,15 +125,17 @@ export function Water() {
           foam *= smoothstep(-0.04, 0.01, vDepth);
           vec4 diffuseColor = vec4(mix(diffuse, vec3(1.0), foam * 0.9), mix(opacity, 0.97, foam));
 
-          // v3.13 CHARACTER-ANCHORED specular glitter (the deliberate
+          // v3.14 CHARACTER-ANCHORED specular glitter (the deliberate
           // water-only exception to the matte rule): perturb the sphere
           // normal analytically from the same sine sum that displaces the
           // vertices (derivatives are cosines) plus normal-only
           // micro-ripples for glint breakup, then a Blinn term per light —
           // all in object space. The viewer term is the AVATAR EYE, so the
           // lane always runs body → character; the camera only looks at it.
-          float gPolar = degrees(acos(clamp(vSphereDir.y, -1.0, 1.0)));
-          float gDist = smoothstep(74.5, 78.0, gPolar);
+          // Shore end: fade into the foam band by LIVE water depth — the
+          // lane reaches the wet sand edge whether standing or wading (a
+          // polar gate cuts it short of the waterline: banned).
+          float gShore = smoothstep(0.02, 0.14, vDepth);
           vec3 sphereN = normalize(vSphereDir);
           float wa1 = vObjPos.x * 0.35 + uTime * 1.1;
           float wa2 = vObjPos.z * 0.28 - uTime * 0.9;
@@ -140,10 +152,14 @@ export function Water() {
           vec3 V = normalize(uEyeObj - vObjPos);
           vec3 Lsun = normalize(uSunObj - vObjPos);
           vec3 Lmoon = normalize(uMoonObj - vObjPos);
-          // v3.13 SINGLE-AUTHORITY corridor: the mask defines the lane's
-          // width everywhere — far end (disc base) to near shore, strictly
-          // monotonic — and the ENTIRE specular footprint multiplies by
-          // it, so grazing-angle spread can never re-widen the lane.
+          // v3.14 corridor: the centerline is the great circle through the
+          // avatar and the body (plane normal uSunN/uMoonN); half-width is
+          // perpendicular arc METERS. An azimuth cone from the eye pinches
+          // to a point at the viewer's nadir — the corridor holds its near
+          // width all the way to the shore instead. The corridor is a
+          // STENCIL: the animated glints render inside it; it only clamps
+          // the footprint, and its edges carry a small time-varying wobble
+          // (amplitude ≪ the far→near width step, so no waist).
           vec3 eyeUp = normalize(uEyeObj);
           vec3 fragDir = normalize(vObjPos - uEyeObj);
           float fragElev = asin(clamp(dot(fragDir, eyeUp), -1.0, 1.0));
@@ -151,31 +167,51 @@ export function Water() {
           // sits at -0.21..-0.25 rad from the eye (shore vs inland), so
           // the -0.22 edge converges the corridor to its far width AT it.
           float tFar = smoothstep(-0.9, -0.22, fragElev);
-          vec3 fragHp = normalize(fragDir - eyeUp * dot(fragDir, eyeUp));
+          vec3 Fn = normalize(vObjPos);
           vec3 R = reflect(-V, N);
+          float along = fragElev * 40.0;
+          // Anti-branch gate: the corridor plane's far branch (open sea
+          // pointing AWAY from the body) is cut, but water within a few
+          // meters of the eye always passes — the wading strip behind the
+          // character must stay lit so the lane reaches the sand.
+          float eyeDist = length(vObjPos - uEyeObj);
+          float nearEye = 1.0 - smoothstep(6.0, 10.0, eyeDist);
 
-          vec3 sunDirE = normalize(uSunObj - uEyeObj);
-          vec3 sunHp = normalize(sunDirE - eyeUp * dot(sunDirE, eyeUp));
-          float azSun = acos(clamp(dot(sunHp, fragHp), -1.0, 1.0));
-          float halfWSun = mix(uSunHalf.y, uSunHalf.x, tFar);
-          float wedgeSun = 1.0 - smoothstep(halfWSun * 0.8, halfWSun, azSun);
+          float sideSun = dot(Fn, uSunN);
+          float perpSun = abs(sideSun) * ${PLANET_RADIUS.toFixed(1)};
+          float wobSun = 1.0 + ${GLITTER.wobbleAmp.toFixed(2)} *
+            (0.6 * sin(along * 1.9 + uTime * 1.3 + sign(sideSun) * 1.7)
+             + 0.4 * sin(along * 4.3 - uTime * 0.8));
+          // Far endpoint is ANGULAR × the fragment's eye distance: from an
+          // inland vantage the visible sea sits far past the tangent limb,
+          // and a fixed-meter far width would shrink the lane to a thread.
+          float halfWSun = mix(uSunHalf.y, uSunHalf.x * eyeDist, tFar) * wobSun;
+          float wedgeSun = (1.0 - smoothstep(halfWSun * 0.7, halfWSun, perpSun))
+            * max(smoothstep(0.02, 0.15, dot(fragDir, uSunFwd)), nearEye);
           float aSun = max(0.0, acos(clamp(dot(R, Lsun), -1.0, 1.0)) - ${SUN_RHO.toFixed(4)});
-          float shimmerSun = 0.45 + 0.55 * smoothstep(0.1, 0.9, pow(max(cos(aSun), 0.0), 6.0));
+          // Stencil fill: a low wave-breathing base keeps the corridor
+          // coherent; sharp glints from the perturbed normals dance on it.
+          float glintSun = smoothstep(0.08, 0.7, pow(max(cos(aSun), 0.0), 20.0));
+          float shimmerSun = 0.18 + 0.10 * (0.5 + 0.5 * sin(wa1 + wa2)) + 0.72 * glintSun;
 
-          vec3 moonDirE = normalize(uMoonObj - uEyeObj);
-          vec3 moonHp = normalize(moonDirE - eyeUp * dot(moonDirE, eyeUp));
-          float azMoon = acos(clamp(dot(moonHp, fragHp), -1.0, 1.0));
-          float halfWMoon = mix(uMoonHalf.y, uMoonHalf.x, tFar);
-          float wedgeMoon = 1.0 - smoothstep(halfWMoon * 0.8, halfWMoon, azMoon);
+          float sideMoon = dot(Fn, uMoonN);
+          float perpMoon = abs(sideMoon) * ${PLANET_RADIUS.toFixed(1)};
+          float wobMoon = 1.0 + ${GLITTER.wobbleAmp.toFixed(2)} *
+            (0.6 * sin(along * 1.9 + uTime * 1.3 + sign(sideMoon) * 1.7)
+             + 0.4 * sin(along * 4.3 - uTime * 0.8));
+          float halfWMoon = mix(uMoonHalf.y, uMoonHalf.x * eyeDist, tFar) * wobMoon;
+          float wedgeMoon = (1.0 - smoothstep(halfWMoon * 0.7, halfWMoon, perpMoon))
+            * max(smoothstep(0.02, 0.15, dot(fragDir, uMoonFwd)), nearEye);
           float aMoon = max(0.0, acos(clamp(dot(R, Lmoon), -1.0, 1.0)) - ${MOON_RHO.toFixed(4)});
-          float shimmerMoon = 0.45 + 0.55 * smoothstep(0.1, 0.9, pow(max(cos(aMoon), 0.0), 6.0));
+          float glintMoon = smoothstep(0.08, 0.7, pow(max(cos(aMoon), 0.0), 20.0));
+          float shimmerMoon = 0.18 + 0.10 * (0.5 + 0.5 * sin(wa1 + wa2)) + 0.72 * glintMoon;
 
           // Gates match each DISC's own fade exactly (sun 0.35–0.6, moon
           // 0.5–0.75) — the lane disappears in lockstep with its body.
           float gDay = 1.0 - smoothstep(0.35, 0.6, uNightMix);
           float gNight = smoothstep(0.5, 0.75, uNightMix);
           diffuseColor.rgb += (vec3(1.0, 0.85, 0.63) * wedgeSun * shimmerSun * gDay * uSunLane
-            + vec3(0.81, 0.88, 1.0) * wedgeMoon * shimmerMoon * gNight * uMoonLane) * gDist;
+            + vec3(0.81, 0.88, 1.0) * wedgeMoon * shimmerMoon * gNight * uMoonLane) * gShore;
           // Far water goes opaque (v3.12): the translucent sheet let the
           // bright dome glow bleed through below the limb, reading as a
           // ghost band under the horizon.
@@ -197,6 +233,10 @@ export function Water() {
             uMoonObj: { value: THREE.Vector3 }
             uSunHalf: { value: THREE.Vector2 }
             uMoonHalf: { value: THREE.Vector2 }
+            uSunN: { value: THREE.Vector3 }
+            uMoonN: { value: THREE.Vector3 }
+            uSunFwd: { value: THREE.Vector3 }
+            uMoonFwd: { value: THREE.Vector3 }
             uSunLane: { value: number }
             uMoonLane: { value: number }
           }
@@ -216,8 +256,25 @@ export function Water() {
       ;(shader.uniforms.uMoonObj.value as THREE.Vector3)
         .copy(skyRuntime.moonLocal)
         .multiplyScalar(230)
-      // Bounded height mapping (v3.13): rising widens the corridor and
-      // fades opacity to its floor; submergence is the only kill.
+      // v3.14 corridor frame data: the centerline great-circle plane per
+      // body (through the avatar and the body) and the horizontal forward
+      // dir for the hemisphere gate.
+      const eyeUp = _eyeUp.copy(shader.uniforms.uEyeObj.value).normalize()
+      shader.uniforms.uSunN.value
+        .copy(_n.crossVectors(eyeUp, skyRuntime.sunLocal))
+        .normalize()
+      shader.uniforms.uSunFwd.value
+        .copy(_fwd.copy(skyRuntime.sunLocal).addScaledVector(eyeUp, -skyRuntime.sunLocal.dot(eyeUp)))
+        .normalize()
+      shader.uniforms.uMoonN.value
+        .copy(_n.crossVectors(eyeUp, skyRuntime.moonLocal))
+        .normalize()
+      shader.uniforms.uMoonFwd.value
+        .copy(_fwd.copy(skyRuntime.moonLocal).addScaledVector(eyeUp, -skyRuntime.moonLocal.dot(eyeUp)))
+        .normalize()
+      // Bounded height mapping (v3.13, approved): rising widens the
+      // corridor and fades opacity to its floor; submergence is the only
+      // kill.
       const sun = laneParams(
         skyRuntime.sunElevAboveLimbDeg,
         SUN_RHO,
@@ -228,8 +285,8 @@ export function Water() {
         MOON_RHO,
         skyRuntime.moonVisibleFrac,
       )
-      shader.uniforms.uSunHalf.value.set(sun.halfFarRad, sun.halfNearRad)
-      shader.uniforms.uMoonHalf.value.set(moon.halfFarRad, moon.halfNearRad)
+      shader.uniforms.uSunHalf.value.set(sun.halfFarRad, sun.halfNearM)
+      shader.uniforms.uMoonHalf.value.set(moon.halfFarRad, moon.halfNearM)
       shader.uniforms.uSunLane.value = sun.opacity
       shader.uniforms.uMoonLane.value = moon.opacity
     }

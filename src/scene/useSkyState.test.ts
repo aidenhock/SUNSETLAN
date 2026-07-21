@@ -145,32 +145,42 @@ describe('nightMixFromPoleZ (two skies)', () => {
     expect(m[2]).toBeLessThan(0.02)
   })
 
-  it('lane corridor (v3.13): monotonic width, bounded height mapping', () => {
+  it('lane corridor (v3.14): angular far / metric near, bounded height mapping', () => {
     const rho = 0.0656
-    // Far end always narrower than the near shore — the wedge can never
-    // waist (single width authority, both ends from the same scale).
+    // The far end is ANGULAR (× the fragment's eye distance in-shader):
+    // from the shore the water at the tangent limb (~11.3 m, eye ~1.35 m
+    // over the sea) must give a far width narrower than the shore-held
+    // metric near end — the corridor can never waist at a shore vantage.
     for (let elev = -20; elev <= 60; elev += 5) {
       const p = laneParams(elev, rho, 1)
-      expect(p.halfFarRad).toBeLessThan(p.halfNearRad)
+      expect(p.halfFarRad * 11.3).toBeLessThan(p.halfNearM)
     }
     const low = laneParams(GLITTER.elevLowDeg, rho, 1)
     const high = laneParams(GLITTER.elevHighDeg, rho, 1)
-    // Set: far end = farWidthDisc disc-widths (half-width = k·ρ), vivid.
+    // Set: far = farWidthDisc disc-widths angular (half-width = k·ρ);
+    // near = nearWidthDisc apparent disc-widths at the reference
+    // distance, held at the shore.
     expect(low.halfFarRad).toBeCloseTo(GLITTER.farWidthDisc * rho, 6)
-    expect(low.halfNearRad).toBeCloseTo(GLITTER.nearWidthDisc * rho, 6)
+    expect(low.halfNearM).toBeCloseTo(GLITTER.nearWidthDisc * rho * GLITTER.nearRefM, 6)
     expect(low.opacity).toBeCloseTo(GLITTER.opacityLow, 6)
     // Inland-high: both endpoints scale by highWidthScale; opacity eases
     // down but only to the floor — never invisible while the disc shows.
     expect(high.halfFarRad).toBeCloseTo(low.halfFarRad * GLITTER.highWidthScale, 6)
-    expect(high.halfNearRad).toBeCloseTo(low.halfNearRad * GLITTER.highWidthScale, 6)
+    expect(high.halfNearM).toBeCloseTo(low.halfNearM * GLITTER.highWidthScale, 6)
     expect(high.opacity).toBeCloseTo(GLITTER.opacityFloor, 6)
     for (let elev = 0; elev <= 60; elev += 5) {
-      expect(laneParams(elev, rho, 1).opacity).toBeGreaterThanOrEqual(GLITTER.opacityFloor - 1e-9)
+      expect(laneParams(elev, rho, 1).opacity).toBeGreaterThanOrEqual(
+        GLITTER.opacityFloor - 1e-9,
+      )
     }
     // Submergence is the only kill: opacity rides the visible-disc gate.
     expect(laneParams(0, rho, 0.5).opacity).toBeCloseTo(GLITTER.opacityLow, 6)
     expect(laneParams(0, rho, 0.2).opacity).toBeLessThan(GLITTER.opacityLow * 0.6)
     expect(laneParams(0, rho, 0).opacity).toBe(0)
+    // Wobble amplitude stays well under the far→near width step at the
+    // shore, so the wobbled edges can never fake a waist.
+    const step = low.halfNearM - low.halfFarRad * 11.3
+    expect(GLITTER.wobbleAmp * low.halfNearM).toBeLessThan(step * 0.55)
   })
 
   it('clamps keep the far body below the horizon (sun set at deep night)', () => {

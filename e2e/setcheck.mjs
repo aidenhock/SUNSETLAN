@@ -71,13 +71,37 @@ async function main() {
         }
 
         if (cfg.mode === 'windows') {
-          // Max luminance per rectangular window.
+          // Top-decile mean per rectangular window: a single max rides
+          // individual glints (which blink with the waves), making dim
+          // night lanes flicker across runs — the top-10% mean is stable
+          // for lane and control alike.
           return cfg.windows.map(([x0, x1, y0, y1]) => {
-            let m = 0
+            const px = []
             for (let y = y0; y < y1; y += 2) {
-              for (let x = x0; x < x1; x += 2) m = Math.max(m, lumAt(x, y))
+              for (let x = x0; x < x1; x += 2) px.push(lumAt(x, y))
             }
-            return m
+            px.sort((a, b) => b - a)
+            const n = Math.max(1, Math.floor(px.length * 0.1))
+            let sum = 0
+            for (let i = 0; i < n; i++) sum += px[i]
+            return sum / n
+          })
+        }
+
+        if (cfg.mode === 'edges') {
+          // Left edge x of the lane at given rows: first crossing of
+          // bg-median + 0.05 scanning rightward. For the living-edges
+          // assert (v3.14): positions must differ between frames.
+          return cfg.rows.map((y) => {
+            const x0 = cfg.x0, x1 = cfg.x1
+            const lum = []
+            for (let x = x0; x < x1; x += 2) lum.push(lumAt(x, y))
+            const sorted = [...lum].sort((a, b) => a - b)
+            const median = sorted[Math.floor(sorted.length / 2)]
+            for (let i = 0; i < lum.length; i++) {
+              if (lum[i] > median + 0.05) return x0 + i * 2
+            }
+            return -1
           })
         }
 
@@ -292,7 +316,10 @@ async function main() {
       continue
     }
     const [wFar, wMid, wNear] = r.absWidths
-    const mono = wFar > 0 && wMid >= wFar && wNear >= wMid && wNear > wFar
+    // ±4px tolerance between adjacent samples: the living-edge wobble
+    // legitimately modulates local width (±12%, a few px on the dim
+    // night lane); the near end must still clearly exceed the far end.
+    const mono = wFar > 0 && wMid >= wFar - 4 && wNear >= wMid - 4 && wNear > wFar + 8
     // Far-end band: 0.4–0.6× the GEOMETRIC disc width. The measured lane
     // core (soft wedge edge, bg+0.05 cut) underestimates the corridor and
     // the disc detector sees ~75% of the geometric disc, so the px band
@@ -319,14 +346,17 @@ async function main() {
   const ORBITS = [
     { name: 'day-orbit-L', lat: 15, long: 8, azOff: -1.2,
       laneWin: [320, 600, 470, 525], ctrlWin: [100, 400, 630, 760], margin: 0.04 },
+    // R sides: the lane crosses from the right frame edge to the character
+    // (v3.14 band rows ~470–545); control = the dark open sea directly
+    // BELOW the band (off-corridor, no surf, no moonlit sand).
     { name: 'day-orbit-R', lat: 15, long: 8, azOff: 1.2,
-      laneWin: [680, 960, 470, 525], ctrlWin: [880, 1180, 630, 760], margin: 0.04 },
+      laneWin: [760, 1100, 468, 545], ctrlWin: [760, 1100, 600, 720], margin: 0.04 },
+    // night-L control mirrors night-R: dark sea below the band (the day-L
+    // bottom-left control sits on the moonlit surf strip at night).
     { name: 'night-orbit-L', lat: 15.5, long: 188, azOff: -1.2,
-      laneWin: [320, 600, 470, 525], ctrlWin: [100, 400, 630, 760], margin: 0.04 },
-    // night-R: control = mirrored open sea (the day control regions sit on
-    // the moonlit surf strip, which glows at night).
+      laneWin: [200, 560, 468, 545], ctrlWin: [140, 480, 600, 720], margin: 0.04 },
     { name: 'night-orbit-R', lat: 15.5, long: 188, azOff: 1.2,
-      laneWin: [680, 960, 470, 525], ctrlWin: [40, 380, 340, 440], margin: 0.04 },
+      laneWin: [760, 1100, 468, 545], ctrlWin: [760, 1100, 600, 720], margin: 0.04 },
   ]
   // Transient critters (gulls over the water) can cross a window between
   // runs — sample twice and keep the per-window MIN: movers vanish, the
@@ -345,6 +375,63 @@ async function main() {
       `${o.name}: near-character ${laneMax.toFixed(3)} vs camera-path ${ctrlMax.toFixed(3)} → ${ok ? 'OK' : 'FAIL'}`,
     )
     if (!ok) failed = true
+  }
+
+  // ---- v3.14 (1): the lane reaches the sand — no taper, no gap ---------
+  // Orbit vantages where the near-shore water is visible beside/behind
+  // the character. Windows hug the water just off the foam line where
+  // the corridor crosses; controls sit on off-corridor water at similar
+  // depth. Wading: the strip BEHIND the character (between them and the
+  // sand) must be lit — the old hemisphere gate cut it.
+  for (const s of [
+    { name: 'day-nearshore', lat: 15, long: 8, azOff: -1.2,
+      laneWin: [420, 580, 460, 525], ctrlWin: [60, 300, 580, 680] },
+    { name: 'day-wading-gap', lat: 12.6, long: 8, azOff: -1.2,
+      laneWin: [690, 850, 475, 555], ctrlWin: [700, 860, 610, 700] },
+    { name: 'night-nearshore', lat: 15.5, long: 188, azOff: -1.2,
+      laneWin: [420, 580, 460, 525], ctrlWin: [60, 300, 580, 680] },
+  ]) {
+    await pose(s.lat, s.long, s.azOff)
+    const [laneMax, ctrlMax] = await winsStable([s.laneWin, s.ctrlWin])
+    const ok = laneMax - ctrlMax >= 0.04
+    console.log(
+      `${s.name}: shore lane ${laneMax.toFixed(3)} vs off-corridor ${ctrlMax.toFixed(3)} → ${ok ? 'OK' : 'FAIL'}`,
+    )
+    if (!ok) failed = true
+  }
+
+  // ---- v3.14 (2): living edges — the boundary moves between frames -----
+  for (const m of [
+    { name: 'day-edges', lat: 15, long: 8, disc: 'sun' },
+    { name: 'night-edges', lat: 15.5, long: 188, disc: 'moon' },
+  ]) {
+    await pose(m.lat, m.long)
+    const d = await analyze({ mode: 'disc', disc: m.disc })
+    if (!d.found) {
+      console.log(`${m.name}: DISC NOT FOUND → FAIL`)
+      failed = true
+      continue
+    }
+    // Three samples across ~2.7 s: any pair differing proves the edge
+    // lives (a single pair can land on near-identical wobble phase).
+    const rows = [d.maxY + 56, d.maxY + 72, d.maxY + 88]
+    const cfg = { mode: 'edges', rows, x0: Math.max(0, d.cx - 420), x1: d.cx + 60 }
+    const samples = [await analyze(cfg)]
+    for (let i = 0; i < 2; i++) {
+      await page.waitForTimeout(1300)
+      samples.push(await analyze(cfg))
+    }
+    const moved = rows.some((_, i) =>
+      samples.some((s, j) =>
+        samples.some(
+          (t, k) => j < k && s[i] >= 0 && t[i] >= 0 && Math.abs(s[i] - t[i]) >= 2,
+        ),
+      ),
+    )
+    console.log(
+      `${m.name}: edge x ${samples.map((s) => s.join('/')).join(' → ')} (${moved ? 'alive → OK' : 'static → FAIL'})`,
+    )
+    if (!moved) failed = true
   }
 
   // ---- v3.13 (3): high-vs-low — wider + fainter, never below floor -----
@@ -391,13 +478,20 @@ async function main() {
   // poses sit 12° off the home meridians so the dock stays out of the
   // corridor. Windows probe-calibrated (deterministic pose + viewport).
   for (const spot of [
-    { name: 'day-risen', lat: 22, long: 348 },
-    { name: 'night-risen', lat: 22, long: 168 },
+    // Lane x-windows probe-calibrated per side: the v3.14 great-circle
+    // corridor crosses the sea band at different screen x per body.
+    // Day band 2 sits clearly below the sea/sky boundary at the control's
+    // x-range (the horizon curves down to ~y360 there and the wave-jittered
+    // silhouette flips window content run to run).
+    { name: 'day-risen', lat: 22, long: 348,
+      lane: [400, 540], ctrl: [660, 880], bands: [[342, 356], [366, 380]] },
+    { name: 'night-risen', lat: 22, long: 168,
+      lane: [520, 760], ctrl: [260, 420], bands: [[356, 370], [371, 385]] },
   ]) {
     await pose(spot.lat, spot.long)
     const r = await winsStable([
-      [400, 540, 342, 356], [400, 540, 357, 371], // lane, two row bands
-      [660, 880, 342, 356], [660, 880, 357, 371], // open-sea control
+      [...spot.lane, ...spot.bands[0]], [...spot.lane, ...spot.bands[1]],
+      [...spot.ctrl, ...spot.bands[0]], [...spot.ctrl, ...spot.bands[1]],
     ])
     // The sea band's top edge varies a few px per side — the lane must
     // beat control on at least one band (sky rows tie at ~0).
