@@ -43,8 +43,28 @@ volumes, all still stock three.js primitives, merged per rigid node:
   peach blob, `noseStyle` param); small rounded EARS on the head sides
   (`earSize` param) — protruding enough to read from the front AND the
   back, where they carry the chibi read; optional blush = flattened
-  pink discs on the cheeks (config flag). Round glasses (accessory) =
-  thin torus rims + a box bridge, floated just off the face.
+  pink discs on the cheeks (config flag).
+- **Glasses faces (v3.18 — never voids)**: rims are SMALL thin dark
+  tori (lens diameter ≈ 0.14× head height — over-sized rims plus dark
+  eyes read as solid black voids, the uncanny failure). Behind each
+  rim the eye EXISTS: white sclera blob + dark pupil + a small white
+  highlight dot, clearly visible within the rim at gameplay camera
+  distance — the highlight dot is where the charm lives. Never fill a
+  lens with opaque color.
+- **Tee, not tank (v3.18)**: short sleeve caps in the top color hug
+  the arm's top segment (skin starts below the sleeve) — SLIM (+~20%
+  arm radius at most; the old fat sleeve built linebacker shoulders),
+  emerging from under the torso curve so the shoulder silhouette stays
+  the teardrop's.
+- **Hair reads as ONE mass**: fringe volumes overlap deep into the cap
+  (a separated fringe reads as a glued-on lobe). The swoop = cap +
+  side-swept fringe merged into one smooth silhouette.
+- **Character Studio** (`?studio`, dev-only, code-split, zero new
+  deps): orbit/zoom viewer + a plain-HTML panel binding LIVE to every
+  `CharacterConfig` field (scales, sleeve, arm rest angle, limb
+  thickness, torso profile fractions, palette) with pose buttons and
+  clipboard config export — tuning happens there, never by rebuild
+  guesswork.
 - **Body = TEARDROP, never an egg-on-end** (v3.16 fix — the egg read
   widest at the shoulders): a `LatheGeometry` profile with narrow sloped
   shoulders (≈0.55× head width) widening in ONE unbroken convex curve to
