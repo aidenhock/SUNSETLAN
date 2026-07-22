@@ -39,21 +39,33 @@ volumes, all still stock three.js primitives, merged per rigid node:
 - **Face**: eyes = big vertical-oval flattened dark spheres
   (`scale(1, ~1.6, 0.45)`) each with a tiny white highlight sphere
   offset up-outward; mouth = micro torus arc (partial `TorusGeometry`,
-  smile opens upward); optional blush = flattened pink discs on the
-  cheeks (config flag). Round glasses (accessory) = thin torus rims + a
-  box bridge, floated just off the face.
+  smile opens upward); a tiny rounded NOSE just above the mouth (soft
+  peach blob, `noseStyle` param); small rounded EARS on the head sides
+  (`earSize` param) — protruding enough to read from the front AND the
+  back, where they carry the chibi read; optional blush = flattened
+  pink discs on the cheeks (config flag). Round glasses (accessory) =
+  thin torus rims + a box bridge, floated just off the face.
 - **Body = TEARDROP, never an egg-on-end** (v3.16 fix — the egg read
   widest at the shoulders): a `LatheGeometry` profile with narrow sloped
-  shoulders (≈0.55× head width) widening smoothly to the hips (≈0.8×
-  head width — the body's widest point, near its base). Minimal neck;
-  the head sits just above the collar. Chibi proportions per the base
+  shoulders (≈0.55× head width) widening in ONE unbroken convex curve to
+  the hips (≈0.8× head width — the body's widest point, near its base)
+  and a rounded base. No shelf, no seams. **Watertight + outward
+  normals (v3.17)**: the profile must start AND end on the axis so the
+  lathe caps itself, and must run BOTTOM→TOP — a top→bottom profile
+  winds the triangles inward, and the backface-culled hollow renders
+  arms-through-the-torso from behind. Chibi proportions per the base
   reference: ~2 heads tall, head ≈50% of total height.
-- **Arms**: slim capsules mounted INBOARD and low on the sloped
-  shoulders, resting in a ~12° outward A-pose so they hang with a
-  visible gap from the torso, ending in small BALL hands that sit
-  outside the torso silhouette at hip height. NO fat sleeve capsule
-  (it built linebacker shoulders). Walk/run swing planes angle slightly
-  outward with the swing so nothing ever clips into the wider hips.
+- **Neck (v3.17)**: a short skin cylinder living in the HEAD node
+  (it moves with the look-at), embedded deep into both the skull and a
+  domed collar apex — sized so the full look-at range (±60° yaw, ±25°
+  pitch) never opens a gap. Verify at max deflection, not neutral.
+- **Arms**: slim capsules whose mounts sink BENEATH the torso surface —
+  the capsule top never crests above the shoulder slope; the shoulder
+  silhouette is the torso's curve, arms emerging from under it. Rest
+  pose is a true A-POSE (~25–30° out) with the ball hands clearly
+  separated from the torso at hip height; walk/run swings COMPOSE on
+  top of that base angle (never collapse back to pinned). NO fat
+  sleeve capsule (it built linebacker shoulders).
 - **Shorts are a GARMENT, not a blob**: a hip band (short cylinder
   seated at the teardrop's widest point) plus two separate leg cuffs on
   the upper thighs — cuffs live in the LEG nodes so they swing like
