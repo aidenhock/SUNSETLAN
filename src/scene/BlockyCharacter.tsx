@@ -95,7 +95,9 @@ export function buildNodes(config: CharacterConfig) {
   // Teardrop proportions (v3.16): shoulders ≈0.55× head width sloping out
   // to hips ≈0.78× — the widest point sits near the BASE, never the top.
   const shoulderR = headW * (config.shoulderFrac ?? 0.2275) * build
-  const hipR = headW * (config.hipFrac ?? 0.39) * build
+  const hipR = headW * (config.hipFrac ?? 0.365) * build
+  // Torso depth squash — the side-profile slimness dial.
+  const depth = config.torsoDepth ?? 0.78
   const armLen = torsoH * (config.armLenFrac ?? 0.87)
 
   const parts = {
@@ -133,7 +135,7 @@ export function buildNodes(config: CharacterConfig) {
   const collarR = headR * 0.338
   // waistSlim pulls the mid-torso in (cos exponent > 1) without touching
   // the shoulder or hip endpoints — the curve stays convex and smooth.
-  const slimExp = 1 + (config.waistSlim ?? 0.2)
+  const slimExp = 1 + (config.waistSlim ?? 0.28)
   const profile: THREE.Vector2[] = [new THREE.Vector2(0, -torsoH * 0.04)]
   for (let i = 1; i <= 3; i++) {
     const a = (i / 3) * Math.PI * 0.5
@@ -159,7 +161,7 @@ export function buildNodes(config: CharacterConfig) {
   profile.push(new THREE.Vector2(0, torsoH))
   add(
     'torso',
-    new THREE.LatheGeometry(profile, 14).applyMatrix4(new THREE.Matrix4().makeScale(1, 1, 0.86)),
+    new THREE.LatheGeometry(profile, 14).applyMatrix4(new THREE.Matrix4().makeScale(1, 1, depth)),
     colors.top,
     [0, 0, 0],
   )
@@ -179,7 +181,7 @@ export function buildNodes(config: CharacterConfig) {
       new THREE.CylinderGeometry(hipR * 0.88, hipR * 0.74, torsoH * 0.28, 14).applyMatrix4(
         // Match the teardrop's depth squash or the band rim pokes out
         // front/back as a saucer in profile.
-        new THREE.Matrix4().makeScale(1, 1, 0.86),
+        new THREE.Matrix4().makeScale(1, 1, depth),
       ),
       colors.bottom,
       // Clearly SMALLER radius than the tee-hem lip above it (real

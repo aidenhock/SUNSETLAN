@@ -54,10 +54,12 @@ export interface CharacterConfig {
   limbThick?: number
   /** Shoulder half-width as a fraction of head width (0.242). */
   shoulderFrac?: number
-  /** Hip half-width as a fraction of head width (0.39). */
+  /** Hip half-width as a fraction of head width (0.365). */
   hipFrac?: number
-  /** Mid-torso slimming, 0–0.6 (0.2 ≈ the v3.19 −8–10% waist). */
+  /** Mid-torso slimming, 0–0.6 (0.28). */
   waistSlim?: number
+  /** Torso depth squash — side-profile slimness (0.78). */
+  torsoDepth?: number
   /** Bridge seat 0–1: 0 = at eye height, 1 = resting on the nose (1). */
   glassesSeat?: number
   /** Eye style: 'dark' AC oval, or 'normal' layered white/iris/pupil

@@ -87,7 +87,7 @@ volumes, all still stock three.js primitives, merged per rigid node:
   widest at the shoulders): a `LatheGeometry` profile with narrow sloped
   shoulders (≈0.455× head width after the v3.20 −6% nudge; `waistSlim`
   pulls the mid-torso in further) widening in ONE unbroken convex curve
-  to the hips (≈0.8× head width — the body's widest point, near its
+  to the hips (≈0.73× head width, depth squash ~0.78 — the body's widest point, near its
   base) and a rounded base ending in a TEE-HEM LIP: the hem extends
   below the widest point at full radius, and the shorts band beneath
   sits at a clearly SMALLER radius — real radial clearance, never
