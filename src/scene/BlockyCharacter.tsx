@@ -125,21 +125,31 @@ export function buildNodes(config: CharacterConfig) {
   // TEARDROP lathe (v3.16): narrow sloped shoulders widening smoothly to
   // the hips near the base — the inverse of the old egg. Depth squashed
   // slightly so the profile reads chibi, not barrel.
-  // Below ~0.2·torsoH the skin profile tucks narrower than the shorts
-  // band, so the GARMENT forms the widest silhouette at the hips — the
-  // tee hem slopes into the teal, never a skin bulge over a bowl.
-  const profile = [
-    new THREE.Vector2(0.001, torsoH * 1.0),
-    new THREE.Vector2(shoulderR * 0.8, torsoH * 0.96),
-    new THREE.Vector2(shoulderR, torsoH * 0.86),
-    new THREE.Vector2(shoulderR + (hipR - shoulderR) * 0.35, torsoH * 0.62),
-    new THREE.Vector2(shoulderR + (hipR - shoulderR) * 0.75, torsoH * 0.36),
-    new THREE.Vector2(hipR * 0.97, torsoH * 0.2),
-    new THREE.Vector2(hipR * 0.9, torsoH * 0.12),
-    new THREE.Vector2(hipR * 0.78, torsoH * 0.02),
-    new THREE.Vector2(hipR * 0.45, -torsoH * 0.05),
-    new THREE.Vector2(0.001, -torsoH * 0.06),
-  ]
+  // Watertight teardrop, BOTTOM→TOP (v3.17 — a top→bottom profile winds
+  // the triangles inward and the backface-culled hollow renders
+  // arms-through-the-torso from behind). Rounded base → ONE unbroken
+  // convex curve to the hip → smooth taper into a domed collar around
+  // the neck; both ends on the axis so the lathe caps itself.
+  const collarR = headR * 0.36
+  const profile: THREE.Vector2[] = [new THREE.Vector2(0, -torsoH * 0.06)]
+  for (let i = 1; i <= 3; i++) {
+    const a = (i / 3) * Math.PI * 0.5
+    profile.push(
+      new THREE.Vector2(Math.sin(a) * hipR, torsoH * (-0.06 + (1 - Math.cos(a)) * 0.18)),
+    )
+  }
+  for (let i = 1; i <= 5; i++) {
+    const t = i / 5
+    profile.push(
+      new THREE.Vector2(
+        collarR + (hipR - collarR) * Math.cos((t * Math.PI) / 2),
+        torsoH * (0.12 + 0.74 * t),
+      ),
+    )
+  }
+  profile.push(new THREE.Vector2(collarR * 0.85, torsoH * 0.94))
+  profile.push(new THREE.Vector2(collarR * 0.45, torsoH * 0.99))
+  profile.push(new THREE.Vector2(0, torsoH))
   add(
     'torso',
     new THREE.LatheGeometry(profile, 14).applyMatrix4(new THREE.Matrix4().makeScale(1, 1, 0.86)),
@@ -174,6 +184,35 @@ export function buildNodes(config: CharacterConfig) {
   // ---- Head (local origin at the neck; face = +z) ---------------------
   add('head', blob(headR, 14, 11, 1, 0.9, 0.95), colors.skin, [0, headH * 0.48, 0])
   const faceZ = headR * 0.95
+  // Neck: lives in the HEAD node so it moves with the look-at, embedded
+  // deep into both the skull and the domed collar — the full ±60° yaw /
+  // ±25° pitch range never opens a gap (the cylinder is yaw-invariant
+  // and its bottom stays inside the collar at max pitch).
+  add('head', new THREE.CylinderGeometry(headR * 0.3, headR * 0.32, headH * 0.22, 10), colors.skin, [
+    0,
+    -headH * 0.02,
+    0,
+  ])
+  // Ears: small rounded lobes protruding from the head sides — they
+  // carry the chibi read from behind, where the face is hidden. They
+  // sit at mid-face height, BELOW the hair cap's side edge (higher and
+  // both hair styles swallow them).
+  const earSize = config.earSize ?? 1
+  for (const sx of [-1, 1]) {
+    add('head', blob(headR * 0.18 * earSize, 8, 6, 0.6, 1, 0.85), colors.skin, [
+      sx * headR * 1.0,
+      headH * 0.38,
+      -headH * 0.02,
+    ])
+  }
+  // Tiny rounded nose just above the mouth (soft peach).
+  if ((config.noseStyle ?? 'round') !== 'none') {
+    add('head', blob(headH * 0.035, 6, 4, 1, 0.85, 0.65), '#f0b48a', [
+      0,
+      headH * 0.375,
+      faceZ * 0.99,
+    ])
+  }
   // Eyes: big vertical ovals, each with a tiny white highlight.
   for (const sx of [-1, 1]) {
     add('head', blob(headH * 0.1, 8, 6, 1, 1.55, 0.45), colors.eyes, [
@@ -290,11 +329,11 @@ export function buildNodes(config: CharacterConfig) {
       legLen,
       torsoH,
       hipX: 0.085 * H,
-      // The pivot kisses the shoulder slope's SURFACE — mounted any
-      // deeper the arm hangs inside the teardrop and the hands bury
-      // themselves in the wider hips.
-      shoulderX: shoulderR + armR * 0.5,
-      shoulderY: torsoH * 0.86,
+      // Mounts sink BENEATH the shoulder slope (v3.17): the capsule top
+      // never crests the torso curve; the ~27° A-pose carries the arm
+      // out from under it and the hands clear the hips.
+      shoulderX: shoulderR * 0.72,
+      shoulderY: torsoH * 0.785,
     },
   }
 }
@@ -369,12 +408,12 @@ export function BlockyCharacter({
     const sway = Math.sin(t * 1.7) * p.sway
     armL.current.rotation.x = -armSwing * ground + AIR_POSE.armL * p.air
     armR.current.rotation.x = armSwing * ground + AIR_POSE.armR * p.air
-    // ~12° A-pose rest (v3.16) so the slim arms hang clear of the torso;
-    // walking/running angles the swing plane slightly further outward so
-    // nothing clips into the wider hips mid-stride. Sign note: +z rotation
-    // swings a hanging tip toward +x, so the LEFT arm (−x) splays OUTWARD
-    // with NEGATIVE z — the old +0.08 was quietly splaying inward.
-    const splay = 0.24 + p.swingAmp * 0.1 + AIR_POSE.splay * p.air
+    // True A-POSE rest ~27° (v3.17, per the chibi references) — the arms
+    // emerge from under the shoulder slope and hang clearly separated;
+    // walk/run swings COMPOSE on this base angle (never collapse back to
+    // pinned). Sign note: +z rotation swings a hanging tip toward +x, so
+    // the LEFT arm (−x) splays OUTWARD with NEGATIVE z.
+    const splay = 0.48 + p.swingAmp * 0.06 + AIR_POSE.splay * p.air
     armL.current.rotation.z = -splay - sway
     armR.current.rotation.z = splay + sway
 

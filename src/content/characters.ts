@@ -31,6 +31,10 @@ export interface CharacterConfig {
   outfit: 'tee-shorts' | 'dress'
   /** Flattened pink cheek discs (AC blush). */
   blush?: boolean
+  /** Ear lobe scale (default 1). */
+  earSize?: number
+  /** Tiny peach nose above the mouth (default 'round'). */
+  noseStyle?: 'round' | 'none'
   /** Thin lens-less round rims + bridge, per the bible. */
   glasses?: { color: string }
 }
