@@ -52,10 +52,18 @@ export interface CharacterConfig {
   armRestDeg?: number
   /** Arm/leg thickness factor (1). */
   limbThick?: number
-  /** Shoulder half-width as a fraction of head width (0.275). */
+  /** Shoulder half-width as a fraction of head width (0.242). */
   shoulderFrac?: number
   /** Hip half-width as a fraction of head width (0.39). */
   hipFrac?: number
+  /** Mid-torso slimming, 0–0.6 (0.2 ≈ the v3.19 −8–10% waist). */
+  waistSlim?: number
+  /** Bridge seat 0–1: 0 = at eye height, 1 = resting on the nose (1). */
+  glassesSeat?: number
+  /** Ear height as a fraction of head height (0.52 — the midline). */
+  earY?: number
+  /** Ear outward-upward tilt in degrees (12). */
+  earTilt?: number
   /** Visible neck length in meters (default 0 — AC style, head sits on the torso). */
   neckLength?: number
 }
@@ -71,7 +79,7 @@ export const AIDEN: CharacterConfig = {
     top: '#ffd24d',
     bottom: '#35a7a0',
     shoes: '#fff3d6',
-    eyes: '#14262b',
+    eyes: '#2b1c12',
   },
   hair: 'swoop',
   outfit: 'tee-shorts',

@@ -94,7 +94,7 @@ export function buildNodes(config: CharacterConfig) {
   const headW = headR * 2
   // Teardrop proportions (v3.16): shoulders ≈0.55× head width sloping out
   // to hips ≈0.78× — the widest point sits near the BASE, never the top.
-  const shoulderR = headW * (config.shoulderFrac ?? 0.275) * build
+  const shoulderR = headW * (config.shoulderFrac ?? 0.242) * build
   const hipR = headW * (config.hipFrac ?? 0.39) * build
   const armLen = torsoH * 0.95
 
@@ -131,18 +131,25 @@ export function buildNodes(config: CharacterConfig) {
   // convex curve to the hip → smooth taper into a domed collar around
   // the neck; both ends on the axis so the lathe caps itself.
   const collarR = headR * 0.36
-  const profile: THREE.Vector2[] = [new THREE.Vector2(0, -torsoH * 0.06)]
+  // waistSlim pulls the mid-torso in (cos exponent > 1) without touching
+  // the shoulder or hip endpoints — the curve stays convex and smooth.
+  const slimExp = 1 + (config.waistSlim ?? 0.2)
+  const profile: THREE.Vector2[] = [new THREE.Vector2(0, -torsoH * 0.04)]
   for (let i = 1; i <= 3; i++) {
     const a = (i / 3) * Math.PI * 0.5
     profile.push(
-      new THREE.Vector2(Math.sin(a) * hipR, torsoH * (-0.06 + (1 - Math.cos(a)) * 0.18)),
+      new THREE.Vector2(Math.sin(a) * hipR, torsoH * (-0.04 + (1 - Math.cos(a)) * 0.09)),
     )
   }
+  // Tee-hem lip: full radius held from the widest point down to the hem
+  // edge — the shorts band beneath sits at a clearly smaller radius, so
+  // no coplanar surfaces at the waist (the poking-line bug).
+  profile.push(new THREE.Vector2(hipR, torsoH * 0.12))
   for (let i = 1; i <= 5; i++) {
     const t = i / 5
     profile.push(
       new THREE.Vector2(
-        collarR + (hipR - collarR) * Math.cos((t * Math.PI) / 2),
+        collarR + (hipR - collarR) * Math.cos((t * Math.PI) / 2) ** slimExp,
         torsoH * (0.12 + 0.74 * t),
       ),
     )
@@ -169,15 +176,16 @@ export function buildNodes(config: CharacterConfig) {
     // live in the LEG nodes.
     add(
       'torso',
-      new THREE.CylinderGeometry(hipR * 0.99, hipR * 0.8, torsoH * 0.26, 14).applyMatrix4(
+      new THREE.CylinderGeometry(hipR * 0.88, hipR * 0.74, torsoH * 0.28, 14).applyMatrix4(
         // Match the teardrop's depth squash or the band rim pokes out
         // front/back as a saucer in profile.
         new THREE.Matrix4().makeScale(1, 1, 0.86),
       ),
       colors.bottom,
-      // Top edge overlaps the (narrower) skin profile — a waistband lip,
-      // never an open bowl rim with a gap behind it.
-      [0, torsoH * 0.09, 0],
+      // Clearly SMALLER radius than the tee-hem lip above it (real
+      // radial clearance — never coplanar) and extending below the hem
+      // so the shorts read under the shirt.
+      [0, -torsoH * 0.02, 0],
     )
   }
 
@@ -204,13 +212,19 @@ export function buildNodes(config: CharacterConfig) {
   // carry the chibi read from behind, where the face is hidden. They
   // sit at mid-face height, BELOW the hair cap's side edge (higher and
   // both hair styles swallow them).
+  // Perky round monkey-ears (v3.19): at the head's midline (earY),
+  // tilted outward-upward (earTilt), protruding past the hair cap so
+  // they read from front AND back, matched sides.
   const earSize = config.earSize ?? 1
+  const earTilt = THREE.MathUtils.degToRad(config.earTilt ?? 12)
   for (const sx of [-1, 1]) {
-    add('head', blob(hR * 0.18 * earSize, 8, 6, 0.6, 1, 0.85), colors.skin, [
-      sx * hR * 1.0,
-      hH * 0.38,
-      -hH * 0.02,
-    ])
+    add(
+      'head',
+      blob(hR * 0.19 * earSize, 8, 6, 0.5, 1, 0.9),
+      colors.skin,
+      [sx * hR * 1.05, hH * (config.earY ?? 0.52), -hH * 0.02],
+      [0, 0, -sx * earTilt],
+    )
   }
   // Tiny rounded nose just above the mouth (soft peach).
   if ((config.noseStyle ?? 'round') !== 'none') {
@@ -227,35 +241,37 @@ export function buildNodes(config: CharacterConfig) {
   if (config.glasses) {
     const gS = config.glassesScale ?? 1
     const ex = hR * 0.34
+    // Rims follow the face sphere's curve: each sits at the sphere point
+    // under the eye, rotated to the local surface azimuth.
+    const rimZ = hR * Math.sqrt(0.95 * 0.95 - 0.34 * 0.34)
+    const rimYaw = Math.asin(0.34 / 0.95)
     for (const sx of [-1, 1]) {
-      add('head', blob(hH * 0.052 * eyeS, 8, 6, 1, 1.2, 0.45), '#ffffff', [
+      // Dark-dominant eye (v3.19): one dark rounded oval — no sclera —
+      // with a single catchlight dot in the upper corner.
+      add('head', blob(hH * 0.05 * eyeS, 8, 6, 1, 1.35, 0.45), colors.eyes, [
         sx * ex,
         hH * 0.5,
-        faceZ - 0.01,
+        faceZ - 0.008,
       ])
-      // Pupil clearly SMALLER than the sclera — a pupil that fills the
-      // rim reads as a void again, just a smaller one.
-      add('head', blob(hH * 0.024 * eyeS, 8, 6, 1, 1.25, 0.5), colors.eyes, [
-        sx * ex,
-        hH * 0.495,
-        faceZ + 0.01,
-      ])
-      add('head', blob(hH * 0.012 * eyeS, 6, 4, 1, 1, 0.6), '#ffffff', [
-        sx * ex + sx * 0.007,
-        hH * 0.525,
-        faceZ + 0.026,
+      add('head', blob(hH * 0.014 * eyeS, 6, 4, 1, 1, 0.6), '#ffffff', [
+        sx * ex + sx * 0.014,
+        hH * 0.53,
+        faceZ + 0.022,
       ])
       add(
         'head',
         new THREE.TorusGeometry(hH * 0.072 * gS, 0.0072, 4, 12),
         config.glasses.color,
-        [sx * ex, hH * 0.5, faceZ + 0.02],
+        [sx * ex, hH * 0.5, rimZ + 0.02],
+        [0, sx * rimYaw, 0],
       )
     }
-    add('head', new THREE.BoxGeometry(hR * 0.26, 0.014, 0.014), config.glasses.color, [
+    // Bridge RESTS on the nose top (glassesSeat 1) — never hovering.
+    const seat = config.glassesSeat ?? 1
+    add('head', new THREE.BoxGeometry(hR * 0.26, 0.013, 0.013), config.glasses.color, [
       0,
-      hH * 0.52,
-      faceZ + 0.018,
+      hH * THREE.MathUtils.lerp(0.5, 0.435, seat),
+      faceZ + 0.014,
     ])
   } else {
     for (const sx of [-1, 1]) {
@@ -403,7 +419,9 @@ export function BlockyCharacter({
   motion: () => MotionState
 }) {
   const { nodes, dims } = useMemo(() => buildNodes(config), [config])
-  const restSplay = THREE.MathUtils.degToRad(config.armRestDeg ?? 28)
+  // v3.19: arms rest ~45° down-and-out — daylight along the whole upper
+  // arm, hands outside the hip silhouette.
+  const restSplay = THREE.MathUtils.degToRad(config.armRestDeg ?? 45)
 
   const rig = useRef<THREE.Group>(null)
   const armL = useRef<THREE.Group>(null)

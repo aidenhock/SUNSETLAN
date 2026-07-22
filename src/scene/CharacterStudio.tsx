@@ -34,10 +34,14 @@ const NUM_DIALS: Array<[string, keyof CharacterConfig, number, number, number, n
   ['Ear size', 'earSize', 0, 2, 0.05, 1],
   ['Nose size', 'noseSize', 0, 2, 0.05, 1],
   ['Sleeve length', 'sleeveLen', 0, 2, 0.05, 1],
-  ['Arm rest (deg)', 'armRestDeg', 0, 45, 1, 28],
+  ['Arm rest (deg)', 'armRestDeg', 0, 60, 1, 45],
   ['Limb thickness', 'limbThick', 0.6, 1.6, 0.01, 1],
-  ['Shoulder frac', 'shoulderFrac', 0.2, 0.4, 0.005, 0.275],
+  ['Shoulder frac', 'shoulderFrac', 0.2, 0.4, 0.005, 0.242],
   ['Hip frac', 'hipFrac', 0.3, 0.5, 0.005, 0.39],
+  ['Waist slim', 'waistSlim', 0, 0.6, 0.02, 0.2],
+  ['Glasses seat', 'glassesSeat', 0, 1, 0.05, 1],
+  ['Ear height', 'earY', 0.3, 0.65, 0.01, 0.52],
+  ['Ear tilt (deg)', 'earTilt', 0, 25, 1, 12],
   ['Neck length (m)', 'neckLength', 0, 0.12, 0.005, 0],
 ]
 
