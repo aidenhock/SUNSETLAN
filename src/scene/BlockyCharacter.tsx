@@ -94,8 +94,8 @@ export function buildNodes(config: CharacterConfig) {
   const headW = headR * 2
   // Teardrop proportions (v3.16): shoulders ≈0.55× head width sloping out
   // to hips ≈0.78× — the widest point sits near the BASE, never the top.
-  const shoulderR = headW * 0.275 * build
-  const hipR = headW * 0.39 * build
+  const shoulderR = headW * (config.shoulderFrac ?? 0.275) * build
+  const hipR = headW * (config.hipFrac ?? 0.39) * build
   const armLen = torsoH * 0.95
 
   const parts = {
@@ -182,117 +182,160 @@ export function buildNodes(config: CharacterConfig) {
   }
 
   // ---- Head (local origin at the neck; face = +z) ---------------------
-  add('head', blob(headR, 14, 11, 1, 0.9, 0.95), colors.skin, [0, headH * 0.48, 0])
-  const faceZ = headR * 0.95
-  // Neck: lives in the HEAD node so it moves with the look-at, embedded
-  // deep into both the skull and the domed collar — the full ±60° yaw /
-  // ±25° pitch range never opens a gap (the cylinder is yaw-invariant
-  // and its bottom stays inside the collar at max pitch).
-  add('head', new THREE.CylinderGeometry(headR * 0.3, headR * 0.32, headH * 0.22, 10), colors.skin, [
-    0,
-    -headH * 0.02,
-    0,
-  ])
+  // Studio dials: hH/hR scale the whole head node; the body stays on the
+  // unscaled head width so the charm dial doesn't change the physique.
+  const hH = headH * (config.headScale ?? 1)
+  const hR = hH * 0.51
+  const eyeS = config.eyeScale ?? 1
+  add('head', blob(hR, 14, 11, 1, 0.9, 0.95), colors.skin, [0, hH * 0.48, 0])
+  const faceZ = hR * 0.95
+  // Neck (optional, default 0 = AC style): lives in the HEAD node so it
+  // moves with the look-at, embedded into skull and collar.
+  const neckLen = config.neckLength ?? 0.06
+  if (neckLen > 0) {
+    add(
+      'head',
+      new THREE.CylinderGeometry(hR * 0.3, hR * 0.32, neckLen + hH * 0.16, 10),
+      colors.skin,
+      [0, -(neckLen + hH * 0.16) / 2 + hH * 0.06, 0],
+    )
+  }
   // Ears: small rounded lobes protruding from the head sides — they
   // carry the chibi read from behind, where the face is hidden. They
   // sit at mid-face height, BELOW the hair cap's side edge (higher and
   // both hair styles swallow them).
   const earSize = config.earSize ?? 1
   for (const sx of [-1, 1]) {
-    add('head', blob(headR * 0.18 * earSize, 8, 6, 0.6, 1, 0.85), colors.skin, [
-      sx * headR * 1.0,
-      headH * 0.38,
-      -headH * 0.02,
+    add('head', blob(hR * 0.18 * earSize, 8, 6, 0.6, 1, 0.85), colors.skin, [
+      sx * hR * 1.0,
+      hH * 0.38,
+      -hH * 0.02,
     ])
   }
   // Tiny rounded nose just above the mouth (soft peach).
   if ((config.noseStyle ?? 'round') !== 'none') {
-    add('head', blob(headH * 0.035, 6, 4, 1, 0.85, 0.65), '#f0b48a', [
+    add('head', blob(hH * 0.034 * (config.noseSize ?? 1), 6, 4, 1, 0.85, 0.65), '#f0b48a', [
       0,
-      headH * 0.375,
+      hH * 0.39,
       faceZ * 0.99,
     ])
   }
-  // Eyes: big vertical ovals, each with a tiny white highlight.
-  for (const sx of [-1, 1]) {
-    add('head', blob(headH * 0.1, 8, 6, 1, 1.55, 0.45), colors.eyes, [
-      sx * headR * 0.38,
-      headH * 0.5,
-      faceZ - 0.02,
+  // Eyes. Bespectacled faces (v3.18): the rims are SMALL and the eye
+  // EXISTS behind them — white sclera + dark pupil + highlight dot,
+  // clearly visible within a thin rim (over-sized rims over dark ovals
+  // read as solid voids). Bare faces keep the big AC oval + highlight.
+  if (config.glasses) {
+    const gS = config.glassesScale ?? 1
+    const ex = hR * 0.34
+    for (const sx of [-1, 1]) {
+      add('head', blob(hH * 0.052 * eyeS, 8, 6, 1, 1.2, 0.45), '#ffffff', [
+        sx * ex,
+        hH * 0.5,
+        faceZ - 0.01,
+      ])
+      // Pupil clearly SMALLER than the sclera — a pupil that fills the
+      // rim reads as a void again, just a smaller one.
+      add('head', blob(hH * 0.024 * eyeS, 8, 6, 1, 1.25, 0.5), colors.eyes, [
+        sx * ex,
+        hH * 0.495,
+        faceZ + 0.01,
+      ])
+      add('head', blob(hH * 0.012 * eyeS, 6, 4, 1, 1, 0.6), '#ffffff', [
+        sx * ex + sx * 0.007,
+        hH * 0.525,
+        faceZ + 0.026,
+      ])
+      add(
+        'head',
+        new THREE.TorusGeometry(hH * 0.072 * gS, 0.0072, 4, 12),
+        config.glasses.color,
+        [sx * ex, hH * 0.5, faceZ + 0.02],
+      )
+    }
+    add('head', new THREE.BoxGeometry(hR * 0.26, 0.014, 0.014), config.glasses.color, [
+      0,
+      hH * 0.52,
+      faceZ + 0.018,
     ])
-    add('head', blob(headH * 0.028, 6, 4, 1, 1, 0.6), '#ffffff', [
-      sx * headR * 0.38 + sx * 0.008,
-      headH * 0.56,
-      faceZ + 0.028,
-    ])
+  } else {
+    for (const sx of [-1, 1]) {
+      add('head', blob(hH * 0.1 * eyeS, 8, 6, 1, 1.55, 0.45), colors.eyes, [
+        sx * hR * 0.38,
+        hH * 0.5,
+        faceZ - 0.02,
+      ])
+      add('head', blob(hH * 0.028 * eyeS, 6, 4, 1, 1, 0.6), '#ffffff', [
+        sx * hR * 0.38 + sx * 0.008,
+        hH * 0.56,
+        faceZ + 0.028,
+      ])
+    }
   }
   // Micro-arc mouth: partial torus rotated so the arc hangs at the circle's
   // bottom — endpoints curve upward, reading as the AC smile.
   add(
     'head',
-    new THREE.TorusGeometry(headH * 0.055, 0.0075, 4, 8, Math.PI * 0.75),
+    new THREE.TorusGeometry(hH * 0.055, 0.0075, 4, 8, Math.PI * 0.75),
     colors.eyes,
-    [0, headH * 0.31, faceZ * 0.92],
+    [0, hH * 0.32, faceZ * 0.92],
     [0, 0, -Math.PI * 0.875],
   )
   if (config.blush) {
     for (const sx of [-1, 1]) {
-      add('head', blob(headH * 0.07, 6, 4, 1, 0.7, 0.3), '#f0a2a2', [
-        sx * headR * 0.62,
-        headH * 0.37,
+      add('head', blob(hH * 0.07, 6, 4, 1, 0.7, 0.3), '#f0a2a2', [
+        sx * hR * 0.62,
+        hH * 0.37,
         faceZ * 0.82,
       ])
     }
   }
-  // Hair — SOLID volumes only (open shells backface-cull see-through).
+  // Hair — SOLID volumes only (open shells backface-cull see-through),
+  // fringes overlapped DEEP into the cap so the hair reads as ONE mass.
   if (config.hair === 'swoop') {
-    add('head', blob(headR * 1.09, 12, 9, 1, 0.76, 1.0), colors.hair, [0, headH * 0.64, -0.02])
-    // Side-swept fringe wedge hugging the upper forehead, above the brow.
+    // High hairline (the cap centered lower swallows the face); the
+    // fringe overlaps deep into the cap so the hair reads as one mass.
+    add('head', blob(hR * 1.09, 12, 9, 1, 0.76, 1.0), colors.hair, [0, hH * 0.64, -0.015])
     add(
       'head',
-      blob(headR * 0.55, 8, 6, 1.5, 0.4, 0.55),
+      blob(hR * 0.58, 8, 6, 1.5, 0.45, 0.6),
       colors.hair,
-      [headR * 0.12, headH * 0.84, faceZ * 0.58],
-      [0.18, 0, -0.25],
+      [hR * 0.1, hH * 0.79, faceZ * 0.5],
+      [0.05, 0, -0.24],
     )
   } else if (config.hair === 'bob') {
-    // Cap dropping past the ears, receded so the face stays open, plus a
-    // straight fringe tucked high above the brow.
-    add('head', blob(headR * 1.1, 12, 9, 1, 0.92, 0.98), colors.hair, [0, headH * 0.58, -0.055])
+    add('head', blob(hR * 1.1, 12, 9, 1, 0.92, 0.98), colors.hair, [0, hH * 0.58, -0.055])
     add(
       'head',
-      blob(headR * 0.68, 8, 6, 1.3, 0.34, 0.45),
+      blob(hR * 0.68, 8, 6, 1.3, 0.4, 0.5),
       colors.hair,
-      [0, headH * 0.87, faceZ * 0.52],
-      [0.28, 0, 0],
+      [0, hH * 0.82, faceZ * 0.48],
+      [0.18, 0, 0],
     )
-  }
-  if (config.glasses) {
-    const rim = () => new THREE.TorusGeometry(headH * 0.115, 0.011, 4, 10)
-    for (const sx of [-1, 1]) {
-      add('head', rim(), config.glasses.color, [sx * headR * 0.38, headH * 0.5, faceZ + 0.02])
-    }
-    add('head', new THREE.BoxGeometry(headR * 0.3, 0.018, 0.018), config.glasses.color, [
-      0,
-      headH * 0.5,
-      faceZ + 0.02,
-    ])
   }
 
   // ---- Arm (local origin at the shoulder pivot, hangs along −y) --------
-  // Slim, sleeveless, mounted inboard on the sloped shoulder; the ~12°
-  // A-pose rest splay lives in the rig so the arm hangs with a visible
-  // gap and the small ball hand clears the hip silhouette.
-  const armR = 0.036 * (H / 1.25)
+  // Slim capsule mounted under the sloped shoulder; the A-pose rest
+  // splay lives in the rig. A short SLIM sleeve cap in the top color
+  // covers the mount (tee, not tank — v3.18); skin starts below it.
+  const armR = 0.036 * (H / 1.25) * (config.limbThick ?? 1)
   add('arm', new THREE.CapsuleGeometry(armR, armLen * 0.6, 3, 8), colors.skin, [
     0,
     -armLen * 0.42,
     0,
   ])
+  const sleeveLen = config.sleeveLen ?? 1
+  if (sleeveLen > 0) {
+    add(
+      'arm',
+      new THREE.CapsuleGeometry(armR * 1.2, armLen * 0.18 * sleeveLen, 2, 8),
+      colors.top,
+      [0, -armLen * 0.1 * sleeveLen, 0],
+    )
+  }
   add('arm', new THREE.SphereGeometry(armR * 1.4, 8, 6), colors.skin, [0, -armLen * 0.84, 0])
 
   // ---- Leg (local origin at the hip pivot; soles at −legLen) -----------
-  const legR = 0.045 * (H / 1.25)
+  const legR = 0.045 * (H / 1.25) * (config.limbThick ?? 1)
   add('leg', new THREE.CapsuleGeometry(legR, legLen * 0.5, 3, 8), colors.skin, [
     0,
     -legLen * 0.4,
@@ -330,10 +373,11 @@ export function buildNodes(config: CharacterConfig) {
       torsoH,
       hipX: 0.085 * H,
       // Mounts sink BENEATH the shoulder slope (v3.17): the capsule top
-      // never crests the torso curve; the ~27° A-pose carries the arm
-      // out from under it and the hands clear the hips.
-      shoulderX: shoulderR * 0.72,
-      shoulderY: torsoH * 0.785,
+      // never crests the torso curve; the A-pose carries the arm out
+      // from under it (the sleeve cap covers the exit) and the hands
+      // clear the hips.
+      shoulderX: shoulderR * 0.78,
+      shoulderY: torsoH * 0.8,
     },
   }
 }
@@ -350,6 +394,7 @@ export function BlockyCharacter({
   motion: () => MotionState
 }) {
   const { nodes, dims } = useMemo(() => buildNodes(config), [config])
+  const restSplay = THREE.MathUtils.degToRad(config.armRestDeg ?? 28)
 
   const rig = useRef<THREE.Group>(null)
   const armL = useRef<THREE.Group>(null)
@@ -408,12 +453,13 @@ export function BlockyCharacter({
     const sway = Math.sin(t * 1.7) * p.sway
     armL.current.rotation.x = -armSwing * ground + AIR_POSE.armL * p.air
     armR.current.rotation.x = armSwing * ground + AIR_POSE.armR * p.air
-    // True A-POSE rest ~27° (v3.17, per the chibi references) — the arms
-    // emerge from under the shoulder slope and hang clearly separated;
-    // walk/run swings COMPOSE on this base angle (never collapse back to
-    // pinned). Sign note: +z rotation swings a hanging tip toward +x, so
-    // the LEFT arm (−x) splays OUTWARD with NEGATIVE z.
-    const splay = 0.48 + p.swingAmp * 0.06 + AIR_POSE.splay * p.air
+    // True A-POSE rest (config.armRestDeg, ~25–30° per the chibi
+    // references) — the arms emerge from under the shoulder slope and
+    // hang clearly separated; walk/run swings COMPOSE on this base angle
+    // (never collapse back to pinned). Sign note: +z rotation swings a
+    // hanging tip toward +x, so the LEFT arm (−x) splays OUTWARD with
+    // NEGATIVE z.
+    const splay = restSplay + p.swingAmp * 0.06 + AIR_POSE.splay * p.air
     armL.current.rotation.z = -splay - sway
     armR.current.rotation.z = splay + sway
 

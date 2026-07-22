@@ -43,6 +43,10 @@ function RenderInfoProbe() {
 const CharacterShowcase = lazy(() =>
   import('./scene/CharacterShowcase').then((m) => ({ default: m.CharacterShowcase })),
 )
+/** Dev-only Character Studio (?studio), code-split. */
+const CharacterStudio = lazy(() =>
+  import('./scene/CharacterStudio').then((m) => ({ default: m.CharacterStudio })),
+)
 
 export default function App() {
   const [sceneReady, setSceneReady] = useState(false)
@@ -71,6 +75,13 @@ export default function App() {
     return (
       <Suspense fallback={null}>
         <CharacterShowcase />
+      </Suspense>
+    )
+  }
+  if (flags.has('studio')) {
+    return (
+      <Suspense fallback={null}>
+        <CharacterStudio />
       </Suspense>
     )
   }

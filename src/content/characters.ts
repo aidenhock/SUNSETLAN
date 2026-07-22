@@ -37,6 +37,27 @@ export interface CharacterConfig {
   noseStyle?: 'round' | 'none'
   /** Thin lens-less round rims + bridge, per the bible. */
   glasses?: { color: string }
+  // ---- Studio dials (all optional; rig defaults in parentheses) ----
+  /** Head volume scale (1). */
+  headScale?: number
+  /** Eye group scale (1). */
+  eyeScale?: number
+  /** Glasses rim scale (1). */
+  glassesScale?: number
+  /** Nose scale (1). */
+  noseSize?: number
+  /** Sleeve cap length factor (1; 0 = sleeveless). */
+  sleeveLen?: number
+  /** Rest A-pose arm angle, degrees out from the body (28). */
+  armRestDeg?: number
+  /** Arm/leg thickness factor (1). */
+  limbThick?: number
+  /** Shoulder half-width as a fraction of head width (0.275). */
+  shoulderFrac?: number
+  /** Hip half-width as a fraction of head width (0.39). */
+  hipFrac?: number
+  /** Visible neck length in meters (default 0.06). */
+  neckLength?: number
 }
 
 /** Aiden: blonde swoop, thin dark glasses, yellow tee, teal shorts. */
