@@ -60,6 +60,18 @@ export interface CharacterConfig {
   waistSlim?: number
   /** Bridge seat 0–1: 0 = at eye height, 1 = resting on the nose (1). */
   glassesSeat?: number
+  /** Eye style: 'dark' AC oval, or 'normal' layered white/iris/pupil
+   * (the Raymond read). Default 'dark'. */
+  eyeStyle?: 'dark' | 'normal'
+  /** Iris ring color for eyeStyle 'normal' (#5b8fe3). */
+  irisColor?: string
+  /** Frame style when `glasses` is set: bold rounded-rect boxes
+   * (Raymond) or thin round tori. Default 'bold-rect'. */
+  glassesStyle?: 'bold-rect' | 'round' | 'none'
+  /** Arm length as a fraction of torso height (0.87). */
+  armLenFrac?: number
+  /** Ball hand radius multiplier on the base 1.4×armR (1.12). */
+  handScale?: number
   /** Ear height as a fraction of head height (0.52 — the midline). */
   earY?: number
   /** Ear outward-upward tilt in degrees (12). */
@@ -83,7 +95,10 @@ export const AIDEN: CharacterConfig = {
   },
   hair: 'swoop',
   outfit: 'tee-shorts',
-  glasses: { color: '#14262b' },
+  eyeStyle: 'normal',
+  irisColor: '#5b8fe3',
+  glasses: { color: '#2a2c30' },
+  glassesStyle: 'bold-rect',
 }
 
 /** Feminine villager demo (the AC reference pair's second model) — the

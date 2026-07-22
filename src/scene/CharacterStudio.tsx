@@ -35,8 +35,10 @@ const NUM_DIALS: Array<[string, keyof CharacterConfig, number, number, number, n
   ['Nose size', 'noseSize', 0, 2, 0.05, 1],
   ['Sleeve length', 'sleeveLen', 0, 2, 0.05, 1],
   ['Arm rest (deg)', 'armRestDeg', 0, 60, 1, 45],
+  ['Arm length', 'armLenFrac', 0.7, 1.1, 0.01, 0.87],
+  ['Hand scale', 'handScale', 0.8, 1.6, 0.02, 1.12],
   ['Limb thickness', 'limbThick', 0.6, 1.6, 0.01, 1],
-  ['Shoulder frac', 'shoulderFrac', 0.2, 0.4, 0.005, 0.242],
+  ['Shoulder frac', 'shoulderFrac', 0.2, 0.4, 0.005, 0.2275],
   ['Hip frac', 'hipFrac', 0.3, 0.5, 0.005, 0.39],
   ['Waist slim', 'waistSlim', 0, 0.6, 0.02, 0.2],
   ['Glasses seat', 'glassesSeat', 0, 1, 0.05, 1],
@@ -169,6 +171,39 @@ export function CharacterStudio() {
           ))}
         </div>
         <div className="mt-2 flex flex-wrap gap-2">
+          <label className="flex items-center gap-1">
+            eyes
+            <select
+              value={cfg.eyeStyle ?? 'dark'}
+              onChange={(e) => patch({ eyeStyle: e.target.value as CharacterConfig['eyeStyle'] })}
+              className="rounded border px-1"
+            >
+              <option value="dark">dark</option>
+              <option value="normal">normal</option>
+            </select>
+          </label>
+          <label className="flex items-center gap-1">
+            <input
+              type="color"
+              value={cfg.irisColor ?? '#5b8fe3'}
+              onChange={(e) => patch({ irisColor: e.target.value })}
+            />
+            iris
+          </label>
+          <label className="flex items-center gap-1">
+            frames
+            <select
+              value={cfg.glassesStyle ?? 'bold-rect'}
+              onChange={(e) =>
+                patch({ glassesStyle: e.target.value as CharacterConfig['glassesStyle'] })
+              }
+              className="rounded border px-1"
+            >
+              <option value="bold-rect">bold-rect</option>
+              <option value="round">round</option>
+              <option value="none">none</option>
+            </select>
+          </label>
           <label className="flex items-center gap-1">
             hair
             <select

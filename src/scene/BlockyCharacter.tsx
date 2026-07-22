@@ -94,9 +94,9 @@ export function buildNodes(config: CharacterConfig) {
   const headW = headR * 2
   // Teardrop proportions (v3.16): shoulders ≈0.55× head width sloping out
   // to hips ≈0.78× — the widest point sits near the BASE, never the top.
-  const shoulderR = headW * (config.shoulderFrac ?? 0.242) * build
+  const shoulderR = headW * (config.shoulderFrac ?? 0.2275) * build
   const hipR = headW * (config.hipFrac ?? 0.39) * build
-  const armLen = torsoH * 0.95
+  const armLen = torsoH * (config.armLenFrac ?? 0.87)
 
   const parts = {
     torso: [] as THREE.BufferGeometry[],
@@ -130,7 +130,7 @@ export function buildNodes(config: CharacterConfig) {
   // arms-through-the-torso from behind). Rounded base → ONE unbroken
   // convex curve to the hip → smooth taper into a domed collar around
   // the neck; both ends on the axis so the lathe caps itself.
-  const collarR = headR * 0.36
+  const collarR = headR * 0.338
   // waistSlim pulls the mid-torso in (cos exponent > 1) without touching
   // the shoulder or hip endpoints — the curve stays convex and smooth.
   const slimExp = 1 + (config.waistSlim ?? 0.2)
@@ -238,41 +238,40 @@ export function buildNodes(config: CharacterConfig) {
   // EXISTS behind them — white sclera + dark pupil + highlight dot,
   // clearly visible within a thin rim (over-sized rims over dark ovals
   // read as solid voids). Bare faces keep the big AC oval + highlight.
-  if (config.glasses) {
-    const gS = config.glassesScale ?? 1
-    const ex = hR * 0.34
-    // Rims follow the face sphere's curve: each sits at the sphere point
-    // under the eye, rotated to the local surface azimuth.
-    const rimZ = hR * Math.sqrt(0.95 * 0.95 - 0.34 * 0.34)
-    const rimYaw = Math.asin(0.34 / 0.95)
+  // Eyes (eyeStyle, v3.20). 'normal' = the Raymond read: layered
+  // stacked flattened discs with small z-offsets — dark outline holds
+  // the white against the skin, then white base → blue iris ring →
+  // dark pupil → one catchlight, upper corner. 'dark' = the AC oval.
+  const ex = hR * 0.34
+  if ((config.eyeStyle ?? 'dark') === 'normal') {
+    const iris = config.irisColor ?? '#5b8fe3'
     for (const sx of [-1, 1]) {
-      // Dark-dominant eye (v3.19): one dark rounded oval — no sclera —
-      // with a single catchlight dot in the upper corner.
-      add('head', blob(hH * 0.05 * eyeS, 8, 6, 1, 1.35, 0.45), colors.eyes, [
+      add('head', blob(hH * 0.056 * eyeS, 6, 5, 1, 1.28, 0.32), colors.eyes, [
+        sx * ex,
+        hH * 0.5,
+        faceZ - 0.016,
+      ])
+      add('head', blob(hH * 0.05 * eyeS, 8, 6, 1, 1.26, 0.34), '#ffffff', [
         sx * ex,
         hH * 0.5,
         faceZ - 0.008,
       ])
-      add('head', blob(hH * 0.014 * eyeS, 6, 4, 1, 1, 0.6), '#ffffff', [
-        sx * ex + sx * 0.014,
-        hH * 0.53,
-        faceZ + 0.022,
+      add('head', blob(hH * 0.031 * eyeS, 6, 5, 1, 1.08, 0.38), iris, [
+        sx * ex,
+        hH * 0.49,
+        faceZ + 0.004,
       ])
-      add(
-        'head',
-        new THREE.TorusGeometry(hH * 0.072 * gS, 0.0072, 4, 12),
-        config.glasses.color,
-        [sx * ex, hH * 0.5, rimZ + 0.02],
-        [0, sx * rimYaw, 0],
-      )
+      add('head', blob(hH * 0.017 * eyeS, 6, 4, 1, 1.05, 0.42), colors.eyes, [
+        sx * ex,
+        hH * 0.49,
+        faceZ + 0.014,
+      ])
+      add('head', blob(hH * 0.01 * eyeS, 6, 4, 1, 1, 0.6), '#ffffff', [
+        sx * ex + sx * 0.01,
+        hH * 0.517,
+        faceZ + 0.024,
+      ])
     }
-    // Bridge RESTS on the nose top (glassesSeat 1) — never hovering.
-    const seat = config.glassesSeat ?? 1
-    add('head', new THREE.BoxGeometry(hR * 0.26, 0.013, 0.013), config.glasses.color, [
-      0,
-      hH * THREE.MathUtils.lerp(0.5, 0.435, seat),
-      faceZ + 0.014,
-    ])
   } else {
     for (const sx of [-1, 1]) {
       add('head', blob(hH * 0.1 * eyeS, 8, 6, 1, 1.55, 0.45), colors.eyes, [
@@ -284,6 +283,67 @@ export function buildNodes(config: CharacterConfig) {
         sx * hR * 0.38 + sx * 0.008,
         hH * 0.56,
         faceZ + 0.028,
+      ])
+    }
+  }
+  // Glasses (glassesStyle, v3.20) — independent of eye style; lenses
+  // are always open rims, both eyes fully visible inside.
+  const gStyle = config.glasses ? (config.glassesStyle ?? 'bold-rect') : 'none'
+  if (config.glasses && gStyle !== 'none') {
+    const gS = config.glassesScale ?? 1
+    const gc = config.glasses.color
+    const seat = config.glassesSeat ?? 1
+    if (gStyle === 'bold-rect') {
+      // Raymond frames: bold rounded-rectangle rims from chunky boxes,
+      // bridge touching the nose top, temple arms back to the ears.
+      const w = hH * 0.175 * gS
+      const h = hH * 0.135 * gS
+      const t = hH * 0.028
+      const d = 0.018
+      const gz = faceZ + 0.012
+      const gy = hH * 0.5
+      for (const sx of [-1, 1]) {
+        const cx0 = sx * ex
+        add('head', new THREE.BoxGeometry(w + 2 * t, t, d), gc, [cx0, gy + h / 2, gz])
+        add('head', new THREE.BoxGeometry(w + 2 * t, t, d), gc, [cx0, gy - h / 2, gz])
+        for (const so of [-1, 1]) {
+          add('head', new THREE.BoxGeometry(t, h + t, d), gc, [
+            cx0 + so * (w / 2 + t / 2),
+            gy,
+            gz,
+          ])
+        }
+        // Temple arm from the rim's outer edge back to the ear.
+        add(
+          'head',
+          new THREE.BoxGeometry(hR * 1.05, t * 0.75, t * 0.75),
+          gc,
+          [sx * hR * 0.74, hH * 0.51, hH * 0.22],
+          [0, sx * 1.12, 0],
+        )
+      }
+      add('head', new THREE.BoxGeometry(2 * ex - w - t, t * 0.9, d), gc, [
+        0,
+        hH * THREE.MathUtils.lerp(0.5, 0.44, seat),
+        gz,
+      ])
+    } else {
+      // Thin round tori hugging the face sphere's curve (v3.19).
+      const rimZ = hR * Math.sqrt(0.95 * 0.95 - 0.34 * 0.34)
+      const rimYaw = Math.asin(0.34 / 0.95)
+      for (const sx of [-1, 1]) {
+        add(
+          'head',
+          new THREE.TorusGeometry(hH * 0.072 * gS, 0.0072, 4, 12),
+          gc,
+          [sx * ex, hH * 0.5, rimZ + 0.02],
+          [0, sx * rimYaw, 0],
+        )
+      }
+      add('head', new THREE.BoxGeometry(hR * 0.26, 0.013, 0.013), gc, [
+        0,
+        hH * THREE.MathUtils.lerp(0.5, 0.435, seat),
+        faceZ + 0.014,
       ])
     }
   }
@@ -348,7 +408,12 @@ export function buildNodes(config: CharacterConfig) {
       [0, -armLen * 0.1 * sleeveLen, 0],
     )
   }
-  add('arm', new THREE.SphereGeometry(armR * 1.4, 8, 6), colors.skin, [0, -armLen * 0.84, 0])
+  add(
+    'arm',
+    new THREE.SphereGeometry(armR * 1.4 * (config.handScale ?? 1.12), 8, 6),
+    colors.skin,
+    [0, -armLen * 0.84, 0],
+  )
 
   // ---- Leg (local origin at the hip pivot; soles at −legLen) -----------
   const legR = 0.045 * (H / 1.25) * (config.limbThick ?? 1)
