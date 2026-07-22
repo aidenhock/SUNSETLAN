@@ -88,11 +88,15 @@ function blob(r: number, ws: number, hs: number, sx: number, sy: number, sz: num
 export function buildNodes(config: CharacterConfig) {
   const { height: H, headsTall, build, colors } = config
   const headH = H / headsTall
-  const legLen = H * 0.22
+  const legLen = H * 0.14
   const torsoH = H - headH - legLen
-  const torsoW = 0.34 * H * build
   const headR = headH * 0.51
-  const armLen = torsoH * 0.85
+  const headW = headR * 2
+  // Teardrop proportions (v3.16): shoulders ≈0.55× head width sloping out
+  // to hips ≈0.78× — the widest point sits near the BASE, never the top.
+  const shoulderR = headW * 0.275 * build
+  const hipR = headW * 0.39 * build
+  const armLen = torsoH * 0.95
 
   const parts = {
     torso: [] as THREE.BufferGeometry[],
@@ -118,22 +122,53 @@ export function buildNodes(config: CharacterConfig) {
   }
 
   // ---- Torso (local origin at the hips / leg tops) --------------------
-  // Egg in top color; intersecting solid volumes hide their seams inside.
-  add('torso', blob(torsoW / 2, 12, 9, 1, 1.11, 0.82), colors.top, [0, torsoH * 0.52, 0])
+  // TEARDROP lathe (v3.16): narrow sloped shoulders widening smoothly to
+  // the hips near the base — the inverse of the old egg. Depth squashed
+  // slightly so the profile reads chibi, not barrel.
+  // Below ~0.2·torsoH the skin profile tucks narrower than the shorts
+  // band, so the GARMENT forms the widest silhouette at the hips — the
+  // tee hem slopes into the teal, never a skin bulge over a bowl.
+  const profile = [
+    new THREE.Vector2(0.001, torsoH * 1.0),
+    new THREE.Vector2(shoulderR * 0.8, torsoH * 0.96),
+    new THREE.Vector2(shoulderR, torsoH * 0.86),
+    new THREE.Vector2(shoulderR + (hipR - shoulderR) * 0.35, torsoH * 0.62),
+    new THREE.Vector2(shoulderR + (hipR - shoulderR) * 0.75, torsoH * 0.36),
+    new THREE.Vector2(hipR * 0.97, torsoH * 0.2),
+    new THREE.Vector2(hipR * 0.9, torsoH * 0.12),
+    new THREE.Vector2(hipR * 0.78, torsoH * 0.02),
+    new THREE.Vector2(hipR * 0.45, -torsoH * 0.05),
+    new THREE.Vector2(0.001, -torsoH * 0.06),
+  ]
+  add(
+    'torso',
+    new THREE.LatheGeometry(profile, 14).applyMatrix4(new THREE.Matrix4().makeScale(1, 1, 0.86)),
+    colors.top,
+    [0, 0, 0],
+  )
   if (config.outfit === 'dress') {
-    // Flared cone skirt from the waist over the hips.
-    add('torso', new THREE.ConeGeometry(torsoW * 0.74, torsoH * 0.52, 14, 1), colors.bottom, [
+    // Flared cone skirt from the hips.
+    add('torso', new THREE.ConeGeometry(hipR * 1.35, torsoH * 0.45, 14, 1), colors.bottom, [
       0,
-      torsoH * 0.2,
+      torsoH * 0.1,
       0,
     ])
   } else {
-    // Shorts: a squashed band over the egg's lower half.
-    add('torso', blob(torsoW / 2 + 0.008, 10, 7, 1, 0.52, 0.85), colors.bottom, [
-      0,
-      torsoH * 0.14,
-      0,
-    ])
+    // Shorts hip band: a short cylinder hugging the teardrop's widest
+    // point — the garment's waist, never a flared bowl. The leg cuffs
+    // live in the LEG nodes.
+    add(
+      'torso',
+      new THREE.CylinderGeometry(hipR * 0.99, hipR * 0.8, torsoH * 0.26, 14).applyMatrix4(
+        // Match the teardrop's depth squash or the band rim pokes out
+        // front/back as a saucer in profile.
+        new THREE.Matrix4().makeScale(1, 1, 0.86),
+      ),
+      colors.bottom,
+      // Top edge overlaps the (narrower) skin profile — a waistband lip,
+      // never an open bowl rim with a gap behind it.
+      [0, torsoH * 0.09, 0],
+    )
   }
 
   // ---- Head (local origin at the neck; face = +z) ---------------------
@@ -206,36 +241,38 @@ export function buildNodes(config: CharacterConfig) {
   }
 
   // ---- Arm (local origin at the shoulder pivot, hangs along −y) --------
-  const armR = 0.052 * (H / 1.25)
-  add('arm', new THREE.CapsuleGeometry(armR, armLen * 0.5, 3, 8), colors.skin, [
+  // Slim, sleeveless, mounted inboard on the sloped shoulder; the ~12°
+  // A-pose rest splay lives in the rig so the arm hangs with a visible
+  // gap and the small ball hand clears the hip silhouette.
+  const armR = 0.036 * (H / 1.25)
+  add('arm', new THREE.CapsuleGeometry(armR, armLen * 0.6, 3, 8), colors.skin, [
     0,
-    -armLen * 0.38,
-    0,
-  ])
-  // Sleeve: shorter, fatter capsule in top color at the shoulder.
-  add('arm', new THREE.CapsuleGeometry(armR + 0.014, armLen * 0.18, 2, 8), colors.top, [
-    0,
-    -armLen * 0.14,
+    -armLen * 0.42,
     0,
   ])
-  // Ball hand.
-  add('arm', new THREE.SphereGeometry(armR * 1.35, 8, 6), colors.skin, [0, -armLen * 0.78, 0])
+  add('arm', new THREE.SphereGeometry(armR * 1.4, 8, 6), colors.skin, [0, -armLen * 0.84, 0])
 
   // ---- Leg (local origin at the hip pivot; soles at −legLen) -----------
-  const legR = 0.055 * (H / 1.25)
+  const legR = 0.045 * (H / 1.25)
   add('leg', new THREE.CapsuleGeometry(legR, legLen * 0.5, 3, 8), colors.skin, [
     0,
-    -legLen * 0.42,
+    -legLen * 0.4,
     0,
   ])
-  // Lozenge shoe, toe forward; bottom kisses rig-local y = −legLen so the
-  // planted feet sit exactly at groundHeightAt (blob-shadow contract).
-  const shoeR = legR * 1.45
-  add('leg', blob(shoeR, 10, 7, 1.05, 0.55, 1.5), colors.shoes, [
-    0,
-    -legLen + shoeR * 0.55,
-    0.045,
-  ])
+  if (config.outfit !== 'dress') {
+    // Shorts cuff on the upper thigh — riding the leg node it swings
+    // like fabric; two cuffs leave daylight at the inseam.
+    add('leg', new THREE.CylinderGeometry(legR * 1.5, legR * 1.42, legLen * 0.55, 10), colors.bottom, [
+      0,
+      -legLen * 0.24,
+      0,
+    ])
+  }
+  // Small rounded shoe, toe forward; bottom kisses rig-local y = −legLen
+  // so the planted feet sit exactly at groundHeightAt (blob-shadow
+  // contract).
+  const shoeR = legR * 1.5
+  add('leg', blob(shoeR, 10, 7, 1, 0.6, 1.3), colors.shoes, [0, -legLen + shoeR * 0.6, 0.025])
 
   const merge = (list: THREE.BufferGeometry[]) => {
     const merged = mergeGeometries(list)
@@ -252,9 +289,12 @@ export function buildNodes(config: CharacterConfig) {
     dims: {
       legLen,
       torsoH,
-      hipX: torsoW * 0.26,
-      shoulderX: torsoW * 0.46,
-      shoulderY: torsoH * 0.82,
+      hipX: 0.085 * H,
+      // The pivot kisses the shoulder slope's SURFACE — mounted any
+      // deeper the arm hangs inside the teardrop and the hands bury
+      // themselves in the wider hips.
+      shoulderX: shoulderR + armR * 0.5,
+      shoulderY: torsoH * 0.86,
     },
   }
 }
@@ -329,8 +369,14 @@ export function BlockyCharacter({
     const sway = Math.sin(t * 1.7) * p.sway
     armL.current.rotation.x = -armSwing * ground + AIR_POSE.armL * p.air
     armR.current.rotation.x = armSwing * ground + AIR_POSE.armR * p.air
-    armL.current.rotation.z = 0.08 + sway + AIR_POSE.splay * p.air
-    armR.current.rotation.z = -0.08 - sway - AIR_POSE.splay * p.air
+    // ~12° A-pose rest (v3.16) so the slim arms hang clear of the torso;
+    // walking/running angles the swing plane slightly further outward so
+    // nothing clips into the wider hips mid-stride. Sign note: +z rotation
+    // swings a hanging tip toward +x, so the LEFT arm (−x) splays OUTWARD
+    // with NEGATIVE z — the old +0.08 was quietly splaying inward.
+    const splay = 0.24 + p.swingAmp * 0.1 + AIR_POSE.splay * p.air
+    armL.current.rotation.z = -splay - sway
+    armR.current.rotation.z = splay + sway
 
     // Head look-at (v3.3): ease toward the camera when idle (clamped ±60°
     // yaw / ±25° pitch — beyond the clamp, ease back to neutral); while

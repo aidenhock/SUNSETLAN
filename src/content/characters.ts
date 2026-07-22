@@ -38,7 +38,7 @@ export interface CharacterConfig {
 /** Aiden: blonde swoop, thin dark glasses, yellow tee, teal shorts. */
 export const AIDEN: CharacterConfig = {
   height: 1.25,
-  headsTall: 2.2,
+  headsTall: 2.0,
   build: 1,
   colors: {
     skin: '#f6cf9f',
@@ -57,7 +57,7 @@ export const AIDEN: CharacterConfig = {
  * template future female NPCs start from. */
 export const ROSE: CharacterConfig = {
   height: 1.22,
-  headsTall: 2.2,
+  headsTall: 2.0,
   build: 0.96,
   colors: {
     skin: '#f6cf9f',

@@ -90,8 +90,11 @@ async function main() {
 
         if (cfg.mode === 'edges') {
           // Left edge x of the lane at given rows: first crossing of
-          // bg-median + 0.05 scanning rightward. For the living-edges
-          // assert (v3.14): positions must differ between frames.
+          // bg-median + delta scanning rightward. For the living-edges
+          // assert (v3.14): positions must differ between frames. The
+          // delta must sit on the SOFT wobbling boundary — too high and
+          // the detector locks onto the static bright-core start (the dim
+          // night lane needs a lower delta than the day's).
           return cfg.rows.map((y) => {
             const x0 = cfg.x0, x1 = cfg.x1
             const lum = []
@@ -99,7 +102,7 @@ async function main() {
             const sorted = [...lum].sort((a, b) => a - b)
             const median = sorted[Math.floor(sorted.length / 2)]
             for (let i = 0; i < lum.length; i++) {
-              if (lum[i] > median + 0.05) return x0 + i * 2
+              if (lum[i] > median + cfg.delta) return x0 + i * 2
             }
             return -1
           })
@@ -353,8 +356,10 @@ async function main() {
       laneWin: [760, 1100, 468, 545], ctrlWin: [760, 1100, 600, 720], margin: 0.04 },
     // night-L control mirrors night-R: dark sea below the band (the day-L
     // bottom-left control sits on the moonlit surf strip at night).
+    // night-L is the dimmest vantage — its stable margin sits ~0.03-0.04
+    // (a camera-anchored miss reads ~0, so 0.025 still discriminates).
     { name: 'night-orbit-L', lat: 15.5, long: 188, azOff: -1.2,
-      laneWin: [200, 560, 468, 545], ctrlWin: [140, 480, 600, 720], margin: 0.04 },
+      laneWin: [200, 560, 468, 545], ctrlWin: [140, 480, 600, 720], margin: 0.025 },
     { name: 'night-orbit-R', lat: 15.5, long: 188, azOff: 1.2,
       laneWin: [760, 1100, 468, 545], ctrlWin: [760, 1100, 600, 720], margin: 0.04 },
   ]
@@ -402,8 +407,8 @@ async function main() {
 
   // ---- v3.14 (2): living edges — the boundary moves between frames -----
   for (const m of [
-    { name: 'day-edges', lat: 15, long: 8, disc: 'sun' },
-    { name: 'night-edges', lat: 15.5, long: 188, disc: 'moon' },
+    { name: 'day-edges', lat: 15, long: 8, disc: 'sun', delta: 0.05 },
+    { name: 'night-edges', lat: 15.5, long: 188, disc: 'moon', delta: 0.03 },
   ]) {
     await pose(m.lat, m.long)
     const d = await analyze({ mode: 'disc', disc: m.disc })
@@ -415,7 +420,7 @@ async function main() {
     // Three samples across ~2.7 s: any pair differing proves the edge
     // lives (a single pair can land on near-identical wobble phase).
     const rows = [d.maxY + 56, d.maxY + 72, d.maxY + 88]
-    const cfg = { mode: 'edges', rows, x0: Math.max(0, d.cx - 420), x1: d.cx + 60 }
+    const cfg = { mode: 'edges', rows, x0: Math.max(0, d.cx - 420), x1: d.cx + 60, delta: m.delta }
     const samples = [await analyze(cfg)]
     for (let i = 0; i < 2; i++) {
       await page.waitForTimeout(1300)

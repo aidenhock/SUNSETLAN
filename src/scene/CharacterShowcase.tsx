@@ -11,6 +11,7 @@ import { BlockyCharacter, type MotionState } from './BlockyCharacter'
  * is deterministic:
  *   ?chartest&az=<deg>    camera azimuth around the pair (0 = front)
  *   &pose=idle|walk|run|air
+ *   &solo=aiden|rose      one centered character (side-profile shots)
  * The camera azimuth feeds MotionState, so the head look-at responds
  * exactly as in-game (the look-at demo IS an az sweep).
  */
@@ -18,6 +19,7 @@ export function CharacterShowcase() {
   const flags = new URLSearchParams(window.location.search)
   const azDeg = Number(flags.get('az') ?? '0')
   const pose = (flags.get('pose') ?? 'idle') as MotionState['locomotion'] | 'air'
+  const solo = flags.get('solo')
   const az = THREE.MathUtils.degToRad(azDeg)
   const dist = 3.4
   const camPos: [number, number, number] = [Math.sin(az) * dist, 1.35, Math.cos(az) * dist]
@@ -40,12 +42,16 @@ export function CharacterShowcase() {
           <circleGeometry args={[6, 32]} />
           <meshLambertMaterial color="#e8c97a" />
         </mesh>
-        <group position={[-0.55, 0, 0]}>
-          <BlockyCharacter config={AIDEN} motion={motion} />
-        </group>
-        <group position={[0.55, 0, 0]}>
-          <BlockyCharacter config={ROSE} motion={motion} />
-        </group>
+        {solo !== 'rose' && (
+          <group position={[solo === 'aiden' ? 0 : -0.55, 0, 0]}>
+            <BlockyCharacter config={AIDEN} motion={motion} />
+          </group>
+        )}
+        {solo !== 'aiden' && (
+          <group position={[solo === 'rose' ? 0 : 0.55, 0, 0]}>
+            <BlockyCharacter config={ROSE} motion={motion} />
+          </group>
+        )}
       </Canvas>
     </div>
   )
