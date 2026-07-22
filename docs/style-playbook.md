@@ -40,22 +40,30 @@ volumes, all still stock three.js primitives, merged per rigid node:
   (`scale(1, ~1.6, 0.45)`) each with a tiny white highlight sphere
   offset up-outward; mouth = micro torus arc (partial `TorusGeometry`,
   smile opens upward); a tiny rounded NOSE just above the mouth (soft
-  peach blob, `noseStyle` param); small rounded EARS on the head sides
-  (`earSize` param) — protruding enough to read from the front AND the
-  back, where they carry the chibi read; optional blush = flattened
+  peach blob, `noseStyle` param); PERKY round monkey-ears at the
+  head's midline or slightly above (`earY`), tilted outward-upward
+  ~10–15° (`earTilt`), protruding past the hair cap so they read from
+  the front AND the back, matched sides; optional blush = flattened
   pink discs on the cheeks (config flag).
-- **Glasses faces (v3.18 — never voids)**: rims are SMALL thin dark
-  tori (lens diameter ≈ 0.14× head height — over-sized rims plus dark
-  eyes read as solid black voids, the uncanny failure). Behind each
-  rim the eye EXISTS: white sclera blob + dark pupil + a small white
-  highlight dot, clearly visible within the rim at gameplay camera
-  distance — the highlight dot is where the charm lives. Never fill a
-  lens with opaque color.
+- **Eyes are DARK-DOMINANT (v3.19 — never googly)**: each eye is a
+  dark rounded oval (near-black warm brown) with ONE small white
+  catchlight dot in the upper corner — no white sclera discs. The
+  catchlight must read at gameplay distance; it is where the charm
+  lives. Bespectacled eyes sit at ~0.10× head height (between the void
+  fix and the first approved head); bare faces keep the bigger AC
+  oval.
+- **Glasses SEAT on the face (v3.19)**: the bridge RESTS on the top of
+  the nose (touching, `glassesSeat` dial), lenses center on the eyes,
+  and each rim rotates to follow the face sphere's curve — never a
+  flat pair hovering off the face. Rims stay thin dark tori (lens ≈
+  0.14× head height); never fill a lens with opaque color.
 - **Tee, not tank (v3.18)**: short sleeve caps in the top color hug
   the arm's top segment (skin starts below the sleeve) — SLIM (+~20%
   arm radius at most; the old fat sleeve built linebacker shoulders),
   emerging from under the torso curve so the shoulder silhouette stays
-  the teardrop's.
+  the teardrop's. Rest pose (v3.19): arms angle ~45° down-and-out with
+  clear daylight along the whole upper arm, ball hands ending outside
+  the hip silhouette; swings compose on this base.
 - **Hair reads as ONE mass**: fringe volumes overlap deep into the cap
   (a separated fringe reads as a glued-on lobe). The swoop = cap +
   side-swept fringe merged into one smooth silhouette.
@@ -67,9 +75,13 @@ volumes, all still stock three.js primitives, merged per rigid node:
   guesswork.
 - **Body = TEARDROP, never an egg-on-end** (v3.16 fix — the egg read
   widest at the shoulders): a `LatheGeometry` profile with narrow sloped
-  shoulders (≈0.55× head width) widening in ONE unbroken convex curve to
-  the hips (≈0.8× head width — the body's widest point, near its base)
-  and a rounded base. No shelf, no seams. **Watertight + outward
+  shoulders (≈0.48× head width, v3.19 slim; `waistSlim` pulls the
+  mid-torso in a further ~8–10%) widening in ONE unbroken convex curve
+  to the hips (≈0.8× head width — the body's widest point, near its
+  base) and a rounded base ending in a TEE-HEM LIP: the hem extends
+  below the widest point at full radius, and the shorts band beneath
+  sits at a clearly SMALLER radius — real radial clearance, never
+  coplanar surfaces at the waist (the poking waistband line). **Watertight + outward
   normals (v3.17)**: the profile must start AND end on the axis so the
   lathe caps itself, and must run BOTTOM→TOP — a top→bottom profile
   winds the triangles inward, and the backface-culled hollow renders
