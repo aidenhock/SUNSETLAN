@@ -191,7 +191,7 @@ export function buildNodes(config: CharacterConfig) {
   const faceZ = hR * 0.95
   // Neck (optional, default 0 = AC style): lives in the HEAD node so it
   // moves with the look-at, embedded into skull and collar.
-  const neckLen = config.neckLength ?? 0.06
+  const neckLen = config.neckLength ?? 0
   if (neckLen > 0) {
     add(
       'head',
@@ -361,16 +361,25 @@ export function buildNodes(config: CharacterConfig) {
     list.forEach((g) => g.dispose())
     return merged
   }
+  const headNode = merge(parts.head)
+  // No-neck (v3.18): the head pivots about its OWN CENTER — re-center
+  // the merged geometry on the skull center so rotation leaves the
+  // sphere in place, and the ~13% collar embed can never open a gap at
+  // any look-at deflection.
+  headNode.translate(0, -hH * 0.48, 0)
   return {
     nodes: {
       torso: merge(parts.torso),
-      head: merge(parts.head),
+      head: headNode,
       arm: merge(parts.arm),
       leg: merge(parts.leg),
     },
     dims: {
       legLen,
       torsoH,
+      // Skull center height: base embedded ~13% of head height into the
+      // collar (skull half-height 0.9·hR ≈ 0.459·hH), plus any neck.
+      headPivotY: torsoH + hH * 0.329 + neckLen,
       hipX: 0.085 * H,
       // Mounts sink BENEATH the shoulder slope (v3.17): the capsule top
       // never crests the torso curve; the A-pose carries the arm out
@@ -528,7 +537,7 @@ export function BlockyCharacter({
         <group ref={armR} position={[dims.shoulderX, dims.shoulderY, 0]}>
           <mesh geometry={nodes.arm} material={characterMaterial} />
         </group>
-        <group ref={head} position={[0, dims.torsoH, 0]}>
+        <group ref={head} position={[0, dims.headPivotY, 0]}>
           <mesh geometry={nodes.head} material={characterMaterial} />
         </group>
       </group>

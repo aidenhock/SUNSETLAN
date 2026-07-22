@@ -75,10 +75,16 @@ volumes, all still stock three.js primitives, merged per rigid node:
   winds the triangles inward, and the backface-culled hollow renders
   arms-through-the-torso from behind. Chibi proportions per the base
   reference: ~2 heads tall, head ≈50% of total height.
-- **Neck (v3.17)**: a short skin cylinder living in the HEAD node
-  (it moves with the look-at), embedded deep into both the skull and a
-  domed collar apex — sized so the full look-at range (±60° yaw, ±25°
-  pitch) never opens a gap. Verify at max deflection, not neutral.
+- **NO NECK (v3.18 taste call)**: the head sits DIRECTLY on the torso,
+  AC-villager style — the skull's base embeds ~13% of head height into
+  the collar, and the head pivots about its OWN CENTER (never a neck
+  joint below it): a sphere rotating about its center is
+  rotation-invariant, so the embed can never open a gap at any
+  yaw/pitch. Verify at maximum COMPOUND deflection (±60° yaw with ±25°
+  pitch) from a full orbit; deepen the embed if anything shows. The
+  rig keeps `neckLength` (default 0) for characters that want a
+  visible neck — the cylinder then lives in the HEAD node so it moves
+  with the look-at.
 - **Arms**: slim capsules whose mounts sink BENEATH the torso surface —
   the capsule top never crests above the shoulder slope; the shoulder
   silhouette is the torso's curve, arms emerging from under it. Rest

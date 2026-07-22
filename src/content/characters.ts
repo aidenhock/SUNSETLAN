@@ -56,7 +56,7 @@ export interface CharacterConfig {
   shoulderFrac?: number
   /** Hip half-width as a fraction of head width (0.39). */
   hipFrac?: number
-  /** Visible neck length in meters (default 0.06). */
+  /** Visible neck length in meters (default 0 — AC style, head sits on the torso). */
   neckLength?: number
 }
 

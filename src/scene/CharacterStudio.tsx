@@ -38,7 +38,7 @@ const NUM_DIALS: Array<[string, keyof CharacterConfig, number, number, number, n
   ['Limb thickness', 'limbThick', 0.6, 1.6, 0.01, 1],
   ['Shoulder frac', 'shoulderFrac', 0.2, 0.4, 0.005, 0.275],
   ['Hip frac', 'hipFrac', 0.3, 0.5, 0.005, 0.39],
-  ['Neck length (m)', 'neckLength', 0, 0.12, 0.005, 0.06],
+  ['Neck length (m)', 'neckLength', 0, 0.12, 0.005, 0],
 ]
 
 const COLOR_KEYS = ['skin', 'hair', 'top', 'bottom', 'shoes', 'eyes'] as const

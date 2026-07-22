@@ -20,6 +20,8 @@ export function CharacterShowcase() {
   const azDeg = Number(flags.get('az') ?? '0')
   const pose = (flags.get('pose') ?? 'idle') as MotionState['locomotion'] | 'air'
   const solo = flags.get('solo')
+  // &pitch= drives camPitch so max-deflection look-at states are testable.
+  const camPitch = Number(flags.get('pitch') ?? '0.18')
   const az = THREE.MathUtils.degToRad(azDeg)
   const dist = 3.4
   const camPos: [number, number, number] = [Math.sin(az) * dist, 1.35, Math.cos(az) * dist]
@@ -28,7 +30,7 @@ export function CharacterShowcase() {
     airborne: pose === 'air',
     azimuth: az,
     avatarYaw: 0,
-    camPitch: 0.18,
+    camPitch,
   })
   return (
     <div className="h-full w-full">
