@@ -45,18 +45,25 @@ volumes, all still stock three.js primitives, merged per rigid node:
   ~10–15° (`earTilt`), protruding past the hair cap so they read from
   the front AND the back, matched sides; optional blush = flattened
   pink discs on the cheeks (config flag).
-- **Eyes are DARK-DOMINANT (v3.19 — never googly)**: each eye is a
-  dark rounded oval (near-black warm brown) with ONE small white
-  catchlight dot in the upper corner — no white sclera discs. The
-  catchlight must read at gameplay distance; it is where the charm
-  lives. Bespectacled eyes sit at ~0.10× head height (between the void
-  fix and the first approved head); bare faces keep the bigger AC
-  oval.
-- **Glasses SEAT on the face (v3.19)**: the bridge RESTS on the top of
-  the nose (touching, `glassesSeat` dial), lenses center on the eyes,
-  and each rim rotates to follow the face sphere's curve — never a
-  flat pair hovering off the face. Rims stay thin dark tori (lens ≈
-  0.14× head height); never fill a lens with opaque color.
+- **Eyes come in two styles (`eyeStyle`)**. 'dark' (v3.19): a dark
+  rounded oval (near-black warm brown) with ONE white catchlight in
+  the upper corner — the AC villager read. 'normal' (v3.20, the
+  Raymond target): LAYERED stacked flattened discs with small
+  z-offsets — subtle dark outline → white oval base → soft blue IRIS
+  ring (`irisColor`, ~#5B8FE3) → dark pupil → one white catchlight,
+  upper corner. The outline keeps the white from dissolving into the
+  skin; the layers must read as friendly blue eyes at gameplay
+  distance (verify at distance, not close-up). If z-offsets shimmer,
+  fall back to a tiny GENERATED canvas eye texture on a disc (§3
+  caveat — never a downloaded image).
+- **Glasses (`glassesStyle`)**: 'bold-rect' (v3.20, Raymond) = bold
+  rounded-rectangle rims built from chunky charcoal boxes, visibly
+  thick, bridge TOUCHING the nose top, lenses open (both eyes fully
+  visible inside), short temple arms running back to the ears; scaled
+  so the rims frame the eyes without touching hair or smile. 'round'
+  (v3.19) = thin dark tori hugging the face sphere's curve, bridge
+  seated on the nose (`glassesSeat`). Never fill a lens with opaque
+  color.
 - **Tee, not tank (v3.18)**: short sleeve caps in the top color hug
   the arm's top segment (skin starts below the sleeve) — SLIM (+~20%
   arm radius at most; the old fat sleeve built linebacker shoulders),
@@ -75,8 +82,8 @@ volumes, all still stock three.js primitives, merged per rigid node:
   guesswork.
 - **Body = TEARDROP, never an egg-on-end** (v3.16 fix — the egg read
   widest at the shoulders): a `LatheGeometry` profile with narrow sloped
-  shoulders (≈0.48× head width, v3.19 slim; `waistSlim` pulls the
-  mid-torso in a further ~8–10%) widening in ONE unbroken convex curve
+  shoulders (≈0.455× head width after the v3.20 −6% nudge; `waistSlim`
+  pulls the mid-torso in further) widening in ONE unbroken convex curve
   to the hips (≈0.8× head width — the body's widest point, near its
   base) and a rounded base ending in a TEE-HEM LIP: the hem extends
   below the widest point at full radius, and the shorts band beneath
