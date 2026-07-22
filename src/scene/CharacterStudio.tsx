@@ -42,6 +42,7 @@ const NUM_DIALS: Array<[string, keyof CharacterConfig, number, number, number, n
   ['Hip frac', 'hipFrac', 0.3, 0.5, 0.005, 0.39],
   ['Waist slim', 'waistSlim', 0, 0.6, 0.02, 0.2],
   ['Glasses seat', 'glassesSeat', 0, 1, 0.05, 1],
+  ['Eyelid cover', 'lidHeight', 0, 0.5, 0.02, 0.28],
   ['Ear height', 'earY', 0.3, 0.65, 0.01, 0.52],
   ['Ear tilt (deg)', 'earTilt', 0, 25, 1, 12],
   ['Neck length (m)', 'neckLength', 0, 0.12, 0.005, 0],

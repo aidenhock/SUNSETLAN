@@ -271,6 +271,14 @@ export function buildNodes(config: CharacterConfig) {
         hH * 0.517,
         faceZ + 0.024,
       ])
+      // Upper eyelid: a skin disc flat-topping the eye (the relaxed AC
+      // read); the catchlight stays below the lid line.
+      const lid = config.lidHeight ?? 0.28
+      add('head', blob(hH * 0.054 * eyeS, 5, 3, 1.06, 0.52, 0.34), colors.skin, [
+        sx * ex,
+        hH * (0.5 + 0.064 * eyeS * (1.05 - lid)),
+        faceZ + 0.018,
+      ])
     }
   } else {
     for (const sx of [-1, 1]) {
@@ -322,11 +330,8 @@ export function buildNodes(config: CharacterConfig) {
           [0, sx * 1.12, 0],
         )
       }
-      add('head', new THREE.BoxGeometry(2 * ex - w - t, t * 0.9, d), gc, [
-        0,
-        hH * THREE.MathUtils.lerp(0.5, 0.44, seat),
-        gz,
-      ])
+      // Bridge spans the rims at their CENTER height (taste call).
+      add('head', new THREE.BoxGeometry(2 * ex - w - t, t * 0.9, d), gc, [0, gy, gz])
     } else {
       // Thin round tori hugging the face sphere's curve (v3.19).
       const rimZ = hR * Math.sqrt(0.95 * 0.95 - 0.34 * 0.34)

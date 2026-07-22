@@ -51,15 +51,18 @@ volumes, all still stock three.js primitives, merged per rigid node:
   Raymond target): LAYERED stacked flattened discs with small
   z-offsets — subtle dark outline → white oval base → soft blue IRIS
   ring (`irisColor`, ~#5B8FE3) → dark pupil → one white catchlight,
-  upper corner. The outline keeps the white from dissolving into the
-  skin; the layers must read as friendly blue eyes at gameplay
-  distance (verify at distance, not close-up). If z-offsets shimmer,
+  upper corner → a skin-tone UPPER EYELID disc flat-topping the eye
+  (`lidHeight`, ~28% covered — the relaxed AC read; the catchlight
+  stays below the lid line). The outline keeps the white from
+  dissolving into the skin; the layers must read as friendly blue eyes
+  at gameplay distance (verify at distance, not close-up). If z-offsets shimmer,
   fall back to a tiny GENERATED canvas eye texture on a disc (§3
   caveat — never a downloaded image).
 - **Glasses (`glassesStyle`)**: 'bold-rect' (v3.20, Raymond) = bold
   rounded-rectangle rims built from chunky charcoal boxes, visibly
-  thick, bridge TOUCHING the nose top, lenses open (both eyes fully
-  visible inside), short temple arms running back to the ears; scaled
+  thick, the bridge spanning the rims at their CENTER height (taste
+  call — never drooping at the rim bottoms), lenses open (both eyes
+  fully visible inside), short temple arms running back to the ears; scaled
   so the rims frame the eyes without touching hair or smile. 'round'
   (v3.19) = thin dark tori hugging the face sphere's curve, bridge
   seated on the nose (`glassesSeat`). Never fill a lens with opaque

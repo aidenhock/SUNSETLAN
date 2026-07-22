@@ -65,6 +65,8 @@ export interface CharacterConfig {
   eyeStyle?: 'dark' | 'normal'
   /** Iris ring color for eyeStyle 'normal' (#5b8fe3). */
   irisColor?: string
+  /** Upper-eyelid coverage for eyeStyle 'normal', 0–0.5 (0.28). */
+  lidHeight?: number
   /** Frame style when `glasses` is set: bold rounded-rect boxes
    * (Raymond) or thin round tori. Default 'bold-rect'. */
   glassesStyle?: 'bold-rect' | 'round' | 'none'
