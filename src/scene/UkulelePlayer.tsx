@@ -235,6 +235,8 @@ export function UkulelePlayer() {
   const koaPose: NonNullable<Parameters<typeof BlockyCharacter>[0]['poseHook']> = ({
     armL,
     armR,
+    foreL,
+    foreR,
     legL,
     legR,
     head,
@@ -243,14 +245,25 @@ export function UkulelePlayer() {
     // Dangling legs over the edge, gentle alternate kicks.
     legL.rotation.x = 0.55 + Math.sin(t * 1.3) * 0.08
     legR.rotation.x = 0.55 + Math.sin(t * 1.3 + Math.PI) * 0.08
-    // Left hand up the neck; right arm strums — a quick down-flick
-    // eased out over ~0.18 s from the last SCHEDULED strum.
-    armL.rotation.x = -0.9
-    armL.rotation.z = 0.5
+    // Rebuilt on the elbows (v3.21): the fret arm reaches out along
+    // the neck with a sharp elbow bend up to the frets; the strum arm
+    // cradles over the body. STRUM = FOREARM rotation from the elbow —
+    // a quick flick eased over ~0.18 s from the last SCHEDULED strum —
+    // the upper arm stays cradled.
+    armL.rotation.x = -0.35
+    armL.rotation.z = 0.42
+    if (foreL) {
+      foreL.rotation.x = -1.35
+      foreL.rotation.z = 0.15
+    }
     const since = t - pose.current.lastStrumT
     const flick = since < 0.18 ? Math.sin((since / 0.18) * Math.PI) : 0
-    armR.rotation.x = -0.55 - flick * 0.5
-    armR.rotation.z = -0.25
+    armR.rotation.x = -0.7
+    armR.rotation.z = -0.3
+    if (foreR) {
+      foreR.rotation.x = -0.95 - flick * 0.45
+      foreR.rotation.z = -0.1
+    }
     // Head bob on the beat.
     head.rotation.z += Math.sin((t * BPM) / 60 * Math.PI) * 0.04
   }
@@ -260,12 +273,12 @@ export function UkulelePlayer() {
     <SurfaceGroup lat={MAP.ukulelePlayer.lat} long={MAP.ukulelePlayer.long} raise={0.72} yaw={-Math.PI / 2 - 0.45}>
       <group ref={rigGroup} position={[0, -0.16, 0]}>
         <BlockyCharacter config={KOA} motion={koaMotion} poseHook={koaPose} />
-        {/* Ukulele held across the lap — one merged mesh. */}
+        {/* Ukulele against the chest, aligned with both hands. */}
         <mesh
           geometry={ukeGeo}
           material={ukeMat}
-          position={[0.12, 0.62, 0.34]}
-          rotation={[0.15, -0.5, -0.35]}
+          position={[0.1, 0.72, 0.3]}
+          rotation={[0.1, -0.45, -0.5]}
         />
         <points ref={notesRef} geometry={noteGeo} material={noteMat} position={[0, 0.4, 0]} />
       </group>
