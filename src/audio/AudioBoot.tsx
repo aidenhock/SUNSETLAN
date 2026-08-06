@@ -1,6 +1,9 @@
 import { useThree } from '@react-three/fiber'
 import { useEffect } from 'react'
 import { armAudio } from './core'
+import { registerProceduralFallbacks } from './procedural'
+
+registerProceduralFallbacks()
 
 /**
  * Arms the audio core on the FIRST user gesture (pointer or key) — the
