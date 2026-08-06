@@ -5,7 +5,8 @@ import { play2d } from '../audio/core'
 import { controlsRuntime } from '../controls/usePlanetController'
 import { latLongToUnit, poleInPlanetSpace, surfaceQuaternion } from '../controls/planetMath'
 import { useStore } from '../store/useStore'
-import { PLANET_RADIUS, surfOffset, terrainProfile } from './planetConfig'
+import { advanceCrab, CRAB_SPEED, type CrabState } from './crabWalk'
+import { PLANET_RADIUS, terrainProfile } from './planetConfig'
 
 /**
  * Crabs (3C): 3–4 primitive critters — body + four leg boxes each,
@@ -19,19 +20,6 @@ import { PLANET_RADIUS, surfOffset, terrainProfile } from './planetConfig'
 
 const CRAB_COUNT = 4
 const PARTS_PER_CRAB = 5
-const LAT_MIN = 16
-const LAT_MAX = 23
-const WALK_SPEED = 0.55
-const SKITTER_SPEED = 2.0
-
-interface Crab {
-  lat: number
-  long: number
-  heading: number
-  state: 'pause' | 'walk' | 'skitter'
-  timer: number
-  phase: number
-}
 
 const SPAWNS: Array<[number, number]> = [
   [20, 22],
@@ -42,7 +30,7 @@ const SPAWNS: Array<[number, number]> = [
 
 export function Crabs() {
   const mesh = useRef<THREE.InstancedMesh>(null)
-  const crabs = useMemo<Crab[]>(
+  const crabs = useMemo<CrabState[]>(
     () =>
       SPAWNS.map(([lat, long], i) => ({
         lat,
@@ -78,15 +66,13 @@ export function Crabs() {
       const crab = crabs[c]
       const visible = c < active
       if (visible) {
-        crab.timer -= dt
-        crab.phase += dt * (crab.state === 'pause' ? 2 : crab.state === 'walk' ? 10 : 20)
         scratch.unit.copy(latLongToUnit(crab.lat, crab.long))
         const arcToPlayer = scratch.unit.angleTo(scratch.pole) * PLANET_RADIUS
 
         // Startle: player within 2 m → skitter ~1 m directly away.
         if (crab.state !== 'skitter' && arcToPlayer < 2) {
           crab.state = 'skitter'
-          crab.timer = 1 / SKITTER_SPEED // ≈1 m of travel
+          crab.timer = 1 / CRAB_SPEED.skitter // ≈1 m of travel
           // Heading away from the player in lat/long space.
           const dLat = crab.lat - (90 - THREE.MathUtils.radToDeg(Math.acos(scratch.pole.y)))
           const dLong =
@@ -96,34 +82,7 @@ export function Crabs() {
           crab.heading = Math.atan2(dLong, dLat)
           if (arcToPlayer < 6) void play2d('crabs', 'world', 0.3)
         }
-        if (crab.timer <= 0) {
-          if (crab.state === 'walk' || crab.state === 'skitter') {
-            crab.state = 'pause'
-            crab.timer = 0.8 + Math.random() * 2.2
-          } else {
-            crab.state = 'walk'
-            crab.timer = 0.8 + Math.random() * 1.4
-            crab.heading = Math.random() * Math.PI * 2
-          }
-        }
-        if (crab.state !== 'pause') {
-          const speed = crab.state === 'skitter' ? SKITTER_SPEED : WALK_SPEED
-          const degPerM = 180 / (Math.PI * PLANET_RADIUS)
-          crab.lat += Math.cos(crab.heading) * speed * dt * degPerM
-          crab.long += (Math.sin(crab.heading) * speed * dt * degPerM) / Math.cos((crab.lat * Math.PI) / 180)
-          // Band clamps: grass edge above, LIVE waterline below.
-          if (crab.lat > LAT_MAX) {
-            crab.lat = LAT_MAX
-            crab.heading = Math.PI - crab.heading
-          }
-          const polar = THREE.MathUtils.degToRad(90 - crab.lat)
-          const wetAt = terrainProfile(polar) < surfOffset(polar, t) + 0.04
-          if (crab.lat < LAT_MIN || wetAt) {
-            crab.lat = Math.max(crab.lat, LAT_MIN)
-            crab.heading = Math.PI - crab.heading
-            if (wetAt) crab.lat += 0.05
-          }
-        }
+        advanceCrab(crab, dt, t)
       }
 
       // Compose the 5 part matrices (hidden crabs collapse to zero).

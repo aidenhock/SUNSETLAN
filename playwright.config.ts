@@ -24,7 +24,7 @@ export default defineConfig({
   projects: [
     {
       name: 'desktop',
-      testMatch: /(world|modals|classic)\.spec\.ts/,
+      testMatch: /(world|modals|classic|audio)\.spec\.ts/,
       use: { channel: 'chrome', viewport: { width: 1280, height: 800 } },
     },
     {

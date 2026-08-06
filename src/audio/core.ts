@@ -232,13 +232,26 @@ export function armAudio(camera: THREE.Camera) {
   audioRuntime.ctx = ctx
   audioRuntime.buses = { music: mk(), world: mk(), ui: mk() }
   audioRuntime.armed = true
-  // Mute hard-zeroes the master (the listener's own gain) instantly.
-  const applyMute = (muted: boolean) => listener.setMasterVolume(muted ? 0 : 1)
+  // Mute hard-zeroes the master (the listener's own gain) INSTANTLY —
+  // a direct value write, not setMasterVolume's setTargetAtTime ramp
+  // (which is neither instant nor guaranteed to finish on a suspended
+  // clock).
+  const applyMute = (muted: boolean) => {
+    listener.gain.gain.cancelScheduledValues(0)
+    listener.gain.gain.value = muted ? 0 : 1
+  }
   applyMute(useStore.getState().muted)
   useStore.subscribe((s, prev) => {
     if (s.muted !== prev.muted) applyMute(s.muted)
   })
   if (ctx.state === 'suspended') void ctx.resume()
   for (const cb of gestureCallbacks.splice(0)) cb()
-  ;(window as unknown as { __audioArmed?: boolean }).__audioArmed = true
+  const w = window as unknown as { __audioArmed?: boolean; __audioDebug?: () => unknown }
+  w.__audioArmed = true
+  w.__audioDebug = () => ({
+    master: listener.getMasterVolume(),
+    music: audioRuntime.buses?.music.gain.value ?? 0,
+    world: audioRuntime.buses?.world.gain.value ?? 0,
+    ui: audioRuntime.buses?.ui.gain.value ?? 0,
+  })
 }

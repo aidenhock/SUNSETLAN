@@ -17,6 +17,10 @@ export function surfaceToCategory(surface: Surface): Category {
 /** One foot plant. Sprint is naturally faster-cadenced (anim-driven)
  * and slightly louder here. */
 export function stepSound(surface: Surface, sprint: boolean) {
+  // e2e cadence probe.
+  const w = window as unknown as { __stepLog?: Array<{ t: number; surface: string }> }
+  ;(w.__stepLog ??= []).push({ t: performance.now(), surface })
+  if (w.__stepLog.length > 64) w.__stepLog.shift()
   void play2d(
     surfaceToCategory(surface),
     'world',

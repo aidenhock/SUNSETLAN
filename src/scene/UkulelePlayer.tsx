@@ -1,13 +1,40 @@
 import { useFrame, useThree } from '@react-three/fiber'
 import { useMemo, useRef } from 'react'
 import * as THREE from 'three'
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { audioRuntime, onArmed, routeToBus } from '../audio/core'
 import { makeStrumBuffer, mulberry32 } from '../audio/procedural'
 import { KOA } from '../content/characters'
 import { useStore } from '../store/useStore'
 import { BlockyCharacter, type MotionState } from './BlockyCharacter'
+import { tintGeometry } from './geometryUtils'
 import { MAP } from './planetConfig'
+import { normalizeForMerge } from './props'
 import { SurfaceGroup } from './SurfaceGroup'
+
+/** The uke as ONE vertex-tinted mesh (draw-call budget). */
+const ukeGeo = (() => {
+  const parts: THREE.BufferGeometry[] = []
+  const add = (g: THREE.BufferGeometry, color: string, m: THREE.Matrix4) => {
+    const n = tintGeometry(normalizeForMerge(g), color)
+    g.dispose()
+    n.applyMatrix4(m)
+    parts.push(n)
+  }
+  add(new THREE.SphereGeometry(0.14, 10, 7), '#b5773f', new THREE.Matrix4())
+  add(
+    new THREE.SphereGeometry(0.11, 8, 6),
+    '#8a5a3a',
+    new THREE.Matrix4().makeScale(1, 0.45, 1).setPosition(0.02, 0, 0),
+  )
+  add(
+    new THREE.BoxGeometry(0.34, 0.05, 0.04),
+    '#5a4632',
+    new THREE.Matrix4().makeRotationZ(-0.08).setPosition(0.28, 0.02, 0),
+  )
+  return mergeGeometries(parts)
+})()
+const ukeMat = new THREE.MeshLambertMaterial({ vertexColors: true })
 
 /**
  * Koa, the ukulele player (3C) — first villager on the shared rig.
@@ -174,6 +201,10 @@ export function UkulelePlayer() {
       posAttr.needsUpdate = true
       colAttr.needsUpdate = true
     }
+    // An all-dead Points still costs a draw call — hide it entirely.
+    if (notesRef.current) {
+      notesRef.current.visible = noteLife.some((l) => l > 0)
+    }
   })
 
   // Seated pose + strum arm + look-at feed. The rig's standard idle
@@ -218,21 +249,13 @@ export function UkulelePlayer() {
     <SurfaceGroup lat={MAP.ukulelePlayer.lat} long={MAP.ukulelePlayer.long} raise={0.72} yaw={-Math.PI / 2 - 0.45}>
       <group ref={rigGroup} position={[0, -0.16, 0]}>
         <BlockyCharacter config={KOA} motion={koaMotion} poseHook={koaPose} />
-        {/* Ukulele held across the lap. */}
-        <group position={[0.12, 0.62, 0.34]} rotation={[0.15, -0.5, -0.35]}>
-          <mesh>
-            <sphereGeometry args={[0.14, 10, 7]} />
-            <meshLambertMaterial color="#b5773f" />
-          </mesh>
-          <mesh position={[0.02, 0, 0]} scale={[1, 0.45, 1]}>
-            <sphereGeometry args={[0.11, 8, 6]} />
-            <meshLambertMaterial color="#8a5a3a" />
-          </mesh>
-          <mesh position={[0.28, 0.02, 0]} rotation={[0, 0, -0.08]}>
-            <boxGeometry args={[0.34, 0.05, 0.04]} />
-            <meshLambertMaterial color="#5a4632" />
-          </mesh>
-        </group>
+        {/* Ukulele held across the lap — one merged mesh. */}
+        <mesh
+          geometry={ukeGeo}
+          material={ukeMat}
+          position={[0.12, 0.62, 0.34]}
+          rotation={[0.15, -0.5, -0.35]}
+        />
         <points ref={notesRef} geometry={noteGeo} material={noteMat} position={[0, 0.4, 0]} />
       </group>
     </SurfaceGroup>

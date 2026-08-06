@@ -29,6 +29,15 @@ import { skyRuntime } from './useSkyState'
 
 const LERP_TAU = 0.5
 
+/** The music bus target — pure, vitest-covered: base × uke crossfade
+ * (inside 8 m the uke owns the soundscape) × campfire duck (0.6 inside
+ * 10 → 4 m) × modal duck (to 0.2). */
+export function musicTarget(arcUkeM: number, arcFireM: number, modalOpen: boolean): number {
+  const ukeF = THREE.MathUtils.smoothstep(arcUkeM, 8, 20)
+  const fireF = THREE.MathUtils.lerp(0.6, 1, THREE.MathUtils.smoothstep(arcFireM, 4, 10))
+  return 0.35 * ukeF * fireF * (modalOpen ? 0.57 : 1)
+}
+
 export function WorldEmitters() {
   const fireAnchor = useRef<THREE.Group>(null)
   const st = useRef({
@@ -132,10 +141,7 @@ export function useMusicMix() {
     poleInPlanetSpace(controlsRuntime.planetQuaternion, s.pole)
     const arcUke = s.pole.angleTo(s.ukeUnit) * PLANET_RADIUS
     const arcFire = s.pole.angleTo(s.fireUnit) * PLANET_RADIUS
-    const ukeF = THREE.MathUtils.smoothstep(arcUke, 8, 20)
-    const fireF = THREE.MathUtils.lerp(0.6, 1, THREE.MathUtils.smoothstep(arcFire, 4, 10))
-    const modalF = useStore.getState().openModalId ? 0.57 : 1
-    const target = 0.35 * ukeF * fireF * modalF
+    const target = musicTarget(arcUke, arcFire, useStore.getState().openModalId !== null)
     rt.buses.music.gain.value += (target - rt.buses.music.gain.value) * k
     // Waves bed: shore-proximity level over the crossfading bag picks.
     s.waves.update(rt.buses.world)

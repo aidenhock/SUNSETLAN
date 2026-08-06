@@ -21,7 +21,8 @@ export class ShuffleBag {
   next(): number {
     if (this.size <= 0) return 0
     const depth = Math.min(2, this.size - 1)
-    const banned = this.history.slice(-depth)
+    // slice(-0) is slice(0) — the WHOLE history — so guard depth 0.
+    const banned = depth > 0 ? this.history.slice(-depth) : []
     const allowed: number[] = []
     for (let i = 0; i < this.size; i++) {
       if (!banned.includes(i)) allowed.push(i)
