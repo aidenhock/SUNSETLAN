@@ -64,6 +64,59 @@ const gullBodyMat = new THREE.MeshLambertMaterial({ vertexColors: true, flatShad
  * PositionalAudio to an actual orbiting gull. */
 export const gullAnchors: Array<THREE.Group | null> = []
 
+/** Wing pivot groups (2 per gull) — the flap animates the pivots, and
+ * ONE InstancedMesh renders every wing (draw-call budget: 3 gulls went
+ * 9 draws → 4). Instance matrices copy last frame's pivot world
+ * matrix — one frame of flap lag, invisible at 2.6–3.1 Hz. */
+const wingPivots: Array<THREE.Group | null> = []
+const wingGeo = new THREE.BoxGeometry(0.85, 0.05, 0.3)
+const _wingM = new THREE.Matrix4()
+const _wingOff = new THREE.Matrix4()
+const _parentInv = new THREE.Matrix4()
+
+/** Gull bodies are rigid — one InstancedMesh over the anchor groups
+ * (which stay in the tree for the flap pivots and the cry emitter). */
+function BodyInstances({ activeGulls }: { activeGulls: number }) {
+  const mesh = useRef<THREE.InstancedMesh>(null)
+  useFrame(() => {
+    const m = mesh.current
+    if (!m || !m.parent) return
+    _parentInv.copy(m.parent.matrixWorld).invert()
+    for (let i = 0; i < 3; i++) {
+      const anchor = gullAnchors[i]
+      if (!anchor || i >= activeGulls) {
+        _wingM.makeScale(0.0001, 0.0001, 0.0001)
+      } else {
+        _wingM.copy(_parentInv).multiply(anchor.matrixWorld)
+      }
+      m.setMatrixAt(i, _wingM)
+    }
+    m.instanceMatrix.needsUpdate = true
+  })
+  return <instancedMesh ref={mesh} args={[bodyGeo, gullBodyMat, 3]} frustumCulled={false} />
+}
+
+function WingInstances({ activeGulls }: { activeGulls: number }) {
+  const mesh = useRef<THREE.InstancedMesh>(null)
+  useFrame(() => {
+    const m = mesh.current
+    if (!m || !m.parent) return
+    _parentInv.copy(m.parent.matrixWorld).invert()
+    for (let i = 0; i < 6; i++) {
+      const pivot = wingPivots[i]
+      if (!pivot || i >= activeGulls * 2) {
+        _wingM.makeScale(0.0001, 0.0001, 0.0001)
+      } else {
+        _wingOff.makeTranslation(i % 2 === 0 ? -0.425 : 0.425, 0, 0)
+        _wingM.copy(_parentInv).multiply(pivot.matrixWorld).multiply(_wingOff)
+      }
+      m.setMatrixAt(i, _wingM)
+    }
+    m.instanceMatrix.needsUpdate = true
+  })
+  return <instancedMesh ref={mesh} args={[wingGeo, bodyMat, 6]} frustumCulled={false} />
+}
+
 function Gull({ def, idx }: { def: GullDef; idx: number }) {
   const orbiter = useRef<THREE.Group>(null)
   const wingL = useRef<THREE.Group>(null)
@@ -96,17 +149,24 @@ function Gull({ def, idx }: { def: GullDef; idx: number }) {
             (orbitRadius, 0, 0), that axis already tracks the tangent of
             increasing rotation.y — a fixed yaw, no per-frame lookAt. */}
         <group position={[def.orbitRadius, 0, 0]} ref={(g) => void (gullAnchors[idx] = g)}>
-          <mesh geometry={bodyGeo} material={gullBodyMat} />
-          <group ref={wingL} position={[-0.25, 0.03, 0]}>
-            <mesh material={bodyMat} position={[-0.425, 0, 0]}>
-              <boxGeometry args={[0.85, 0.05, 0.3]} />
-            </mesh>
-          </group>
-          <group ref={wingR} position={[0.25, 0.03, 0]}>
-            <mesh material={bodyMat} position={[0.425, 0, 0]}>
-              <boxGeometry args={[0.85, 0.05, 0.3]} />
-            </mesh>
-          </group>
+          {/* Body rendered by BodyInstances — this group is the pivot
+              anchor (wings, cry emitter). */}
+          {/* Wing PIVOTS only — the shared WingInstances mesh renders
+              every wing in one draw. */}
+          <group
+            position={[-0.25, 0.03, 0]}
+            ref={(g) => {
+              wingL.current = g
+              wingPivots[idx * 2] = g
+            }}
+          />
+          <group
+            position={[0.25, 0.03, 0]}
+            ref={(g) => {
+              wingR.current = g
+              wingPivots[idx * 2 + 1] = g
+            }}
+          />
         </group>
       </group>
     </group>
@@ -123,6 +183,8 @@ export function Seagulls() {
       {gulls.map((def, i) => (
         <Gull key={i} def={def} idx={i} />
       ))}
+      <BodyInstances activeGulls={gulls.length} />
+      <WingInstances activeGulls={gulls.length} />
     </>
   )
 }
