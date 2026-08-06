@@ -2,7 +2,7 @@ import { useFrame, useThree } from '@react-three/fiber'
 import { useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
-import { audioRuntime, onArmed, routeToBus } from '../audio/core'
+import { audioRuntime, onArmed, routeToBus, syncPanner } from '../audio/core'
 import { makeStrumBuffer, mulberry32 } from '../audio/procedural'
 import { KOA } from '../content/characters'
 import { useStore } from '../store/useStore'
@@ -144,6 +144,15 @@ export function UkulelePlayer() {
     const rt = audioRuntime
     const now = rt.ctx?.currentTime ?? state.clock.elapsedTime
     if (a.armed && rt.ctx) {
+      // THE silent-uke fix: these nodes carry custom scheduled sources,
+      // so three never updates their panners — sync manually, every
+      // frame (the planet rotates under the NPC).
+      for (const node of a.nodes) syncPanner(node)
+      {
+        const w = window as unknown as { __ukePanner?: number[] }
+        const p = a.nodes[0]?.panner
+        if (p?.positionX) w.__ukePanner = [p.positionX.value, p.positionY.value, p.positionZ.value]
+      }
       // Schedule bars ~0.8 s ahead.
       while (a.barStartTime < now + 0.8) {
         const chord = Math.floor(a.nextBar / CHORD_PER_BARS) % 4
@@ -170,6 +179,8 @@ export function UkulelePlayer() {
       while (a.strums.length && a.strums[0].time <= now) {
         a.strums.shift()
         pose.current.lastStrumT = state.clock.elapsedTime
+        const w = window as unknown as { __ukeStrums?: number }
+        w.__ukeStrums = (w.__ukeStrums ?? 0) + 1
         if (useStore.getState().qualityTier !== 'low' && notesRef.current) {
           const i = pose.current.notesCursor % NOTE_COUNT
           pose.current.notesCursor++

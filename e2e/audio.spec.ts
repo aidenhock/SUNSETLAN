@@ -104,6 +104,100 @@ test('audio arms only on gesture; mix ducks near the uke; steps track surface; m
   expect(realErrors(errors)).toEqual([])
 })
 
+test('the ukulele actually sounds: strums schedule, the panner leaves the origin, the crossfade hands off both ways', async ({
+  page,
+}) => {
+  await gotoWorld(page)
+  await page.waitForTimeout(800)
+  await page.keyboard.press('KeyQ')
+  await page.waitForTimeout(300)
+  await page.evaluate(() => {
+    const s = window.__store!.getState() as unknown as {
+      markMoved: () => void
+      setCameraMode: (m: string) => void
+    }
+    s.markMoved()
+    s.setCameraMode('orbit')
+    window.__controls!.poseOverride = { lat: 60, long: 180 } // far away
+  })
+  await page.waitForTimeout(2500)
+
+  // Strums are being consumed even from afar (the scheduler runs
+  // post-gesture regardless of distance)…
+  const strums1 = await page.evaluate(
+    () => (window as unknown as { __ukeStrums?: number }).__ukeStrums ?? 0,
+  )
+  expect(strums1).toBeGreaterThan(0)
+  // …and music sits at its base far from the uke.
+  const farDebug = (await debug(page)) as AudioDebug
+  expect(farDebug.music).toBeGreaterThan(0.25)
+
+  // Dock entrance (inside the 8 m handoff): the SILENT-UKE regression
+  // was three's PositionalAudio never updating a custom-source panner —
+  // it sat at the planet's ORIGIN. Assert it now rides the NPC (|p| ≈
+  // planet radius, finite), strums keep flowing, and music ducks out.
+  await page.evaluate(() => {
+    window.__controls!.poseOverride = { lat: 22, long: 0 }
+  })
+  await page.waitForTimeout(3000)
+  const probe = await page.evaluate(() => ({
+    strums: (window as unknown as { __ukeStrums?: number }).__ukeStrums ?? 0,
+    panner: (window as unknown as { __ukePanner?: number[] }).__ukePanner ?? [0, 0, 0],
+  }))
+  expect(probe.strums).toBeGreaterThan(strums1)
+  const [px, py, pz] = probe.panner
+  const mag = Math.hypot(px, py, pz)
+  expect(Number.isFinite(mag)).toBe(true)
+  expect(mag).toBeGreaterThan(30) // NEVER the origin
+  const entrance = (await debug(page)) as AudioDebug
+  expect(entrance.music).toBeLessThan(0.08)
+
+  // Walk back out — the lo-fi returns (handoff works both directions).
+  await page.evaluate(() => {
+    window.__controls!.poseOverride = { lat: 60, long: 180 }
+  })
+  await page.waitForTimeout(3000)
+  const back = (await debug(page)) as AudioDebug
+  expect(back.music).toBeGreaterThan(0.25)
+})
+
+test('crab snaps: watched paused crab snaps in-bounds; none from afar', async ({ page }) => {
+  await gotoWorld(page)
+  await page.waitForTimeout(800)
+  await page.keyboard.press('KeyQ')
+  await page.waitForTimeout(300)
+  await page.evaluate(() => {
+    const s = window.__store!.getState() as unknown as {
+      markMoved: () => void
+      setCameraMode: (m: string) => void
+    }
+    s.markMoved()
+    s.setCameraMode('orbit')
+    // Far from every crab spawn: no snaps may log.
+    window.__controls!.poseOverride = { lat: 60, long: 90 }
+    ;(window as unknown as { __snapLog?: number[] }).__snapLog = []
+  })
+  await page.waitForTimeout(4000)
+  const farSnaps = await page.evaluate(
+    () => ((window as unknown as { __snapLog?: number[] }).__snapLog ?? []).length,
+  )
+  expect(farSnaps).toBe(0)
+
+  // Park beside a crab spawn (within 4 m): snaps arrive, spaced ≥3 s.
+  await page.evaluate(() => {
+    window.__controls!.poseOverride = { lat: 20, long: 22 }
+    ;(window as unknown as { __snapLog?: number[] }).__snapLog = []
+  })
+  await page.waitForTimeout(12000)
+  const snaps = await page.evaluate(
+    () => (window as unknown as { __snapLog?: number[] }).__snapLog ?? [],
+  )
+  expect(snaps.length).toBeGreaterThanOrEqual(1)
+  for (let i = 1; i < snaps.length; i++) {
+    expect(snaps[i] - snaps[i - 1]).toBeGreaterThanOrEqual(2.9)
+  }
+})
+
 test('campfire crackle is PURE proximity — identical day vs night at 12/8/5/3 m', async ({
   page,
 }) => {

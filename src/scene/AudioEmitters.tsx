@@ -1,7 +1,7 @@
 import { useFrame } from '@react-three/fiber'
 import { useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
-import { audioRuntime, onArmed, play2d, playAt, routeToBus } from '../audio/core'
+import { audioRuntime, onArmed, play2d, playAt, routeToBus, syncPanner } from '../audio/core'
 import { CrossfadeLoop } from '../audio/loops'
 import { latLongToUnit, poleInPlanetSpace } from '../controls/planetMath'
 import { controlsRuntime } from '../controls/usePlanetController'
@@ -91,6 +91,8 @@ export function WorldEmitters() {
     if (!rt.ctx) return
     const s = st.current
     if (s.fireNode) {
+      // Custom-source node: sync the panner manually (see syncPanner).
+      syncPanner(s.fireNode)
       s.fire.update(s.fireNode.panner)
       const lvl = s.fire.level(s.fireNode.panner)
       if (lvl) {

@@ -168,6 +168,26 @@ export function routeToBus(audio: THREE.Audio | THREE.PositionalAudio, bus: 'mus
   audio.gain.connect(rt.buses[bus])
 }
 
+const _panPos = new THREE.Vector3()
+/** three's PositionalAudio only updates its panner while `isPlaying`
+ * (PositionalAudio.updateMatrixWorld guards on it) — nodes fed by
+ * CUSTOM sources (strum schedulers, crossfade loops) never set
+ * isPlaying, so their panners sit at the ORIGIN: the planet's center,
+ * 55 m from the listener — near-silence under exponential rolloff.
+ * Call this every frame for such nodes; on the rotating planet their
+ * world position moves anyway. */
+export function syncPanner(node: THREE.PositionalAudio) {
+  node.getWorldPosition(_panPos)
+  const p = node.panner
+  if (p.positionX) {
+    p.positionX.value = _panPos.x
+    p.positionY.value = _panPos.y
+    p.positionZ.value = _panPos.z
+  } else {
+    p.setPosition(_panPos.x, _panPos.y, _panPos.z)
+  }
+}
+
 /** One-shot through an existing PositionalAudio node (world bus). */
 export async function playAt(category: Category, node: THREE.PositionalAudio, gain = 1) {
   const buffer = await nextBuffer(category)
