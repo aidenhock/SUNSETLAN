@@ -1,0 +1,168 @@
+import { useFrame } from '@react-three/fiber'
+import { useMemo, useRef } from 'react'
+import * as THREE from 'three'
+import { play2d } from '../audio/core'
+import { controlsRuntime } from '../controls/usePlanetController'
+import { latLongToUnit, poleInPlanetSpace, surfaceQuaternion } from '../controls/planetMath'
+import { useStore } from '../store/useStore'
+import { PLANET_RADIUS, surfOffset, terrainProfile } from './planetConfig'
+
+/**
+ * Crabs (3C): 3–4 primitive critters — body + four leg boxes each,
+ * ALL crabs in ONE InstancedMesh (5 instances per crab, shared
+ * material, one draw call). Sideways scuttle with leg wiggle;
+ * random-walk clamped to the sand band (lat 16–23), never below the
+ * LIVE waterline (surfOffset) and never onto grass; frequent pauses;
+ * skitters ~1 m away when the player closes within 2 m, with a soft
+ * click within earshot. qualityTier low halves the count.
+ */
+
+const CRAB_COUNT = 4
+const PARTS_PER_CRAB = 5
+const LAT_MIN = 16
+const LAT_MAX = 23
+const WALK_SPEED = 0.55
+const SKITTER_SPEED = 2.0
+
+interface Crab {
+  lat: number
+  long: number
+  heading: number
+  state: 'pause' | 'walk' | 'skitter'
+  timer: number
+  phase: number
+}
+
+const SPAWNS: Array<[number, number]> = [
+  [20, 22],
+  [18.5, 341],
+  [20.5, 162],
+  [19, 199],
+]
+
+export function Crabs() {
+  const mesh = useRef<THREE.InstancedMesh>(null)
+  const crabs = useMemo<Crab[]>(
+    () =>
+      SPAWNS.map(([lat, long], i) => ({
+        lat,
+        long,
+        heading: i * 1.7,
+        state: 'pause' as const,
+        timer: 1 + i * 0.7,
+        phase: i * 2.1,
+      })),
+    [],
+  )
+  const scratch = useMemo(
+    () => ({
+      o: new THREE.Object3D(),
+      unit: new THREE.Vector3(),
+      pole: new THREE.Vector3(),
+      q: new THREE.Quaternion(),
+      yawQ: new THREE.Quaternion(),
+      up: new THREE.Vector3(0, 1, 0),
+    }),
+    [],
+  )
+
+  useFrame((state, dt) => {
+    const m = mesh.current
+    if (!m) return
+    const t = state.clock.elapsedTime
+    const tier = useStore.getState().qualityTier
+    const active = tier === 'low' ? 2 : CRAB_COUNT
+    poleInPlanetSpace(controlsRuntime.planetQuaternion, scratch.pole)
+
+    for (let c = 0; c < CRAB_COUNT; c++) {
+      const crab = crabs[c]
+      const visible = c < active
+      if (visible) {
+        crab.timer -= dt
+        crab.phase += dt * (crab.state === 'pause' ? 2 : crab.state === 'walk' ? 10 : 20)
+        scratch.unit.copy(latLongToUnit(crab.lat, crab.long))
+        const arcToPlayer = scratch.unit.angleTo(scratch.pole) * PLANET_RADIUS
+
+        // Startle: player within 2 m → skitter ~1 m directly away.
+        if (crab.state !== 'skitter' && arcToPlayer < 2) {
+          crab.state = 'skitter'
+          crab.timer = 1 / SKITTER_SPEED // ≈1 m of travel
+          // Heading away from the player in lat/long space.
+          const dLat = crab.lat - (90 - THREE.MathUtils.radToDeg(Math.acos(scratch.pole.y)))
+          const dLong =
+            ((crab.long - THREE.MathUtils.radToDeg(Math.atan2(scratch.pole.x, scratch.pole.z)) + 540) %
+              360) -
+            180
+          crab.heading = Math.atan2(dLong, dLat)
+          if (arcToPlayer < 6) void play2d('crabs', 'world', 0.3)
+        }
+        if (crab.timer <= 0) {
+          if (crab.state === 'walk' || crab.state === 'skitter') {
+            crab.state = 'pause'
+            crab.timer = 0.8 + Math.random() * 2.2
+          } else {
+            crab.state = 'walk'
+            crab.timer = 0.8 + Math.random() * 1.4
+            crab.heading = Math.random() * Math.PI * 2
+          }
+        }
+        if (crab.state !== 'pause') {
+          const speed = crab.state === 'skitter' ? SKITTER_SPEED : WALK_SPEED
+          const degPerM = 180 / (Math.PI * PLANET_RADIUS)
+          crab.lat += Math.cos(crab.heading) * speed * dt * degPerM
+          crab.long += (Math.sin(crab.heading) * speed * dt * degPerM) / Math.cos((crab.lat * Math.PI) / 180)
+          // Band clamps: grass edge above, LIVE waterline below.
+          if (crab.lat > LAT_MAX) {
+            crab.lat = LAT_MAX
+            crab.heading = Math.PI - crab.heading
+          }
+          const polar = THREE.MathUtils.degToRad(90 - crab.lat)
+          const wetAt = terrainProfile(polar) < surfOffset(polar, t) + 0.04
+          if (crab.lat < LAT_MIN || wetAt) {
+            crab.lat = Math.max(crab.lat, LAT_MIN)
+            crab.heading = Math.PI - crab.heading
+            if (wetAt) crab.lat += 0.05
+          }
+        }
+      }
+
+      // Compose the 5 part matrices (hidden crabs collapse to zero).
+      const polar = THREE.MathUtils.degToRad(90 - crab.lat)
+      const alt = terrainProfile(polar)
+      scratch.unit.copy(latLongToUnit(crab.lat, crab.long))
+      scratch.q.copy(surfaceQuaternion(scratch.unit))
+      scratch.yawQ.setFromAxisAngle(scratch.up, crab.heading + Math.PI / 2) // scuttle SIDEWAYS
+      scratch.q.multiply(scratch.yawQ)
+      const base = scratch.unit.clone().multiplyScalar(PLANET_RADIUS + alt + 0.05)
+      const wig = Math.sin(crab.phase) * (crab.state === 'pause' ? 0.06 : 0.5)
+      for (let p = 0; p < PARTS_PER_CRAB; p++) {
+        const idx = c * PARTS_PER_CRAB + p
+        scratch.o.position.copy(base)
+        scratch.o.quaternion.copy(scratch.q)
+        if (!visible) {
+          scratch.o.scale.setScalar(0.0001)
+        } else if (p === 0) {
+          scratch.o.scale.set(0.22, 0.11, 0.15)
+          scratch.o.translateY(0.06 + Math.abs(wig) * 0.01)
+        } else {
+          const side = p < 3 ? 1 : -1
+          const front = p % 2 === 0 ? 1 : -1
+          scratch.o.scale.set(0.035, 0.075, 0.035)
+          scratch.o.translateX(side * 0.13)
+          scratch.o.translateZ(front * 0.06 + side * wig * 0.02 * front)
+          scratch.o.translateY(0.035)
+        }
+        scratch.o.updateMatrix()
+        m.setMatrixAt(idx, scratch.o.matrix)
+      }
+    }
+    m.instanceMatrix.needsUpdate = true
+  })
+
+  return (
+    <instancedMesh ref={mesh} args={[undefined, undefined, CRAB_COUNT * PARTS_PER_CRAB]} frustumCulled={false}>
+      <boxGeometry args={[1, 1, 1]} />
+      <meshLambertMaterial color="#e06a4a" />
+    </instancedMesh>
+  )
+}

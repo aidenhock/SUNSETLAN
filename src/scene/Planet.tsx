@@ -8,6 +8,7 @@ import { interactables } from '../content/interactables'
 import { Avatar } from './Avatar'
 import { CelestialDome } from './CelestialDome'
 import { Clouds } from './Clouds'
+import { Crabs } from './Crabs'
 import { Interactable } from './Interactable'
 import { Island } from './Island'
 import { PLANET_RADIUS } from './planetConfig'
@@ -51,6 +52,7 @@ export function PlanetScene({ isTouch, intro }: { isTouch: boolean; intro: boole
         <Water />
         <Island />
         <UkulelePlayer />
+        <Crabs />
         {interactables.map((def) => (
           <Interactable key={def.id} def={def} />
         ))}
