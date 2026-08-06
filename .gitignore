@@ -11,3 +11,4 @@ dist-ssr
 test-results/
 playwright-report/
 sweep-shots/
+**/_originals/

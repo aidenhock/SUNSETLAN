@@ -26,6 +26,21 @@ describe('audio manifest (file-pool-first)', () => {
     // Music has no file yet — the generative pad territory.
     expect(poolSize('music')).toBe(0)
   })
+
+  it('the pool glob can never see _originals backups', () => {
+    // The manifest pattern is exactly one directory deep
+    // (audio/<category>/<file>.mp3): a backup at
+    // audio/<category>/_originals/<file>.mp3 is two deep and
+    // structurally unmatchable. Assert against the live manifest keys.
+    const files = import.meta.glob('../assets/audio/*/*.mp3') as Record<string, unknown>
+    const keys = Object.keys(files)
+    expect(keys.length).toBeGreaterThan(100)
+    for (const key of keys) {
+      expect(key).not.toContain('_originals')
+      // One level between audio/ and the file, never more.
+      expect(key.split('/assets/audio/')[1]?.split('/')).toHaveLength(2)
+    }
+  })
 })
 
 describe('shuffle bag (depth-2 anti-repeat)', () => {
