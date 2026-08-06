@@ -24,7 +24,10 @@ describe('buildNodes (rounded villager rig)', () => {
       // Full character = torso + head + 2 arms + 2 legs.
       const tris = (g: THREE.BufferGeometry) => g.attributes.position.count / 3
       const total =
-        tris(nodes.torso) + tris(nodes.head) + 2 * tris(nodes.arm) + 2 * tris(nodes.leg)
+        tris(nodes.torso) +
+        tris(nodes.head) +
+        2 * (tris(nodes.arm) + tris(nodes.forearm)) +
+        2 * tris(nodes.leg)
       console.info(`${name}: ${total} tris/character`)
       expect(total).toBeLessThanOrEqual(3000)
       expect(total).toBeGreaterThan(500) // sanity: it's a real character

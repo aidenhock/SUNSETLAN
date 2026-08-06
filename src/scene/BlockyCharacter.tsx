@@ -105,6 +105,7 @@ export function buildNodes(config: CharacterConfig) {
     torso: [] as THREE.BufferGeometry[],
     head: [] as THREE.BufferGeometry[],
     arm: [] as THREE.BufferGeometry[],
+    forearm: [] as THREE.BufferGeometry[],
     leg: [] as THREE.BufferGeometry[],
   }
   const add = (
@@ -397,30 +398,36 @@ export function buildNodes(config: CharacterConfig) {
     )
   }
 
-  // ---- Arm (local origin at the shoulder pivot, hangs along −y) --------
-  // Slim capsule mounted under the sloped shoulder; the A-pose rest
-  // splay lives in the rig. A short SLIM sleeve cap in the top color
-  // covers the mount (tee, not tank — v3.18); skin starts below it.
+  // ---- Arm: upper from the shoulder pivot, forearm + hand from the
+  // ELBOW pivot (v3.21) — same pivot-group pattern; the capsule caps
+  // overlap inside the joint so the silhouette stays smooth. Sleeve
+  // (tee, not tank) stays on the upper.
   const armR = 0.036 * (H / 1.25) * (config.limbThick ?? 1)
-  add('arm', new THREE.CapsuleGeometry(armR, armLen * 0.6, 3, 8), colors.skin, [
+  add('arm', new THREE.CapsuleGeometry(armR, armLen * 0.32, 2, 8), colors.skin, [
     0,
-    -armLen * 0.42,
+    -armLen * 0.21,
     0,
   ])
   const sleeveLen = config.sleeveLen ?? 1
   if (sleeveLen > 0) {
     add(
       'arm',
-      new THREE.CapsuleGeometry(armR * 1.2, armLen * 0.18 * sleeveLen, 2, 8),
+      new THREE.CapsuleGeometry(armR * 1.2, armLen * 0.18 * sleeveLen, 2, 7),
       colors.top,
       [0, -armLen * 0.1 * sleeveLen, 0],
     )
   }
+  // Forearm node — local origin AT the elbow.
+  add('forearm', new THREE.CapsuleGeometry(armR * 0.95, armLen * 0.3, 2, 8), colors.skin, [
+    0,
+    -armLen * 0.19,
+    0,
+  ])
   add(
-    'arm',
-    new THREE.SphereGeometry(armR * 1.4 * (config.handScale ?? 1.12), 8, 6),
+    'forearm',
+    new THREE.SphereGeometry(armR * 1.4 * (config.handScale ?? 1.12), 7, 5),
     colors.skin,
-    [0, -armLen * 0.84, 0],
+    [0, -armLen * 0.42, 0],
   )
 
   // ---- Leg (local origin at the hip pivot; soles at −legLen) -----------
@@ -461,11 +468,14 @@ export function buildNodes(config: CharacterConfig) {
       torso: merge(parts.torso),
       head: headNode,
       arm: merge(parts.arm),
+      forearm: merge(parts.forearm),
       leg: merge(parts.leg),
     },
     dims: {
       legLen,
       torsoH,
+      /** Elbow pivot depth below the shoulder pivot. */
+      elbowY: armLen * 0.42,
       // Skull center height: base embedded ~13% of head height into the
       // collar (skull half-height 0.9·hR ≈ 0.459·hH), plus any neck.
       headPivotY: torsoH + hH * 0.329 + neckLen,
@@ -501,6 +511,8 @@ export function BlockyCharacter({
   poseHook?: (parts: {
     armL: THREE.Group
     armR: THREE.Group
+    foreL: THREE.Group | null
+    foreR: THREE.Group | null
     legL: THREE.Group
     legR: THREE.Group
     head: THREE.Group
@@ -511,10 +523,23 @@ export function BlockyCharacter({
   // v3.19: arms rest ~45° down-and-out — daylight along the whole upper
   // arm, hands outside the hip silhouette.
   const restSplay = THREE.MathUtils.degToRad(config.armRestDeg ?? 45)
+  // Elbow bend targets per state (v3.21) — config-dialed, air fixed.
+  const elbowFor = useMemo(
+    () => ({
+      idle: THREE.MathUtils.degToRad(config.elbowRestBend ?? 8),
+      walk: THREE.MathUtils.degToRad(config.elbowBendWalk ?? 25),
+      run: THREE.MathUtils.degToRad(config.elbowBendRun ?? 70),
+      air: 1.0,
+    }),
+    [config],
+  )
+  const elbowSwing = config.elbowSwing ?? 0.35
 
   const rig = useRef<THREE.Group>(null)
   const armL = useRef<THREE.Group>(null)
   const armR = useRef<THREE.Group>(null)
+  const foreL = useRef<THREE.Group>(null)
+  const foreR = useRef<THREE.Group>(null)
   const legL = useRef<THREE.Group>(null)
   const legR = useRef<THREE.Group>(null)
   const head = useRef<THREE.Group>(null)
@@ -530,6 +555,7 @@ export function BlockyCharacter({
     wasAirborne: false,
     headYaw: 0,
     headPitch: 0,
+    elbow: 0.14,
   })
 
   useFrame((state, dt) => {
@@ -590,6 +616,14 @@ export function BlockyCharacter({
     const splay = restSplay + p.swingAmp * 0.06 + AIR_POSE.splay * p.air
     armL.current.rotation.z = -splay - sway
     armR.current.rotation.z = splay + sway
+    // Elbows (v3.21): state bend + forearm follow-through with the
+    // swing. Bending is forward flex — negative x on the hanging arm.
+    const elbowTarget = m.airborne ? elbowFor.air : elbowFor[m.locomotion]
+    s.elbow += (elbowTarget - s.elbow) * k
+    if (foreL.current && foreR.current) {
+      foreL.current.rotation.x = -s.elbow - armSwing * elbowSwing
+      foreR.current.rotation.x = -s.elbow + armSwing * elbowSwing
+    }
 
     // Head look-at (v3.3): ease toward the camera when idle (clamped ±60°
     // yaw / ±25° pitch — beyond the clamp, ease back to neutral); while
@@ -644,6 +678,8 @@ export function BlockyCharacter({
       poseHook({
         armL: armL.current,
         armR: armR.current,
+        foreL: foreL.current,
+        foreR: foreR.current,
         legL: legL.current,
         legR: legR.current,
         head: h,
@@ -664,9 +700,15 @@ export function BlockyCharacter({
         <mesh geometry={nodes.torso} material={characterMaterial} />
         <group ref={armL} position={[-dims.shoulderX, dims.shoulderY, 0]}>
           <mesh geometry={nodes.arm} material={characterMaterial} />
+          <group ref={foreL} position={[0, -dims.elbowY, 0]}>
+            <mesh geometry={nodes.forearm} material={characterMaterial} />
+          </group>
         </group>
         <group ref={armR} position={[dims.shoulderX, dims.shoulderY, 0]}>
           <mesh geometry={nodes.arm} material={characterMaterial} />
+          <group ref={foreR} position={[0, -dims.elbowY, 0]}>
+            <mesh geometry={nodes.forearm} material={characterMaterial} />
+          </group>
         </group>
         <group ref={head} position={[0, dims.headPivotY, 0]}>
           <mesh geometry={nodes.head} material={characterMaterial} />

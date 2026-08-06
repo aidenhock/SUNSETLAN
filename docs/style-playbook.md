@@ -107,13 +107,16 @@ volumes, all still stock three.js primitives, merged per rigid node:
   rig keeps `neckLength` (default 0) for characters that want a
   visible neck — the cylinder then lives in the HEAD node so it moves
   with the look-at.
-- **Arms**: slim capsules whose mounts sink BENEATH the torso surface —
-  the capsule top never crests above the shoulder slope; the shoulder
-  silhouette is the torso's curve, arms emerging from under it. Rest
-  pose is a true A-POSE (~25–30° out) with the ball hands clearly
-  separated from the torso at hip height; walk/run swings COMPOSE on
-  top of that base angle (never collapse back to pinned). NO fat
-  sleeve capsule (it built linebacker shoulders).
+- **Arms have ELBOWS (v3.21)** — the same pivot-group pattern as the
+  shoulders: upper-arm capsule from the shoulder pivot, forearm capsule
+  (ball hand attached) from an ELBOW pivot nested inside it, seam
+  hidden in the joint overlap so the silhouette stays smooth. Mounts
+  still sink BENEATH the torso surface; rest is the ~45° A-pose with
+  hands clear of the hips. State bends (config + studio dials):
+  IDLE essentially straight (≤ ~8°, the approved look), WALK a gentle
+  ~25° swaying with the arm swing, RUN a pumped ~70° with the forward
+  lean, JUMP a bent flourish that settles on landing. NO fat sleeve
+  capsule (it built linebacker shoulders).
 - **Shorts are a GARMENT, not a blob**: a hip band (short cylinder
   seated at the teardrop's widest point) plus two separate leg cuffs on
   the upper thighs — cuffs live in the LEG nodes so they swing like

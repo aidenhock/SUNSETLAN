@@ -74,6 +74,14 @@ export interface CharacterConfig {
   glassesStyle?: 'bold-rect' | 'round' | 'none'
   /** Arm length as a fraction of torso height (0.87). */
   armLenFrac?: number
+  /** Elbow bend at idle, degrees (8 — essentially straight). */
+  elbowRestBend?: number
+  /** Elbow bend walking, degrees (25). */
+  elbowBendWalk?: number
+  /** Elbow bend running, degrees (70 — the classic pump). */
+  elbowBendRun?: number
+  /** Forearm follow-through with the arm swing, 0–1 (0.35). */
+  elbowSwing?: number
   /** Ball hand radius multiplier on the base 1.4×armR (1.12). */
   handScale?: number
   /** Ear height as a fraction of head height (0.52 — the midline). */
