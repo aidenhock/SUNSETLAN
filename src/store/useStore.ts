@@ -29,10 +29,19 @@ interface AppState {
   setCameraMode: (mode: CameraMode) => void
 }
 
+/** Mute persists across visits (3C); everything else is session state. */
+const persistedMute = (() => {
+  try {
+    return localStorage.getItem('sl-muted') === '1'
+  } catch {
+    return false
+  }
+})()
+
 export const useStore = create<AppState>((set) => ({
   nearbyId: null,
   openModalId: null,
-  muted: true,
+  muted: persistedMute,
   qualityTier: 'high',
   hasMoved: false,
   introDone: false,
@@ -41,7 +50,14 @@ export const useStore = create<AppState>((set) => ({
   setNearby: (id) => set({ nearbyId: id }),
   openModal: (id) => set({ openModalId: id }),
   closeModal: () => set({ openModalId: null }),
-  setMuted: (muted) => set({ muted }),
+  setMuted: (muted) => {
+    try {
+      localStorage.setItem('sl-muted', muted ? '1' : '0')
+    } catch {
+      // Private-mode storage failures never block the toggle.
+    }
+    set({ muted })
+  },
   setQualityTier: (qualityTier) => set({ qualityTier }),
   markMoved: () => set({ hasMoved: true }),
   finishIntro: () => set({ introDone: true }),

@@ -1,5 +1,6 @@
 import { useRef } from 'react'
 import * as THREE from 'three'
+import { AudioBoot } from '../audio/AudioBoot'
 import { useIntroSwoop } from '../controls/useIntroSwoop'
 import { usePlanetController } from '../controls/usePlanetController'
 import { usePointerLockCamera } from '../controls/usePointerLockCamera'
@@ -32,6 +33,7 @@ export function PlanetScene({ isTouch, intro }: { isTouch: boolean; intro: boole
 
   return (
     <>
+      <AudioBoot />
       <SkyRig planetRef={planetRef} />
       <group ref={planetRef}>
         {/* Planet-local sky: the split dome, sun, moon, and stars rotate with
