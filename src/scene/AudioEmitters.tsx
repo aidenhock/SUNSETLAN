@@ -51,7 +51,7 @@ export function crackleTarget(arcFireM: number): number {
  * voice inside ~10 m (gulls orbit at 10–13.5 m altitude, so "standing
  * under one" IS ~12 m), gone past 30 m, so flyovers breathe. */
 export function cryGain(distM: number): number {
-  return 0.9 * (1 - THREE.MathUtils.smoothstep(distM, 10, 30))
+  return 1.08 * (1 - THREE.MathUtils.smoothstep(distM, 10, 30))
 }
 
 export function WorldEmitters() {
