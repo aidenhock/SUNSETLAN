@@ -180,6 +180,35 @@ export async function playAt(category: Category, node: THREE.PositionalAudio, ga
   node.play()
 }
 
+/** Aiden's jump rule: two DIFFERENT bag picks, precisely gapMs apart
+ * (WebAudio-scheduled — never setTimeout). */
+export async function playDoubleTap(
+  category: Category,
+  bus: 'music' | 'world' | 'ui',
+  gain: number,
+  gapMs: number,
+) {
+  const rt = audioRuntime
+  if (!rt.ctx || !rt.buses) return
+  const [a, b] = await Promise.all([nextBuffer(category), nextBuffer(category)])
+  if (!a) return
+  const t0 = rt.ctx.currentTime + 0.02
+  const taps: Array<[AudioBuffer, number]> = [
+    [a, t0],
+    [b ?? a, t0 + gapMs / 1000],
+  ]
+  for (const [buffer, at] of taps) {
+    const h = humanize()
+    const src = rt.ctx.createBufferSource()
+    src.buffer = buffer
+    src.playbackRate.value = h.rate
+    const g = rt.ctx.createGain()
+    g.gain.value = gain * h.gain
+    src.connect(g).connect(rt.buses[bus])
+    src.start(at)
+  }
+}
+
 const gestureCallbacks: Array<() => void> = []
 /** Run a callback once audio is armed (immediately if already). */
 export function onArmed(cb: () => void) {

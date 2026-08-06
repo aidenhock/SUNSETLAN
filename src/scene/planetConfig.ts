@@ -93,6 +93,35 @@ export const DOCK = {
   segmentCount: 5,
 }
 
+/** Footstep tuning (3C): gains, foot-plant phases in the swing cycle,
+ * and the jump double-tap gap. */
+export const FOOTSTEPS = {
+  stepGainWalk: 0.5,
+  stepGainSprint: 0.72,
+  /** Swing-cycle phase offsets (rad) where each foot plants. */
+  plantPhases: [Math.PI / 2, (3 * Math.PI) / 2],
+  /** Gap between the two taps of Aiden's jump/landing double-tap. */
+  jumpTapGapMs: 90,
+} as const
+
+export type Surface = 'grass' | 'sand' | 'dock' | 'wade'
+
+/** Analytic band underfoot (3C footsteps): wade (live waterline) wins,
+ * then the dock strip (meters off the dock meridian at this polar),
+ * then grass vs sand split just past the plateau edge. The same
+ * analytic sources as groundHeightAt — feet and ears agree. */
+export function surfaceUnderfoot(polarDeg: number, longDeg: number, wet: boolean): Surface {
+  if (wet) return 'wade'
+  const lat = 90 - polarDeg
+  if (lat >= DOCK.latMinDeg && lat <= DOCK.latMaxDeg) {
+    const dLongRad = THREE_DEG * Math.abs(((longDeg - DOCK.longDeg + 540) % 360) - 180)
+    const offM = PLANET_RADIUS * Math.sin(polarDeg * THREE_DEG) * Math.sin(dLongRad)
+    if (Math.abs(offM) <= DOCK.halfWidthM + 0.2) return 'dock'
+  }
+  return polarDeg <= TERRAIN.plateauEndDeg + 2 ? 'grass' : 'sand'
+}
+const THREE_DEG = Math.PI / 180
+
 /** World map placements (lat, long) — CLAUDE.md v3 table. */
 export const MAP = {
   tripod: { lat: 14, long: 0 }, // Photos — on the dock end, over water

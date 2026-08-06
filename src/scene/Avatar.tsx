@@ -1,14 +1,23 @@
 import { useFrame } from '@react-three/fiber'
 import { forwardRef, useRef } from 'react'
 import * as THREE from 'three'
+import { stepSound } from '../audio/footsteps'
 import { AIDEN } from '../content/characters'
 import { controlsRuntime } from '../controls/usePlanetController'
 import { BlockyCharacter, type MotionState } from './BlockyCharacter'
+import { surfaceUnderfoot } from './planetConfig'
 
 /** Stable reader — BlockyCharacter polls this every frame. controlsRuntime
  * already carries locomotion/airborne/azimuth/yaw/pitch, so no per-frame
  * object is allocated. */
 const aidenMotion = (): MotionState => controlsRuntime
+
+/** Foot plant → surface-switched step from the pools (3C). */
+const aidenStep = () =>
+  stepSound(
+    surfaceUnderfoot(controlsRuntime.surfPolarDeg, controlsRuntime.surfLongDeg, controlsRuntime.wet),
+    controlsRuntime.locomotion === 'run',
+  )
 
 /** Jump apex (m) from the controller's ballistics: v0² / 2g. */
 const JUMP_APEX_M = (4.5 * 4.5) / (2 * 12)
@@ -40,7 +49,7 @@ export const Avatar = forwardRef<THREE.Group>(function Avatar(_, ref) {
   return (
     <group>
       <group ref={ref}>
-        <BlockyCharacter config={AIDEN} motion={aidenMotion} />
+        <BlockyCharacter config={AIDEN} motion={aidenMotion} onStep={aidenStep} />
       </group>
       <mesh ref={shadow} rotation-x={-Math.PI / 2}>
         <circleGeometry args={[0.5, 20]} />

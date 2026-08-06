@@ -4,6 +4,7 @@ import * as THREE from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import type { CharacterConfig } from '../content/characters'
 import { tintGeometry } from './geometryUtils'
+import { FOOTSTEPS } from './planetConfig'
 import { normalizeForMerge } from './props'
 
 /**
@@ -485,10 +486,14 @@ const characterMaterial = new THREE.MeshLambertMaterial({ vertexColors: true, fl
 export function BlockyCharacter({
   config,
   motion,
+  onStep,
 }: {
   config: CharacterConfig
   /** Read each frame — returns the controller (or NPC brain) state. */
   motion: () => MotionState
+  /** Fired at each foot-plant phase of the walk/run swing (3C
+   * footsteps — events come from the ANIMATION, never a timer). */
+  onStep?: () => void
 }) {
   const { nodes, dims } = useMemo(() => buildNodes(config), [config])
   // v3.19: arms rest ~45° down-and-out — daylight along the whole upper
@@ -540,8 +545,20 @@ export function BlockyCharacter({
     p.air += (target.air - p.air) * k
 
     // Phases advance at the LIVE frequency so freq blends never pop.
+    const prevSwing = s.swingPhase
     s.swingPhase += p.swingFreq * dt
     s.bobPhase += p.bobFreq * dt
+    // Foot plants: fire when the swing crosses a plant phase while
+    // grounded and actually striding.
+    if (onStep && p.swingAmp > 0.15 && p.air < 0.5) {
+      for (const off of FOOTSTEPS.plantPhases) {
+        const k = (x: number) => Math.floor((x - off) / (2 * Math.PI))
+        if (k(s.swingPhase) > k(prevSwing)) {
+          onStep()
+          break
+        }
+      }
+    }
 
     const swing = Math.sin(s.swingPhase) * p.swingAmp
     const ground = 1 - p.air

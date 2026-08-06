@@ -3,6 +3,7 @@ import { useFrame } from '@react-three/fiber'
 import { useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { interactables } from '../content/interactables'
+import { jumpTaps } from '../audio/footsteps'
 import {
   blockers,
   INTERACT_ARC_M,
@@ -12,6 +13,7 @@ import {
   PLANET_RADIUS,
   SPRINT_JOY_THRESHOLD,
   SPRINT_SPEED,
+  surfaceUnderfoot,
   surfOffset,
 } from '../scene/planetConfig'
 import { useStore } from '../store/useStore'
@@ -52,6 +54,10 @@ export const controlsRuntime = {
    * shadow takes groundY ONLY — it must never ride the jump. */
   groundY: 55.55,
   jumpOffset: 0,
+  /** 3C: analytic band underfoot for footstep surface switching. */
+  surfPolarDeg: 0,
+  surfLongDeg: 0,
+  wet: false,
   /** Camera distance override (meters); null = default follow distance. */
   camDist: null as number | null,
   /** Set to snap the camera pitch next frame (consumed once) — e2e/sweep. */
@@ -220,7 +226,15 @@ export function usePlanetController({ planetRef, avatarRef }: ControllerRefs) {
     if (nearest !== store.nearbyId) store.setNearby(nearest)
 
     // ---- cosmetic jump + analytic terrain height -----------------------
-    if (keys.jump && jumpT.current === null && !store.openModalId) jumpT.current = 0
+    // 3C: takeoff/landing fire Aiden's double-tap from the surface pool
+    // (never a single heavy thud).
+    if (keys.jump && jumpT.current === null && !store.openModalId) {
+      jumpT.current = 0
+      jumpTaps(
+        surfaceUnderfoot(controlsRuntime.surfPolarDeg, controlsRuntime.surfLongDeg, controlsRuntime.wet),
+        false,
+      )
+    }
     let jumpOffset = 0
     if (jumpT.current !== null) {
       jumpT.current += dt
@@ -228,6 +242,10 @@ export function usePlanetController({ planetRef, avatarRef }: ControllerRefs) {
       if (jumpOffset <= 0) {
         jumpOffset = 0
         jumpT.current = null
+        jumpTaps(
+          surfaceUnderfoot(controlsRuntime.surfPolarDeg, controlsRuntime.surfLongDeg, controlsRuntime.wet),
+          true,
+        )
       }
     }
 
@@ -251,5 +269,11 @@ export function usePlanetController({ planetRef, avatarRef }: ControllerRefs) {
     controlsRuntime.jumpOffset = jumpOffset
     controlsRuntime.locomotion = !inputActive ? 'idle' : sprinting ? 'run' : 'walk'
     controlsRuntime.airborne = jumpT.current !== null
+    // 3C: the band underfoot, published for footstep surface switching.
+    controlsRuntime.surfPolarDeg = THREE.MathUtils.radToDeg(polarAfter)
+    controlsRuntime.surfLongDeg = THREE.MathUtils.radToDeg(
+      Math.atan2(_poleAfter.x, _poleAfter.z),
+    )
+    controlsRuntime.wet = wet
   })
 }
