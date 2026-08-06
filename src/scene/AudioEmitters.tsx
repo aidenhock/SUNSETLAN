@@ -28,6 +28,8 @@ import { skyRuntime } from './useSkyState'
  */
 
 const LERP_TAU = 0.5
+const _gullPos = new THREE.Vector3()
+const _avatarPos = new THREE.Vector3()
 
 /** The music bus target — pure, vitest-covered: base × uke crossfade
  * (inside 8 m the uke owns the soundscape) × campfire duck (0.6 inside
@@ -43,6 +45,12 @@ export function musicTarget(arcUkeM: number, arcFireM: number, modalOpen: boolea
  * day/night has nothing to do with what a fire sounds like. */
 export function crackleTarget(arcFireM: number): number {
   return 0.7 * (1 - THREE.MathUtils.smoothstep(arcFireM, 3, 12))
+}
+
+/** Gull cry launch gain (polish pass 2): a real gradient on top of the
+ * panner — swells toward 8 m, gone past 30 m, so flyovers breathe. */
+export function cryGain(distM: number): number {
+  return 0.6 * (1 - THREE.MathUtils.smoothstep(distM, 8, 30))
 }
 
 export function WorldEmitters() {
@@ -69,9 +77,9 @@ export function WorldEmitters() {
       routeToBus(fireNode, 'world')
       st.current.fireNode = fireNode
       const cry = new THREE.PositionalAudio(rt.listener)
-      cry.setRefDistance(8)
+      cry.setRefDistance(3)
       cry.setDistanceModel('exponential')
-      cry.setRolloffFactor(1.2)
+      cry.setRolloffFactor(1.8)
       routeToBus(cry, 'world')
       st.current.cryNode = cry
       st.current.nextCry = rt.ctx.currentTime + 5
@@ -98,7 +106,13 @@ export function WorldEmitters() {
       const anchor = anchors[Math.floor(Math.random() * anchors.length)]
       if (anchor) {
         anchor.add(s.cryNode)
-        void playAt('seagulls', s.cryNode, 0.5)
+        // Launch gain shaped by the distance to THAT gull at cry time
+        // (3D distance — the gull is airborne), on top of the panner.
+        anchor.getWorldPosition(_gullPos)
+        _avatarPos.set(0, controlsRuntime.groundY + 1.2, 0)
+        const g = cryGain(_gullPos.distanceTo(_avatarPos))
+        ;(window as unknown as { __lastCryGain?: number }).__lastCryGain = g
+        if (g > 0.01) void playAt('seagulls', s.cryNode, g)
       }
       s.nextCry = rt.ctx.currentTime + 6 + Math.random() * 10
     }

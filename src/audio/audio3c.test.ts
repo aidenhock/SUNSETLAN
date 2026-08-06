@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { crackleTarget, musicTarget } from '../scene/AudioEmitters'
+import { crackleTarget, cryGain, musicTarget } from '../scene/AudioEmitters'
 import { advanceCrab, CRAB_BAND, type CrabState } from '../scene/crabWalk'
 import {
   FOOTSTEPS,
@@ -95,6 +95,19 @@ describe('music mixing targets', () => {
     expect(mid).toBeLessThan(0.5)
     // The signature itself is the proof: arity 1, distance only.
     expect(crackleTarget.length).toBe(1)
+  })
+
+  it('gull cry gain swells toward 8 m and is gone past 30 m', () => {
+    expect(cryGain(5)).toBeCloseTo(0.6, 5)
+    expect(cryGain(8)).toBeCloseTo(0.6, 5)
+    expect(cryGain(30)).toBe(0)
+    expect(cryGain(45)).toBe(0)
+    const mid = cryGain(19)
+    expect(mid).toBeGreaterThan(0.2)
+    expect(mid).toBeLessThan(0.4)
+    // Strictly monotone across the band — the swell/fade shape.
+    expect(cryGain(10)).toBeGreaterThan(cryGain(15))
+    expect(cryGain(15)).toBeGreaterThan(cryGain(25))
   })
 
   it('campfire ducks to 0.6 inside 4 m; modal ducks to ~0.2', () => {
