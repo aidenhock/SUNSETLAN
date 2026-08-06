@@ -20,6 +20,11 @@ export interface CrabState {
 export const CRAB_BAND = { latMin: 16, latMax: 23 }
 export const CRAB_SPEED = { walk: 0.55, skitter: 2.0 }
 
+/** Idle pincer-snap cadence: random 3–8 s (vitest-pinned bounds). */
+export function nextSnapDelay(rng: () => number = Math.random): number {
+  return 3 + rng() * 5
+}
+
 export function advanceCrab(crab: CrabState, dt: number, t: number, rng: () => number = Math.random) {
   crab.timer -= dt
   crab.phase += dt * (crab.state === 'pause' ? 2 : crab.state === 'walk' ? 10 : 20)

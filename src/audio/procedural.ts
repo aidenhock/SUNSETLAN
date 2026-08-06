@@ -134,12 +134,17 @@ function makeSplash(ctx: AudioContext): AudioBuffer {
   return buf
 }
 
-function makeCrabSkitter(ctx: AudioContext): AudioBuffer {
-  const [buf, data] = monoBuffer(ctx, 0.22)
+/** Sharp two-click pincer snap (polish 2) — serves both the idle snap
+ * and the quiet skitter until Aiden cuts crab files. */
+function makeCrabSnap(ctx: AudioContext): AudioBuffer {
+  const [buf, data] = monoBuffer(ctx, 0.16)
   const rng = mulberry32(22)
-  for (let c = 0; c < 4; c++) {
-    const at = Math.floor((0.02 + c * 0.05) * ctx.sampleRate)
-    fillBurst(data.subarray(at), ctx.sampleRate, rng, { lp: 0.8, decay: 90, gain: 0.5 })
+  for (const at of [0.01, 0.07]) {
+    fillBurst(data.subarray(Math.floor(at * ctx.sampleRate)), ctx.sampleRate, rng, {
+      lp: 0.95,
+      decay: 260,
+      gain: 0.85,
+    })
   }
   return buf
 }
@@ -213,7 +218,7 @@ export function registerProceduralFallbacks() {
   registerFallback('waves', makeWaveSwell)
   registerFallback('seagulls', makeGullCry)
   registerFallback('campfire', makeCrackle)
-  registerFallback('crabs', makeCrabSkitter)
+  registerFallback('crabs', makeCrabSnap)
   registerFallback('splash', makeSplash)
   registerFallback('ui', makeBlip)
   // Footstep pools have library files; a soft burst covers empty dev

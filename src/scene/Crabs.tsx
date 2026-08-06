@@ -5,7 +5,12 @@ import { play2d } from '../audio/core'
 import { controlsRuntime } from '../controls/usePlanetController'
 import { latLongToUnit, poleInPlanetSpace, surfaceQuaternion } from '../controls/planetMath'
 import { useStore } from '../store/useStore'
-import { advanceCrab, CRAB_SPEED, type CrabState } from './crabWalk'
+import { advanceCrab, CRAB_SPEED, nextSnapDelay, type CrabState } from './crabWalk'
+
+interface CrabLocal extends CrabState {
+  nextSnapAt: number
+  snapT: number
+}
 import { PLANET_RADIUS, terrainProfile } from './planetConfig'
 
 /**
@@ -30,7 +35,7 @@ const SPAWNS: Array<[number, number]> = [
 
 export function Crabs() {
   const mesh = useRef<THREE.InstancedMesh>(null)
-  const crabs = useMemo<CrabState[]>(
+  const crabs = useMemo<CrabLocal[]>(
     () =>
       SPAWNS.map(([lat, long], i) => ({
         lat,
@@ -39,6 +44,8 @@ export function Crabs() {
         state: 'pause' as const,
         timer: 1 + i * 0.7,
         phase: i * 2.1,
+        nextSnapAt: 2 + i,
+        snapT: -10,
       })),
     [],
   )
@@ -80,7 +87,17 @@ export function Crabs() {
               360) -
             180
           crab.heading = Math.atan2(dLong, dLat)
-          if (arcToPlayer < 6) void play2d('crabs', 'world', 0.3)
+          if (arcToPlayer < 6) void play2d('crabs', 'world', 0.165)
+        }
+        // Idle pincer snap (polish 2): a watched, paused crab snaps at
+        // random 3–8 s intervals with a claw twitch.
+        if (crab.state === 'pause' && arcToPlayer < 4 && t >= crab.nextSnapAt) {
+          crab.snapT = t
+          crab.nextSnapAt = t + nextSnapDelay()
+          void play2d('crabs', 'world', 0.35)
+          const w = window as unknown as { __snapLog?: number[] }
+          ;(w.__snapLog ??= []).push(t)
+          if (w.__snapLog.length > 16) w.__snapLog.shift()
         }
         advanceCrab(crab, dt, t)
       }
@@ -106,10 +123,16 @@ export function Crabs() {
         } else {
           const side = p < 3 ? 1 : -1
           const front = p % 2 === 0 ? 1 : -1
-          scratch.o.scale.set(0.035, 0.075, 0.035)
+          // Claw twitch: front legs pop up briefly on each pincer snap.
+          const sinceSnap = t - crab.snapT
+          const twitch =
+            front === 1 && sinceSnap >= 0 && sinceSnap < 0.3
+              ? Math.sin((sinceSnap / 0.3) * Math.PI)
+              : 0
+          scratch.o.scale.set(0.035, 0.075 * (1 + twitch * 0.6), 0.035)
           scratch.o.translateX(side * 0.13)
           scratch.o.translateZ(front * 0.06 + side * wig * 0.02 * front)
-          scratch.o.translateY(0.035)
+          scratch.o.translateY(0.035 + twitch * 0.045)
         }
         scratch.o.updateMatrix()
         m.setMatrixAt(idx, scratch.o.matrix)

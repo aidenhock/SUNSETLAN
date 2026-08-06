@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { crackleTarget, cryGain, musicTarget } from '../scene/AudioEmitters'
-import { advanceCrab, CRAB_BAND, type CrabState } from '../scene/crabWalk'
+import { advanceCrab, CRAB_BAND, nextSnapDelay, type CrabState } from '../scene/crabWalk'
 import {
   FOOTSTEPS,
   surfaceUnderfoot,
@@ -130,6 +130,19 @@ describe('crab walk invariants', () => {
       const polar = ((90 - crab.lat) * Math.PI) / 180
       expect(terrainProfile(polar)).toBeGreaterThanOrEqual(surfOffset(polar, t) + 0.04 - 1e-9)
     }
+  })
+})
+
+describe('crab snap cadence', () => {
+  it('intervals stay within the 3–8 s bounds across many draws', () => {
+    const rng = mulberry32(7)
+    for (let i = 0; i < 5000; i++) {
+      const d = nextSnapDelay(rng)
+      expect(d).toBeGreaterThanOrEqual(3)
+      expect(d).toBeLessThanOrEqual(8)
+    }
+    expect(nextSnapDelay(() => 0)).toBe(3)
+    expect(nextSnapDelay(() => 1)).toBe(8)
   })
 })
 

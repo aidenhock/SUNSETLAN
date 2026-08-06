@@ -107,7 +107,7 @@ Visual targets: **Animal Crossing** (cozy ground + props), **Wii Sports Resort /
 
 ## Ambient life (all code-animated primitives — no skinned glTFs for critters)
 - **Ukulele player** (sunset dock): low-poly seated figure, procedural strum/bob; `PositionalAudio` loop (refDistance 4, exponential rolloff); spawns rising **♪ note sprites** (textured quads, planet-local, drift + fade, pooled).
-- **Crabs**: body + leg boxes, sideways scuttle; random-walk within the sand ring (lat 16–23), pause often, skitter a step away when the player is within ~2 m.
+- **Crabs**: body + leg boxes, sideways scuttle; random-walk within the sand ring (lat 16–23), pause often, skitter a step away when the player is within ~2 m (quiet clicks). **Idle snap (polish 2)**: a paused crab watched from within ~4 m snaps at random 3–8 s intervals — crabs pool via the bag, procedural fallback a sharp two-click pincer snap — with a tiny claw twitch on each snap.
 - **Seagulls**: two-plane flap on tilted orbits above sunset water; occasional quiet cry.
 - **Campfire**: cone flame with emissive flicker (sin-noise), small flickering point light (night side), 2–3 rising smoke puffs; crackle `PositionalAudio`.
 
