@@ -60,7 +60,11 @@ const bodyGeo = (() => {
 })()
 const gullBodyMat = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true })
 
-function Gull({ def }: { def: GullDef }) {
+/** Live body groups, exported so the 3C cry emitter can parent its
+ * PositionalAudio to an actual orbiting gull. */
+export const gullAnchors: Array<THREE.Group | null> = []
+
+function Gull({ def, idx }: { def: GullDef; idx: number }) {
   const orbiter = useRef<THREE.Group>(null)
   const wingL = useRef<THREE.Group>(null)
   const wingR = useRef<THREE.Group>(null)
@@ -91,7 +95,7 @@ function Gull({ def }: { def: GullDef }) {
         {/* Body's local -Z is the beak/forward axis: parked at
             (orbitRadius, 0, 0), that axis already tracks the tangent of
             increasing rotation.y — a fixed yaw, no per-frame lookAt. */}
-        <group position={[def.orbitRadius, 0, 0]}>
+        <group position={[def.orbitRadius, 0, 0]} ref={(g) => void (gullAnchors[idx] = g)}>
           <mesh geometry={bodyGeo} material={gullBodyMat} />
           <group ref={wingL} position={[-0.25, 0.03, 0]}>
             <mesh material={bodyMat} position={[-0.425, 0, 0]}>
@@ -117,7 +121,7 @@ export function Seagulls() {
   return (
     <>
       {gulls.map((def, i) => (
-        <Gull key={i} def={def} />
+        <Gull key={i} def={def} idx={i} />
       ))}
     </>
   )

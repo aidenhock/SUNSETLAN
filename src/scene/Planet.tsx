@@ -5,6 +5,7 @@ import { useIntroSwoop } from '../controls/useIntroSwoop'
 import { usePlanetController } from '../controls/usePlanetController'
 import { usePointerLockCamera } from '../controls/usePointerLockCamera'
 import { interactables } from '../content/interactables'
+import { useMusicMix, WorldEmitters } from './AudioEmitters'
 import { Avatar } from './Avatar'
 import { CelestialDome } from './CelestialDome'
 import { Clouds } from './Clouds'
@@ -32,6 +33,7 @@ export function PlanetScene({ isTouch, intro }: { isTouch: boolean; intro: boole
   usePlanetController({ planetRef, avatarRef })
   usePointerLockCamera({ avatarRef, isTouch })
   useIntroSwoop({ enabled: intro })
+  useMusicMix()
 
   return (
     <>
@@ -53,6 +55,7 @@ export function PlanetScene({ isTouch, intro }: { isTouch: boolean; intro: boole
         <Island />
         <UkulelePlayer />
         <Crabs />
+        <WorldEmitters />
         {interactables.map((def) => (
           <Interactable key={def.id} def={def} />
         ))}
