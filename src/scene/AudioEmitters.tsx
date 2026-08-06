@@ -76,10 +76,14 @@ export function WorldEmitters() {
       g.add(fireNode)
       routeToBus(fireNode, 'world')
       st.current.fireNode = fireNode
+      // ONE distance authority (gull regression fix): the cryGain curve
+      // shapes the swell; the panner stays RELAXED under it — stacking
+      // refDist 3 / rolloff 1.8 onto the curve crushed a typical 20 m
+      // beach-to-gull cry to (3/20)^1.8 × 0.25 ≈ 0.008.
       const cry = new THREE.PositionalAudio(rt.listener)
-      cry.setRefDistance(3)
+      cry.setRefDistance(8)
       cry.setDistanceModel('exponential')
-      cry.setRolloffFactor(1.8)
+      cry.setRolloffFactor(1)
       routeToBus(cry, 'world')
       st.current.cryNode = cry
       st.current.nextCry = rt.ctx.currentTime + 5
@@ -112,8 +116,11 @@ export function WorldEmitters() {
         // (3D distance — the gull is airborne), on top of the panner.
         anchor.getWorldPosition(_gullPos)
         _avatarPos.set(0, controlsRuntime.groundY + 1.2, 0)
-        const g = cryGain(_gullPos.distanceTo(_avatarPos))
-        ;(window as unknown as { __lastCryGain?: number }).__lastCryGain = g
+        const d = _gullPos.distanceTo(_avatarPos)
+        const g = cryGain(d)
+        const w = window as unknown as { __cryLog?: Array<{ d: number; g: number }> }
+        ;(w.__cryLog ??= []).push({ d, g })
+        if (w.__cryLog.length > 8) w.__cryLog.shift()
         if (g > 0.01) void playAt('seagulls', s.cryNode, g)
       }
       s.nextCry = rt.ctx.currentTime + 6 + Math.random() * 10

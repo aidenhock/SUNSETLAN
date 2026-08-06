@@ -161,6 +161,48 @@ test('the ukulele actually sounds: strums schedule, the panner leaves the origin
   expect(back.music).toBeGreaterThan(0.25)
 })
 
+test('gull cries are AUDIBLE: near-flyover gain ≥ 0.25, every gain on the curve', async ({
+  page,
+}) => {
+  test.setTimeout(90_000)
+  await gotoWorld(page)
+  await page.waitForTimeout(800)
+  await page.keyboard.press('KeyQ')
+  await page.waitForTimeout(300)
+  await page.evaluate(() => {
+    const s = window.__store!.getState() as unknown as {
+      markMoved: () => void
+      setCameraMode: (m: string) => void
+    }
+    s.markMoved()
+    s.setCameraMode('orbit')
+    // The sunset beach under the gull orbits (lat 5–10, alt 10–13.5).
+    window.__controls!.poseOverride = { lat: 14, long: 0 }
+    ;(window as unknown as { __cryLog?: unknown[] }).__cryLog = []
+  })
+  // Cries fire every 6–16 s from a random gull — collect for a while.
+  const deadline = Date.now() + 60_000
+  let cries: Array<{ d: number; g: number }> = []
+  while (Date.now() < deadline) {
+    await page.waitForTimeout(2000)
+    cries = await page.evaluate(
+      () => (window as unknown as { __cryLog?: Array<{ d: number; g: number }> }).__cryLog ?? [],
+    )
+    if (cries.length >= 3 && cries.some((c) => c.d <= 18)) break
+  }
+  expect(cries.length).toBeGreaterThanOrEqual(2)
+  // The curve is the ONE authority: every logged gain matches it.
+  for (const c of cries) {
+    const t = Math.min(1, Math.max(0, (c.d - 8) / 22))
+    const expected = 0.6 * (1 - t * t * (3 - 2 * t))
+    expect(Math.abs(c.g - expected)).toBeLessThan(0.002)
+  }
+  // Teeth: a near-flyover cry (≤ 18 m) is clearly audible.
+  const near = cries.filter((c) => c.d <= 18)
+  expect(near.length).toBeGreaterThanOrEqual(1)
+  for (const c of near) expect(c.g).toBeGreaterThanOrEqual(0.25)
+})
+
 test('crab snaps: watched paused crab snaps in-bounds; none from afar', async ({ page }) => {
   await gotoWorld(page)
   await page.waitForTimeout(800)
