@@ -249,7 +249,11 @@ export function useSkyState({
     const planet = planetRef.current
     if (!planet) return
     poleInPlanetSpace(planet.quaternion, _pole)
-    const nightMix = nightMixFromPoleZ(_pole.z)
+    let nightMix = nightMixFromPoleZ(_pole.z)
+    // e2e-only override (audio finishing pass: day/night parity checks
+    // sample sound levels at pinned nightMix extremes).
+    const ov = (window as unknown as { __nightMixOverride?: number }).__nightMixOverride
+    if (ov !== undefined) nightMix = ov
     skyRuntime.nightMix = nightMix
 
     // Celestial arc (v3.7): elevation follows shore proximity, smoothed

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { musicTarget } from '../scene/AudioEmitters'
+import { crackleTarget, musicTarget } from '../scene/AudioEmitters'
 import { advanceCrab, CRAB_BAND, type CrabState } from '../scene/crabWalk'
 import {
   FOOTSTEPS,
@@ -52,6 +52,18 @@ describe('music mixing targets', () => {
     expect(musicTarget(14, 100, false)).toBeLessThan(0.35)
     expect(musicTarget(25, 100, false)).toBeCloseTo(0.35, 5)
   })
+  it('campfire crackle is PURE proximity — no nightMix term at all', () => {
+    expect(crackleTarget(3)).toBeCloseTo(0.7, 5)
+    expect(crackleTarget(2)).toBeCloseTo(0.7, 5)
+    expect(crackleTarget(12)).toBe(0)
+    expect(crackleTarget(20)).toBe(0)
+    const mid = crackleTarget(7.5)
+    expect(mid).toBeGreaterThan(0.2)
+    expect(mid).toBeLessThan(0.5)
+    // The signature itself is the proof: arity 1, distance only.
+    expect(crackleTarget.length).toBe(1)
+  })
+
   it('campfire ducks to 0.6 inside 4 m; modal ducks to ~0.2', () => {
     expect(musicTarget(100, 3, false)).toBeCloseTo(0.35 * 0.6, 5)
     expect(musicTarget(100, 12, false)).toBeCloseTo(0.35, 5)

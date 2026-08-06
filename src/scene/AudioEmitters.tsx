@@ -38,6 +38,13 @@ export function musicTarget(arcUkeM: number, arcFireM: number, modalOpen: boolea
   return 0.35 * ukeF * fireF * (modalOpen ? 0.57 : 1)
 }
 
+/** Campfire crackle level — PURE proximity (audio finishing pass):
+ * full at 3 m, silent past 12 m, and deliberately no nightMix term —
+ * day/night has nothing to do with what a fire sounds like. */
+export function crackleTarget(arcFireM: number): number {
+  return 0.7 * (1 - THREE.MathUtils.smoothstep(arcFireM, 3, 12))
+}
+
 export function WorldEmitters() {
   const fireAnchor = useRef<THREE.Group>(null)
   const st = useRef({
@@ -45,6 +52,8 @@ export function WorldEmitters() {
     fireNode: null as THREE.PositionalAudio | null,
     cryNode: null as THREE.PositionalAudio | null,
     nextCry: 0,
+    fireUnit: latLongToUnit(MAP.campfire.lat, MAP.campfire.long),
+    pole: new THREE.Vector3(),
   })
 
   useMemo(() => {
@@ -77,8 +86,11 @@ export function WorldEmitters() {
       s.fire.update(s.fireNode.panner)
       const lvl = s.fire.level(s.fireNode.panner)
       if (lvl) {
-        const target = 0.7 * THREE.MathUtils.smoothstep(skyRuntime.nightMix, 0.5, 0.85)
+        poleInPlanetSpace(controlsRuntime.planetQuaternion, s.pole)
+        const arcFire = s.pole.angleTo(s.fireUnit) * PLANET_RADIUS
+        const target = crackleTarget(arcFire)
         lvl.gain.value += (target - lvl.gain.value) * (1 - Math.exp(-dt / LERP_TAU))
+        ;(window as unknown as { __fireLevel?: number }).__fireLevel = lvl.gain.value
       }
     }
     if (s.cryNode && rt.ctx.currentTime >= s.nextCry && skyRuntime.nightMix < 0.5) {
