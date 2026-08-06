@@ -44,7 +44,7 @@ export function musicTarget(arcUkeM: number, arcFireM: number, modalOpen: boolea
  * full at 3 m, silent past 12 m, and deliberately no nightMix term —
  * day/night has nothing to do with what a fire sounds like. */
 export function crackleTarget(arcFireM: number): number {
-  return 0.7 * (1 - THREE.MathUtils.smoothstep(arcFireM, 3, 12))
+  return 0.875 * (1 - THREE.MathUtils.smoothstep(arcFireM, 3, 12))
 }
 
 /** Gull cry launch gain: a real gradient on top of the panner — full

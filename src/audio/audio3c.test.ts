@@ -86,13 +86,13 @@ describe('music mixing targets', () => {
     expect(musicTarget(25, 100, false)).toBeCloseTo(0.35, 5)
   })
   it('campfire crackle is PURE proximity — no nightMix term at all', () => {
-    expect(crackleTarget(3)).toBeCloseTo(0.7, 5)
-    expect(crackleTarget(2)).toBeCloseTo(0.7, 5)
+    expect(crackleTarget(3)).toBeCloseTo(0.875, 5)
+    expect(crackleTarget(2)).toBeCloseTo(0.875, 5)
     expect(crackleTarget(12)).toBe(0)
     expect(crackleTarget(20)).toBe(0)
     const mid = crackleTarget(7.5)
-    expect(mid).toBeGreaterThan(0.2)
-    expect(mid).toBeLessThan(0.5)
+    expect(mid).toBeGreaterThan(0.3)
+    expect(mid).toBeLessThan(0.6)
     // The signature itself is the proof: arity 1, distance only.
     expect(crackleTarget.length).toBe(1)
   })
