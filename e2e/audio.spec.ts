@@ -193,14 +193,16 @@ test('gull cries are AUDIBLE: near-flyover gain ≥ 0.25, every gain on the curv
   expect(cries.length).toBeGreaterThanOrEqual(2)
   // The curve is the ONE authority: every logged gain matches it.
   for (const c of cries) {
-    const t = Math.min(1, Math.max(0, (c.d - 8) / 22))
-    const expected = 0.6 * (1 - t * t * (3 - 2 * t))
+    const t = Math.min(1, Math.max(0, (c.d - 10) / 20))
+    const expected = 0.9 * (1 - t * t * (3 - 2 * t))
     expect(Math.abs(c.g - expected)).toBeLessThan(0.002)
   }
-  // Teeth: a near-flyover cry (≤ 18 m) is clearly audible.
+  // Teeth: a near-flyover cry (≤ 18 m) is clearly audible — and with
+  // the nearest-gull preference, standing under the flock guarantees
+  // near cries arrive.
   const near = cries.filter((c) => c.d <= 18)
   expect(near.length).toBeGreaterThanOrEqual(1)
-  for (const c of near) expect(c.g).toBeGreaterThanOrEqual(0.25)
+  for (const c of near) expect(c.g).toBeGreaterThanOrEqual(0.4)
 })
 
 test('crab snaps: watched paused crab snaps in-bounds; none from afar', async ({ page }) => {

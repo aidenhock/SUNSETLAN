@@ -97,16 +97,18 @@ describe('music mixing targets', () => {
     expect(crackleTarget.length).toBe(1)
   })
 
-  it('gull cry gain swells toward 8 m and is gone past 30 m', () => {
-    expect(cryGain(5)).toBeCloseTo(0.6, 5)
-    expect(cryGain(8)).toBeCloseTo(0.6, 5)
+  it('gull cry gain is full under the orbit (≤10 m) and gone past 30 m', () => {
+    expect(cryGain(5)).toBeCloseTo(0.9, 5)
+    expect(cryGain(10)).toBeCloseTo(0.9, 5)
+    // Standing under a gull (orbit altitude ~12 m) is clearly audible.
+    expect(cryGain(12)).toBeGreaterThan(0.85)
     expect(cryGain(30)).toBe(0)
     expect(cryGain(45)).toBe(0)
-    const mid = cryGain(19)
-    expect(mid).toBeGreaterThan(0.2)
-    expect(mid).toBeLessThan(0.4)
+    const mid = cryGain(20)
+    expect(mid).toBeGreaterThan(0.3)
+    expect(mid).toBeLessThan(0.6)
     // Strictly monotone across the band — the swell/fade shape.
-    expect(cryGain(10)).toBeGreaterThan(cryGain(15))
+    expect(cryGain(12)).toBeGreaterThan(cryGain(15))
     expect(cryGain(15)).toBeGreaterThan(cryGain(25))
   })
 

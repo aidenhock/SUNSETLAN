@@ -47,10 +47,11 @@ export function crackleTarget(arcFireM: number): number {
   return 0.7 * (1 - THREE.MathUtils.smoothstep(arcFireM, 3, 12))
 }
 
-/** Gull cry launch gain (polish pass 2): a real gradient on top of the
- * panner — swells toward 8 m, gone past 30 m, so flyovers breathe. */
+/** Gull cry launch gain: a real gradient on top of the panner — full
+ * voice inside ~10 m (gulls orbit at 10–13.5 m altitude, so "standing
+ * under one" IS ~12 m), gone past 30 m, so flyovers breathe. */
 export function cryGain(distM: number): number {
-  return 0.6 * (1 - THREE.MathUtils.smoothstep(distM, 8, 30))
+  return 0.9 * (1 - THREE.MathUtils.smoothstep(distM, 10, 30))
 }
 
 export function WorldEmitters() {
@@ -109,13 +110,28 @@ export function WorldEmitters() {
     }
     if (s.cryNode && rt.ctx.currentTime >= s.nextCry && skyRuntime.nightMix < 0.5) {
       const anchors = gullAnchors.filter((a): a is THREE.Group => !!a)
-      const anchor = anchors[Math.floor(Math.random() * anchors.length)]
+      // Proximity behavior: when the player is under the flock, the
+      // NEAREST gull does the talking, and it talks more often —
+      // standing on the beach/dock should mean hearing them.
+      _avatarPos.set(0, controlsRuntime.groundY + 1.2, 0)
+      let anchor: THREE.Group | null = null
+      let nearestD = Infinity
+      for (const a of anchors) {
+        const d = a.getWorldPosition(_gullPos).distanceTo(_avatarPos)
+        if (d < nearestD) {
+          nearestD = d
+          anchor = a
+        }
+      }
+      const close = nearestD < 20
+      if (!close && anchors.length > 0) {
+        anchor = anchors[Math.floor(Math.random() * anchors.length)]
+      }
       if (anchor) {
         anchor.add(s.cryNode)
         // Launch gain shaped by the distance to THAT gull at cry time
         // (3D distance — the gull is airborne), on top of the panner.
         anchor.getWorldPosition(_gullPos)
-        _avatarPos.set(0, controlsRuntime.groundY + 1.2, 0)
         const d = _gullPos.distanceTo(_avatarPos)
         const g = cryGain(d)
         const w = window as unknown as { __cryLog?: Array<{ d: number; g: number }> }
@@ -123,7 +139,7 @@ export function WorldEmitters() {
         if (w.__cryLog.length > 8) w.__cryLog.shift()
         if (g > 0.01) void playAt('seagulls', s.cryNode, g)
       }
-      s.nextCry = rt.ctx.currentTime + 6 + Math.random() * 10
+      s.nextCry = rt.ctx.currentTime + (close ? 3 + Math.random() * 4 : 6 + Math.random() * 10)
     }
   })
 
