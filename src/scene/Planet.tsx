@@ -14,6 +14,7 @@ import { PLANET_RADIUS } from './planetConfig'
 import { Seagulls } from './Seagulls'
 import { ShootingStars } from './ShootingStars'
 import { SkyRig } from './SkyRig'
+import { UkulelePlayer } from './UkulelePlayer'
 import { WadeRipple } from './WadeRipple'
 import { Water } from './Water'
 
@@ -49,6 +50,7 @@ export function PlanetScene({ isTouch, intro }: { isTouch: boolean; intro: boole
         </mesh>
         <Water />
         <Island />
+        <UkulelePlayer />
         {interactables.map((def) => (
           <Interactable key={def.id} def={def} />
         ))}

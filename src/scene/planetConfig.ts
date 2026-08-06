@@ -126,6 +126,7 @@ const THREE_DEG = Math.PI / 180
 export const MAP = {
   tripod: { lat: 14, long: 0 }, // Photos — on the dock end, over water
   mailbox: { lat: 24, long: 6 }, // Contact — dock entrance
+  ukulelePlayer: { lat: 18, long: 358.7 }, // NPC — dock west edge, legs over the surf
   palapa: { lat: 40, long: 40 }, // Projects — day-leaning side
   tree: { lat: 50, long: 300 }, // About — dusk boundary west
   campfire: { lat: 22, long: 180 }, // night beach

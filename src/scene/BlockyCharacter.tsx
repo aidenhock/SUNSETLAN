@@ -487,6 +487,7 @@ export function BlockyCharacter({
   config,
   motion,
   onStep,
+  poseHook,
 }: {
   config: CharacterConfig
   /** Read each frame — returns the controller (or NPC brain) state. */
@@ -494,6 +495,17 @@ export function BlockyCharacter({
   /** Fired at each foot-plant phase of the walk/run swing (3C
    * footsteps — events come from the ANIMATION, never a timer). */
   onStep?: () => void
+  /** Runs AFTER the standard animation each frame — NPC custom posing
+   * (seated dangle, strum arm) composes on the shared rig without new
+   * systems. */
+  poseHook?: (parts: {
+    armL: THREE.Group
+    armR: THREE.Group
+    legL: THREE.Group
+    legR: THREE.Group
+    head: THREE.Group
+    t: number
+  }) => void
 }) {
   const { nodes, dims } = useMemo(() => buildNodes(config), [config])
   // v3.19: arms rest ~45° down-and-out — daylight along the whole upper
@@ -626,6 +638,18 @@ export function BlockyCharacter({
     s.scaleXZ += (txz - s.scaleXZ) * k
     s.scaleY += (ty - s.scaleY) * k
     g.scale.set(s.scaleXZ, s.scaleY, s.scaleXZ)
+
+    // NPC custom posing composes after the shared animation (3C).
+    if (poseHook && h) {
+      poseHook({
+        armL: armL.current,
+        armR: armR.current,
+        legL: legL.current,
+        legR: legR.current,
+        head: h,
+        t,
+      })
+    }
   })
 
   return (

@@ -105,6 +105,28 @@ export const AIDEN: CharacterConfig = {
   glassesStyle: 'bold-rect',
 }
 
+/** Koa — the ukulele player on the dock (3C's first villager).
+ * Authored in the Character Studio and exported here: friendly beach
+ * musician, palette deliberately distinct from Aiden (coral tee, warm
+ * brown swoop, cream shorts, blush, no glasses). */
+export const KOA: CharacterConfig = {
+  height: 1.22,
+  headsTall: 2.0,
+  build: 1.02,
+  colors: {
+    skin: '#e8b98a',
+    hair: '#5a4632',
+    top: '#ff8c5a',
+    bottom: '#f5e9d0',
+    shoes: '#8a5a3a',
+    eyes: '#2b1c14',
+  },
+  hair: 'swoop',
+  outfit: 'tee-shorts',
+  eyeStyle: 'dark',
+  blush: true,
+}
+
 /** Feminine villager demo (the AC reference pair's second model) — the
  * template future female NPCs start from. */
 export const ROSE: CharacterConfig = {
