@@ -76,6 +76,23 @@ test('audio arms only on gesture; mix ducks near the uke; steps track surface; m
   expect(steps.length).toBeLessThanOrEqual(9)
   expect(steps.every((s) => s.surface === 'grass')).toBe(true)
 
+  // Wade: at the movement clamp the steps switch to splashes — which
+  // resolve from Aiden's splash pool (file-pool-first; the procedural
+  // splash is unreachable while the pool is non-empty).
+  await page.evaluate(() => {
+    window.__controls!.poseOverride = { lat: 13.4, long: 90 }
+    ;(window as unknown as { __stepLog?: unknown[] }).__stepLog = []
+  })
+  await page.waitForTimeout(600)
+  await page.keyboard.down('KeyW')
+  await page.waitForTimeout(1500)
+  await page.keyboard.up('KeyW')
+  const wadeSteps = await page.evaluate(
+    () => (window as unknown as { __stepLog?: Array<{ surface: string }> }).__stepLog ?? [],
+  )
+  expect(wadeSteps.length).toBeGreaterThanOrEqual(2)
+  expect(wadeSteps.every((s) => s.surface === 'wade')).toBe(true)
+
   // Mute hard-zeroes the master instantly.
   await page.evaluate(() => {
     ;(window.__store!.getState() as unknown as { setMuted: (m: boolean) => void }).setMuted(true)

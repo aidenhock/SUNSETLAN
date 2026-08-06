@@ -7,18 +7,22 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 const ROOT = path.resolve(import.meta.dirname, '..')
-const STAGING = path.join(ROOT, 'SLaudiofiles')
+// Staging folder: first CLI arg (quote paths with spaces), default the
+// original drop.  node scripts/ingest-audio.mjs "./new splash audio"
+const STAGING = path.resolve(ROOT, process.argv[2] ?? 'SLaudiofiles')
 const DEST = path.join(ROOT, 'src', 'assets', 'audio')
 
-// LONGEST-FIRST so named prefixes win over single letters.
+// LONGEST-FIRST so named prefixes win over single letters (sorted at
+// use so a new named rule can never be shadowed by a letter rule).
 const RULES = [
+  ['splash', 'splash'],
   ['wave', 'waves'],
   ['gull', 'seagulls'],
   ['fire', 'campfire'],
   ['g', 'footsteps-grass'],
   ['s', 'footsteps-sand'],
   ['w', 'footsteps-dock'],
-]
+].sort((a, b) => b[0].length - a[0].length)
 
 /** Minimal MP3 sanity: skip ID3v2, find a valid frame header; return
  * the channel mode. Enough to catch truncated/corrupt files without a

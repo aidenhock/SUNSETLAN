@@ -8,7 +8,25 @@ import {
   terrainProfile,
 } from '../scene/planetConfig'
 import { ShuffleBag } from './bag'
+import { poolSize } from './core'
 import { fillPluck, mulberry32 } from './procedural'
+
+describe('audio manifest (file-pool-first)', () => {
+  // With files present, nextBuffer's pool branch runs — the procedural
+  // fallback is structurally unreachable for these categories.
+  it('the ingested pools are visible to the glob', () => {
+    // Aiden's library counts after both ingests.
+    expect(poolSize('splash')).toBe(15)
+    expect(poolSize('waves')).toBe(7)
+    expect(poolSize('seagulls')).toBe(8)
+    expect(poolSize('campfire')).toBe(4)
+    expect(poolSize('footsteps-grass')).toBe(31)
+    expect(poolSize('footsteps-sand')).toBe(26)
+    expect(poolSize('footsteps-dock')).toBe(44)
+    // Music has no file yet — the generative pad territory.
+    expect(poolSize('music')).toBe(0)
+  })
+})
 
 describe('shuffle bag (depth-2 anti-repeat)', () => {
   it('never picks either of the previous two, across long runs', () => {
