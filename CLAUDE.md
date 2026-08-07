@@ -89,7 +89,7 @@ The sun, moon, stars, and sky gradient are **children of the rotating planet gro
 | Palapa + desk | Projects | 40 | 40 | Day-leaning side |
 | Big tree + rings | About | 50 | 300 | Dusk boundary west |
 | Campfire | prop | 22 | 180 | Night beach; Fire 2.0 flame + flicker light + crackle; 1.2 m blocker |
-| Log circle ×3 | prop/seat | 23.4–24.3 | 178.1–181.9 | Landward arc ~2.2 m from the fire, opening toward the sea; center log perpendicular to the fire→sea axis, flanks ~35° inward; 3 seats each (E — Sit); 0.9 m blockers |
+| Log circle ×3 | prop/seat | 23.4–25.3 | 176.7–183.3 | Landward arc ~3.2 m from the fire at bearings 0/±65°, opening toward the sea; ends clearly separated (walkable gaps, full lap fits between log and fire blockers); center log perpendicular to the fire→sea axis, flanks just inside tangent; free-position sitting (E — Sit); 0.9 m blockers |
 | Ukulele on the log | Music | 22 | 173 | Aiden's music portal, by the fire |
 | CRT TV on crate | Videos | 21 | 150 | Screen glow reads at night |
 | Rowboat | prop | 18 | 210 | Beached |

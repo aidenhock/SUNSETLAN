@@ -133,14 +133,17 @@ export const MAP = {
   palapa: { lat: 40, long: 40 }, // Projects — day-leaning side
   tree: { lat: 50, long: 300 }, // About — dusk boundary west
   campfire: { lat: 22, long: 180 }, // night beach
-  // Log circle: three sittable logs ~2.2 m from the fire on the landward
-  // arc, opening toward the sea. Center log lies perpendicular to the
-  // fire→sea meridian (yaw 0 = along east–west); flanks turn ~35° inward
-  // so the circle wraps the fire. Three seats per log (3C sit system).
+  // Log circle: three sittable logs ~3.2 m from the fire on the landward
+  // arc, opening toward the sea (campfire polish 3: pushed out from
+  // 2.2 m and the flank bearings widened to ±65° so the ends never
+  // touch — clear walkable gaps between logs, and a full lap fits
+  // between the log blockers (2.3 m inner edge) and the fire blocker
+  // (1.2 m). Center log perpendicular to the fire→sea meridian; flanks
+  // turned just inside tangent so the circle still opens to the sea.
   logs: [
-    { lat: 24.3, long: 180, yaw: 0 },
-    { lat: 23.4, long: 178.1, yaw: 0.61 },
-    { lat: 23.4, long: 181.9, yaw: -0.61 },
+    { lat: 25.3, long: 180, yaw: 0 },
+    { lat: 23.4, long: 176.7, yaw: 0.95 },
+    { lat: 23.4, long: 183.3, yaw: -0.95 },
   ],
   musicUkulele: { lat: 22, long: 173 }, // Music — by the fire
   tv: { lat: 21, long: 150 }, // Videos — screen glow reads at night
