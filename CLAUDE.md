@@ -34,7 +34,7 @@ Core is done and stays: avatar kinematic at the pole, input rotates the planet q
 - **Wading** stays: clamp ~2.5 m past the beach line; add a ripple ring + soft splash SFX on crossing the waterline. No swimming (a treasure ship is backlog).
 
 ### Placement rules (fixes the floating/sunken props and the dock)
-1. **Never hardcode altitude.** Export `groundAltitudeAt(lat, long)` next to `groundHeightAt` (same analytic bands: grass / sand / dock / water) and derive every SurfaceGroup altitude from it, minus a **0.1 m sink** so bases bite into the ground. Applies to props, interactables, NPCs, critters. This is the root cause of trees floating at the horizon and sinking up close.
+1. **Never hardcode altitude.** Export `groundAltitudeAt(lat, long)` next to `groundHeightAt` (same analytic bands: grass / sand / dock / water) and derive every SurfaceGroup altitude from it, minus a **0.1 m sink** so bases bite into the ground. Applies to props, interactables, NPCs, critters. This is the root cause of trees floating at the horizon and sinking up close. **Corollary — characters ON structures**: anything seated/standing on a built surface (dock deck, log) derives its altitude from THAT surface's analytic strip (e.g. `groundAltitudeAt(lat, DOCK.longDeg)`), never from the terrain band beneath an overhang, and its body must OVERLAP the walkable strip (cross-track < half-width) — Koa's float was both violated at once; vitest pins his seat to the deck top.
 2. **No straight mesh longer than ~4 m lying on the sphere.** A chord floats mid-span and buries its ends. Long objects (dock, bench, boat) are built from short surface-snapped segments (or a curved strip).
 3. **Meridian alignment**: `surfaceQuaternion` gives an arbitrary twist; derive yaw from local north/east tangent vectors (add a `meridianYaw(lat, long)` helper) so the dock runs along its meridian toward the water, not parallel to the shore.
 4. **One continuous terrain surface (v3.2).** Grass, sand, and the underwater apron are ONE sphere-cap mesh whose radius follows `terrainProfile(polar)` in planetConfig: grass plateau → eased shoulder → beach ramp reaching sea level exactly at the waterline → shallow underwater apron continuing ~6° further, ending tucked under the ocean-floor sphere. **Never an exposed rim, never a visible underside, no stacked shells.** `groundHeightAt`/`groundAltitudeAt` evaluate the SAME profile (plus the dock strip) so feet, prop placement, and visuals can never disagree. Wading depth comes from walking down the real slope — there is no step at the waterline.
@@ -84,7 +84,7 @@ The sun, moon, stars, and sky gradient are **children of the rotating planet gro
 | Dock | prop | 24→13 | 0 | Segmented; walkable deck (analytic strip) |
 | Camera tripod | Photos | 14 | 0 | On the dock end, over water, facing the sun |
 | Mailbox | Contact | 24 | 6 | Dock entrance |
-| Ukulele player (Koa) | NPC | 18 | 358.7 | Seated on the dock's west edge, legs over water; 0.7 m blocker |
+| Ukulele player (Koa) | NPC | 18 | 359.05 | Seat ON the dock's west edge (cross-track ~0.91 m < the 1 m half-width), legs over water; 0.7 m blocker |
 | Seagulls ×2–3 | critter | — | ~0 | Tilted orbit loops over sunset-side water |
 | Palapa + desk | Projects | 40 | 40 | Day-leaning side |
 | Big tree + rings | About | 50 | 300 | Dusk boundary west |

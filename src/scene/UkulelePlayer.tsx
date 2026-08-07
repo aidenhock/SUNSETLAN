@@ -5,10 +5,11 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import { audioRuntime, onArmed, onAudioResume, registerVoice, routeToBus, syncPanner } from '../audio/core'
 import { makeStrumBuffer, mulberry32 } from '../audio/procedural'
 import { KOA } from '../content/characters'
+import { groundAltitudeAt } from '../controls/terrain'
 import { useStore } from '../store/useStore'
 import { BlockyCharacter, type MotionState } from './BlockyCharacter'
 import { tintGeometry } from './geometryUtils'
-import { MAP } from './planetConfig'
+import { DOCK, MAP } from './planetConfig'
 import { normalizeForMerge } from './props'
 import { SurfaceGroup } from './SurfaceGroup'
 
@@ -77,6 +78,22 @@ const UKE = {
  * mesh, and the note sprites are ONE THREE.Points cloud — the whole
  * ensemble adds rig(6) + uke(1) + notes(1).
  */
+
+/** Bug pass 2 (the floating NPC): Koa's altitude derives from the
+ * DOCK's analytic deck strip — groundAltitudeAt evaluated ON the strip
+ * (DOCK.longDeg), the same function the controller walks — never from
+ * the sand/water band under his overhang, which is what floated him.
+ * Seat contact = deck top − a 2 cm bite; the rig root sits
+ * KOA_SEAT.seatToRootM below the seat (stubby-leg rig: the torso
+ * bottom rides ~0.12 above the root plane). Vitest pins all of it. */
+export const KOA_SEAT = {
+  seatBiteM: 0.02,
+  seatToRootM: 0.12,
+  deckTopAlt: groundAltitudeAt(MAP.ukulelePlayer.lat, DOCK.longDeg),
+  get altitude(): number {
+    return this.deckTopAlt - this.seatBiteM - this.seatToRootM
+  },
+}
 
 const BPM = 92
 const BEAT = 60 / BPM
@@ -328,8 +345,13 @@ export function UkulelePlayer() {
 
   // The uke: tiny primitive assembly, ONE merged-material mesh group.
   return (
-    <SurfaceGroup lat={MAP.ukulelePlayer.lat} long={MAP.ukulelePlayer.long} raise={0.72} yaw={-Math.PI / 2 - 0.45}>
-      <group ref={rigGroup} position={[0, -0.16, 0]}>
+    <SurfaceGroup
+      lat={MAP.ukulelePlayer.lat}
+      long={MAP.ukulelePlayer.long}
+      altitude={KOA_SEAT.altitude}
+      yaw={-Math.PI / 2 - 0.45}
+    >
+      <group ref={rigGroup}>
         <BlockyCharacter
           config={KOA}
           motion={koaMotion}

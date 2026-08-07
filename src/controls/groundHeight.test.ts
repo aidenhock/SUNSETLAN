@@ -123,3 +123,31 @@ describe('meridianYaw (placement rule 3)', () => {
     expect(Math.abs(world.dot(unit))).toBeLessThan(1e-6)
   })
 })
+
+describe('Koa sits ON the dock deck (bug pass 2 — the floating NPC)', () => {
+  it('altitude derives from the DECK strip, seat within a few cm of deck top', async () => {
+    const { KOA_SEAT } = await import('../scene/UkulelePlayer')
+    const { MAP } = await import('../scene/planetConfig')
+    // The deck exists at his latitude, and his altitude is the strip's
+    // analytic top (same groundAltitudeAt the controller walks) — never
+    // the sand/water band under his overhang.
+    expect(onDockStrip(MAP.ukulelePlayer.lat, DOCK.longDeg)).toBe(true)
+    const deckTop = groundAltitudeAt(MAP.ukulelePlayer.lat, DOCK.longDeg)
+    expect(KOA_SEAT.deckTopAlt).toBeCloseTo(deckTop, 10)
+    // Seat contact (root + torso-bottom offset) bites ≤ 5 cm into the top.
+    const seat = KOA_SEAT.altitude + KOA_SEAT.seatToRootM
+    expect(deckTop - seat).toBeGreaterThanOrEqual(0)
+    expect(deckTop - seat).toBeLessThanOrEqual(0.05)
+  })
+
+  it('his body OVERLAPS the walkable deck — never hovers past the edge', async () => {
+    const { MAP } = await import('../scene/planetConfig')
+    const polar = THREE.MathUtils.degToRad(90 - MAP.ukulelePlayer.lat)
+    const dLong = ((MAP.ukulelePlayer.long - DOCK.longDeg + 540) % 360) - 180
+    const crossM = Math.abs(THREE.MathUtils.degToRad(dLong)) * Math.sin(polar) * PLANET_RADIUS
+    // Butt on the deck (inside the half-width), close enough to the edge
+    // that the legs still dangle over the water side.
+    expect(crossM).toBeLessThan(DOCK.halfWidthM)
+    expect(crossM).toBeGreaterThan(DOCK.halfWidthM - 0.25)
+  })
+})
