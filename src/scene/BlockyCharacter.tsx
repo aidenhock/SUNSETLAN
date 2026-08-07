@@ -497,6 +497,7 @@ export function BlockyCharacter({
   config,
   motion,
   onStep,
+  torsoAttachment,
   poseHook,
 }: {
   config: CharacterConfig
@@ -505,6 +506,10 @@ export function BlockyCharacter({
   /** Fired at each foot-plant phase of the walk/run swing (3C
    * footsteps — events come from the ANIMATION, never a timer). */
   onStep?: () => void
+  /** Rendered INSIDE the torso group (origin at the hips) — props a
+   * character holds live in TORSO space so they can never detach from
+   * the body (the floating-ukulele bug was a root-space anchor). */
+  torsoAttachment?: React.ReactNode
   /** Runs AFTER the standard animation each frame — NPC custom posing
    * (seated dangle, strum arm) composes on the shared rig without new
    * systems. */
@@ -698,6 +703,7 @@ export function BlockyCharacter({
       </group>
       <group position={[0, dims.legLen, 0]}>
         <mesh geometry={nodes.torso} material={characterMaterial} />
+        {torsoAttachment}
         <group ref={armL} position={[-dims.shoulderX, dims.shoulderY, 0]}>
           <mesh geometry={nodes.arm} material={characterMaterial} />
           <group ref={foreL} position={[0, -dims.elbowY, 0]}>

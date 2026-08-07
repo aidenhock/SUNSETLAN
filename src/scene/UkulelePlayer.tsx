@@ -12,7 +12,13 @@ import { MAP } from './planetConfig'
 import { normalizeForMerge } from './props'
 import { SurfaceGroup } from './SurfaceGroup'
 
-/** The uke as ONE vertex-tinted mesh (draw-call budget). */
+/**
+ * The uke as ONE vertex-tinted mesh (draw-call budget), built in its own
+ * local frame: soundboard faces +y, neck along +x toward the character's
+ * anatomical LEFT once mounted. Chunky low-poly proportions per the
+ * style bible — wide rounded body, short thick neck, headstock block.
+ * Landmarks (uke-local) for the arm solve live in UKE.
+ */
 const ukeGeo = (() => {
   const parts: THREE.BufferGeometry[] = []
   const add = (g: THREE.BufferGeometry, color: string, m: THREE.Matrix4) => {
@@ -21,20 +27,43 @@ const ukeGeo = (() => {
     n.applyMatrix4(m)
     parts.push(n)
   }
-  add(new THREE.SphereGeometry(0.14, 10, 7), '#b5773f', new THREE.Matrix4())
+  // Wide rounded body (~0.4 m across), flattened.
   add(
-    new THREE.SphereGeometry(0.11, 8, 6),
+    new THREE.SphereGeometry(0.17, 12, 8),
+    '#b5773f',
+    new THREE.Matrix4().makeScale(1.15, 0.5, 1),
+  )
+  // Soundhole on the board.
+  add(
+    new THREE.CylinderGeometry(0.055, 0.055, 0.02, 10),
+    '#3a2a1c',
+    new THREE.Matrix4().setPosition(0.04, 0.082, 0),
+  )
+  // Short thick neck + headstock block.
+  add(
+    new THREE.BoxGeometry(0.3, 0.045, 0.075),
     '#8a5a3a',
-    new THREE.Matrix4().makeScale(1, 0.45, 1).setPosition(0.02, 0, 0),
+    new THREE.Matrix4().setPosition(0.3, 0.02, 0),
   )
   add(
-    new THREE.BoxGeometry(0.34, 0.05, 0.04),
+    new THREE.BoxGeometry(0.09, 0.055, 0.095),
     '#5a4632',
-    new THREE.Matrix4().makeRotationZ(-0.08).setPosition(0.28, 0.02, 0),
+    new THREE.Matrix4().setPosition(0.48, 0.03, 0),
   )
   return mergeGeometries(parts)
 })()
 const ukeMat = new THREE.MeshLambertMaterial({ vertexColors: true })
+
+/** Torso-local mount + uke-local landmarks (authored in the studio via
+ * the per-arm sliders; the arm pose in koaPose targets these). */
+const UKE = {
+  position: new THREE.Vector3(0.02, 0.3, 0.21),
+  rotation: new THREE.Euler(-0.55, 0.15, 0.55),
+  /** Mid-neck, where the fret hand grips (uke-local). */
+  neckGrip: new THREE.Vector3(0.3, 0.04, 0),
+  /** Body center, where the strum forearm sweeps (uke-local). */
+  strumPoint: new THREE.Vector3(0.02, 0.1, 0),
+}
 
 /**
  * Koa, the ukulele player (3C) — first villager on the shared rig.
@@ -245,24 +274,23 @@ export function UkulelePlayer() {
     // Dangling legs over the edge, gentle alternate kicks.
     legL.rotation.x = 0.55 + Math.sin(t * 1.3) * 0.08
     legR.rotation.x = 0.55 + Math.sin(t * 1.3 + Math.PI) * 0.08
-    // Rebuilt on the elbows (v3.21): the fret arm reaches out along
-    // the neck with a sharp elbow bend up to the frets; the strum arm
-    // cradles over the body. STRUM = FOREARM rotation from the elbow —
-    // a quick flick eased over ~0.18 s from the last SCHEDULED strum —
-    // the upper arm stays cradled.
-    armL.rotation.x = -0.35
-    armL.rotation.z = 0.42
-    if (foreL) {
-      foreL.rotation.x = -1.35
-      foreL.rotation.z = 0.15
+    // Pose repair: the uke neck points toward the character's LEFT
+    // (+x) — which is the rig's armR (mounted at +shoulderX). Fret hand
+    // = armR reaching up the neck to UKE.neckGrip; strum hand = armL
+    // cradling over UKE.strumPoint, the STRUM a forearm-only flick.
+    armR.rotation.x = -0.5
+    armR.rotation.z = 0.85
+    if (foreR) {
+      foreR.rotation.x = -1.15
+      foreR.rotation.z = 0.1
     }
     const since = t - pose.current.lastStrumT
     const flick = since < 0.18 ? Math.sin((since / 0.18) * Math.PI) : 0
-    armR.rotation.x = -0.7
-    armR.rotation.z = -0.3
-    if (foreR) {
-      foreR.rotation.x = -0.95 - flick * 0.45
-      foreR.rotation.z = -0.1
+    armL.rotation.x = -0.62
+    armL.rotation.z = -0.28
+    if (foreL) {
+      foreL.rotation.x = -1.05 - flick * 0.4
+      foreL.rotation.z = -0.12
     }
     // Head bob on the beat.
     head.rotation.z += Math.sin((t * BPM) / 60 * Math.PI) * 0.04
@@ -272,13 +300,15 @@ export function UkulelePlayer() {
   return (
     <SurfaceGroup lat={MAP.ukulelePlayer.lat} long={MAP.ukulelePlayer.long} raise={0.72} yaw={-Math.PI / 2 - 0.45}>
       <group ref={rigGroup} position={[0, -0.16, 0]}>
-        <BlockyCharacter config={KOA} motion={koaMotion} poseHook={koaPose} />
-        {/* Ukulele against the chest, aligned with both hands. */}
-        <mesh
-          geometry={ukeGeo}
-          material={ukeMat}
-          position={[0.1, 0.72, 0.3]}
-          rotation={[0.1, -0.45, -0.5]}
+        <BlockyCharacter
+          config={KOA}
+          motion={koaMotion}
+          poseHook={koaPose}
+          torsoAttachment={
+            /* TORSO-space mount — the uke can never detach from the
+               body again (root-space anchoring was the float bug). */
+            <mesh geometry={ukeGeo} material={ukeMat} position={UKE.position} rotation={UKE.rotation} />
+          }
         />
         <points ref={notesRef} geometry={noteGeo} material={noteMat} position={[0, 0.4, 0]} />
       </group>
