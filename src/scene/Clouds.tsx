@@ -147,7 +147,8 @@ export function Clouds() {
     }),
   )
 
-  useFrame((_state, dt) => {
+  useFrame((_state, rawDt) => {
+    const dt = Math.min(rawDt, 0.1) // resumed tabs hand the gap to frame 1
     const nightMix = skyRuntime.nightMix
     for (let i = 0; i < poolSize; i++) {
       const slot = slots.current[i]

@@ -2,7 +2,7 @@ import { useFrame, useThree } from '@react-three/fiber'
 import { useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
-import { audioRuntime, onArmed, routeToBus, syncPanner } from '../audio/core'
+import { audioRuntime, onArmed, onAudioResume, registerVoice, routeToBus, syncPanner } from '../audio/core'
 import { makeStrumBuffer, mulberry32 } from '../audio/procedural'
 import { KOA } from '../content/characters'
 import { useStore } from '../store/useStore'
@@ -131,6 +131,13 @@ export function UkulelePlayer() {
       ])
       a.barStartTime = rt.ctx.currentTime + 0.3
       a.armed = true
+      // Tab return: NEVER replay the hidden gap — restart the bar clock
+      // from now and forget bookkept strums (their sources were frozen
+      // with the suspended context; at most the ~0.8 s lookahead plays).
+      onAudioResume((now) => {
+        a.barStartTime = now + 0.3
+        a.strums.length = 0
+      })
     })
   }, [])
 
@@ -168,7 +175,10 @@ export function UkulelePlayer() {
   const _v = useMemo(() => new THREE.Vector3(), [])
   const _m = useMemo(() => new THREE.Matrix4(), [])
 
-  useFrame((state, dt) => {
+  useFrame((state, rawDt) => {
+    // Clamped delta: a resumed tab hands the first frame the whole
+    // hidden gap — nothing here may integrate it.
+    const dt = Math.min(rawDt, 0.1)
     const a = audio.current
     const rt = audioRuntime
     const now = rt.ctx?.currentTime ?? state.clock.elapsedTime
@@ -181,6 +191,16 @@ export function UkulelePlayer() {
         const w = window as unknown as { __ukePanner?: number[] }
         const p = a.nodes[0]?.panner
         if (p?.positionX) w.__ukePanner = [p.positionX.value, p.positionY.value, p.positionZ.value]
+      }
+      // Stall guard (tab-return blast fix): if the bar clock fell more
+      // than 0.25 s behind — hidden tab with no visibility event,
+      // alt-tab throttling, a breakpoint — skip FORWARD to now instead
+      // of scheduling the backlog. Bars are 2.6 s against a 0.8 s
+      // lookahead, so the while below never schedules more than one bar
+      // per frame in normal play.
+      if (a.barStartTime < now - 0.25) {
+        a.barStartTime = now + 0.1
+        a.strums.length = 0
       }
       // Schedule bars ~0.8 s ahead.
       while (a.barStartTime < now + 0.8) {
@@ -198,15 +218,25 @@ export function UkulelePlayer() {
           // Into the PANNER so the strum is spatialized like the node's
           // own buffer would be.
           g.connect(node.panner)
+          // Voice cap 6: ≤2 scheduled ahead + ~3 sounding tails is the
+          // legitimate ceiling; anything past it is a stall artifact.
+          registerVoice('uke-strum', src, 6)
           src.start(t)
           a.strums.push({ time: t, chord })
+          const w = window as unknown as { __ukeSched?: number }
+          w.__ukeSched = (w.__ukeSched ?? 0) + 1
         }
         a.barStartTime += 4 * BEAT
         a.nextBar++
       }
       // Consume strums whose time has arrived: arm anim + note spawn.
+      // Catch-up cap: the queue drains, but the flick/note EFFECT fires
+      // at most once per frame (strums sit 0.65 s apart in normal play —
+      // more than one due in a frame is always a stall artifact).
+      let consumed = 0
       while (a.strums.length && a.strums[0].time <= now) {
         a.strums.shift()
+        if (consumed++ > 0) continue
         pose.current.lastStrumT = state.clock.elapsedTime
         const w = window as unknown as { __ukeStrums?: number }
         w.__ukeStrums = (w.__ukeStrums ?? 0) + 1

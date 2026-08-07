@@ -245,7 +245,8 @@ export function useSkyState({
 }) {
   const { scene, camera } = useThree()
 
-  useFrame((_state, dt) => {
+  useFrame((_state, rawDt) => {
+    const dt = Math.min(rawDt, 0.1) // resumed tabs hand the gap to frame 1
     const planet = planetRef.current
     if (!planet) return
     poleInPlanetSpace(planet.quaternion, _pole)

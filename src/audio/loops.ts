@@ -1,4 +1,4 @@
-import { audioRuntime, nextBuffer, type Category } from './core'
+import { audioRuntime, nextBuffer, registerVoice, type Category } from './core'
 
 /**
  * Crossfading bag-pick looper (3C): Aiden's cuts are short, so a
@@ -53,6 +53,9 @@ export class CrossfadeLoop {
         g.gain.setValueAtTime(1, mid)
         g.gain.linearRampToValueAtTime(0.0001, end)
         src.connect(g).connect(this.out)
+        // Two overlap by design during the crossfade; three means a
+        // stall piled them up — drop the oldest.
+        registerVoice(`loop:${this.category}`, src, 3)
         src.start(t0)
         this.endTime = end
       })

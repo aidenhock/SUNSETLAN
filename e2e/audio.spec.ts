@@ -12,6 +12,8 @@ interface AudioDebug {
   music: number
   world: number
   ui: number
+  ctxState: string
+  voices: { total: number; byPool: Record<string, number> }
 }
 const debug = (page: import('@playwright/test').Page) =>
   page.evaluate(() => (window as unknown as { __audioDebug?: () => unknown }).__audioDebug?.())
@@ -240,6 +242,111 @@ test('crab snaps: watched paused crab snaps in-bounds; none from afar', async ({
   for (let i = 1; i < snaps.length; i++) {
     expect(snaps[i] - snaps[i - 1]).toBeGreaterThanOrEqual(2.9)
   }
+})
+
+test('tab return never blasts: rAF stall is guarded; hidden suspends, resume restarts clean', async ({
+  page,
+}) => {
+  test.setTimeout(90_000)
+  const errors = collectErrors(page)
+  await gotoWorld(page)
+  await page.waitForTimeout(800)
+  await page.keyboard.press('KeyQ')
+  await page.waitForTimeout(400)
+  await page.evaluate(() => {
+    const s = window.__store!.getState() as unknown as {
+      markMoved: () => void
+      setCameraMode: (m: string) => void
+    }
+    s.markMoved()
+    s.setCameraMode('orbit')
+    window.__controls!.poseOverride = { lat: 30, long: 0 }
+  })
+  await page.waitForTimeout(2500)
+  const sched = () =>
+    page.evaluate(() => (window as unknown as { __ukeSched?: number }).__ukeSched ?? 0)
+  expect(await sched()).toBeGreaterThan(0) // scheduler alive — never vacuous
+
+  // ---- Part A: rAF stall WITHOUT a visibility event (alt-tab
+  // throttling, breakpoints). The AudioContext clock keeps running for
+  // 8 s while no frame renders — the original bug's exact shape. The
+  // scheduler guard must skip forward, never replay ~3 bars at once.
+  await page.evaluate(() => {
+    const w = window as unknown as {
+      requestAnimationFrame: typeof requestAnimationFrame
+      __rafOrig?: typeof requestAnimationFrame
+      __rafQ?: FrameRequestCallback[]
+    }
+    w.__rafOrig = w.requestAnimationFrame.bind(window)
+    w.__rafQ = []
+    w.requestAnimationFrame = ((cb: FrameRequestCallback) => {
+      w.__rafQ!.push(cb)
+      return 0
+    }) as typeof requestAnimationFrame
+  })
+  await page.waitForTimeout(1000)
+  const frozen1 = await sched()
+  await page.waitForTimeout(7000)
+  const frozen2 = await sched()
+  expect(frozen2, 'the rAF freeze must actually stall the loop').toBe(frozen1)
+  const beforeResume = frozen2
+  await page.evaluate(() => {
+    const w = window as unknown as {
+      requestAnimationFrame: typeof requestAnimationFrame
+      __rafOrig?: typeof requestAnimationFrame
+      __rafQ?: FrameRequestCallback[]
+    }
+    w.requestAnimationFrame = w.__rafOrig!
+    for (const cb of w.__rafQ!.splice(0)) w.requestAnimationFrame(cb)
+  })
+  await page.waitForTimeout(1200)
+  const afterResume = await sched()
+  // Broken code schedules the whole 8 s backlog (~18 strums) on the
+  // resume frame; the guard restarts the bar clock: ≤ 2 bars total in
+  // the resume second.
+  expect(afterResume - beforeResume).toBeLessThanOrEqual(12)
+  const census = ((await debug(page)) as AudioDebug).voices
+  expect(census.total).toBeLessThanOrEqual(16)
+  expect(census.byPool['uke-strum'] ?? 0).toBeLessThanOrEqual(6)
+
+  // ---- Part B: the visibility path — hidden must suspend the context
+  // (freezing its clock) and hard-zero the master; visible must resume,
+  // reset baselines, and restore the master without a burst.
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => true })
+    Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' })
+    document.dispatchEvent(new Event('visibilitychange'))
+  })
+  await expect
+    .poll(async () => ((await debug(page)) as AudioDebug).ctxState, { timeout: 5000 })
+    .toBe('suspended')
+  expect(((await debug(page)) as AudioDebug).master).toBe(0)
+  // With the clock frozen the scheduler fills its 0.8 s lookahead once,
+  // then idles — no growth across the hidden stretch.
+  const hidden1 = await sched()
+  await page.waitForTimeout(3000)
+  expect(await sched()).toBe(hidden1)
+
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => false })
+    Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'visible' })
+    document.dispatchEvent(new Event('visibilitychange'))
+  })
+  await expect
+    .poll(async () => ((await debug(page)) as AudioDebug).ctxState, { timeout: 5000 })
+    .toBe('running')
+  await expect
+    .poll(async () => ((await debug(page)) as AudioDebug).master, { timeout: 2000 })
+    .toBe(1)
+  // The resume second schedules at the normal cadence, not a backlog.
+  const resumeBase = await sched()
+  await page.waitForTimeout(1200)
+  expect((await sched()) - resumeBase).toBeLessThanOrEqual(12)
+  // …and the music keeps flowing afterward (normal ambience returns).
+  await page.waitForTimeout(3000)
+  expect((await sched()) - resumeBase).toBeGreaterThanOrEqual(6)
+
+  expect(realErrors(errors)).toEqual([])
 })
 
 test('campfire crackle is PURE proximity — identical day vs night at 12/8/5/3 m', async ({

@@ -61,7 +61,8 @@ export function Crabs() {
     [],
   )
 
-  useFrame((state, dt) => {
+  useFrame((state, rawDt) => {
+    const dt = Math.min(rawDt, 0.1) // resumed tabs hand the gap to frame 1
     const m = mesh.current
     if (!m) return
     const t = state.clock.elapsedTime
@@ -90,14 +91,19 @@ export function Crabs() {
           if (arcToPlayer < 6) void play2d('crabs', 'world', 0.165)
         }
         // Idle pincer snap (polish 2): a watched, paused crab snaps at
-        // random 3–8 s intervals with a claw twitch.
+        // random 3–8 s intervals with a claw twitch. Stall guard: a snap
+        // overdue by more than 0.25 s (hidden tab, throttled loop) was
+        // missed — re-arm silently instead of firing late.
         if (crab.state === 'pause' && arcToPlayer < 4 && t >= crab.nextSnapAt) {
-          crab.snapT = t
+          const missed = t - crab.nextSnapAt > 0.25
           crab.nextSnapAt = t + nextSnapDelay()
-          void play2d('crabs', 'world', 0.35)
-          const w = window as unknown as { __snapLog?: number[] }
-          ;(w.__snapLog ??= []).push(t)
-          if (w.__snapLog.length > 16) w.__snapLog.shift()
+          if (!missed) {
+            crab.snapT = t
+            void play2d('crabs', 'world', 0.35)
+            const w = window as unknown as { __snapLog?: number[] }
+            ;(w.__snapLog ??= []).push(t)
+            if (w.__snapLog.length > 16) w.__snapLog.shift()
+          }
         }
         advanceCrab(crab, dt, t)
       }

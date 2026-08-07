@@ -89,7 +89,8 @@ export function ShootingStars() {
     })),
   )
 
-  useFrame((_state, dt) => {
+  useFrame((_state, rawDt) => {
+    const dt = Math.min(rawDt, 0.1) // resumed tabs hand the gap to frame 1
     const gated = useStore.getState().qualityTier === 'high' && skyRuntime.nightMix > 0.35
     for (let i = 0; i < STREAK_COUNT; i++) {
       const s = streaks.current[i]

@@ -563,7 +563,10 @@ export function BlockyCharacter({
     elbow: 0.14,
   })
 
-  useFrame((state, dt) => {
+  useFrame((state, rawDt) => {
+    // Resumed tabs hand the whole hidden gap to the first frame — the
+    // phase accumulators and blend lerps must never integrate it.
+    const dt = Math.min(rawDt, 0.1)
     const g = rig.current
     if (!g || !armL.current || !armR.current || !legL.current || !legR.current) return
     const m = motion()

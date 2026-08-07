@@ -157,6 +157,7 @@ export async function play2d(category: Category, bus: 'music' | 'world' | 'ui', 
   const g = rt.ctx.createGain()
   g.gain.value = gain * h.gain
   src.connect(g).connect(rt.buses[bus])
+  registerVoice(category, src)
   src.start()
 }
 
@@ -225,6 +226,7 @@ export async function playDoubleTap(
     const g = rt.ctx.createGain()
     g.gain.value = gain * h.gain
     src.connect(g).connect(rt.buses[bus])
+    registerVoice(category, src)
     src.start(at)
   }
 }
@@ -234,6 +236,96 @@ const gestureCallbacks: Array<() => void> = []
 export function onArmed(cb: () => void) {
   if (audioRuntime.armed) cb()
   else gestureCallbacks.push(cb)
+}
+
+// ---- tab-hidden protection (bug pass: the audio blast) --------------
+// The render loop pauses when the tab hides while the AudioContext
+// clock keeps running, so any "while (nextTime <= now) schedule" loop
+// replays its whole backlog at once on return. Three layers:
+//  1. visibilitychange: hidden → hard-zero the master AND suspend the
+//     context (freezing its clock — nothing to catch up to); visible →
+//     resume, let every emitter RESET its baseline to now (never replay
+//     missed events), then restore the master.
+//  2. Emitters guard their own baselines (see onAudioResume users) for
+//     stalls that fire no visibility event (alt-tab throttling,
+//     breakpoints, GC pauses).
+//  3. A voice limiter (below) backstops anything that still piles up.
+
+export const audioPause = { hidden: false }
+
+const resumeHandlers = new Set<(now: number) => void>()
+/** Register a baseline reset, called with ctx.currentTime right after
+ * the context resumes. Returns an unsubscribe. */
+export function onAudioResume(h: (now: number) => void): () => void {
+  resumeHandlers.add(h)
+  return () => resumeHandlers.delete(h)
+}
+
+function handleVisibility() {
+  const rt = audioRuntime
+  if (!rt.ctx || !rt.listener) return
+  if (document.hidden) {
+    audioPause.hidden = true
+    // Hard-zero first (suspend() can lag a beat), then freeze the clock.
+    rt.listener.gain.gain.cancelScheduledValues(0)
+    rt.listener.gain.gain.value = 0
+    void rt.ctx.suspend()
+  } else {
+    audioPause.hidden = false
+    void rt.ctx.resume().then(() => {
+      const ctx = audioRuntime.ctx
+      const listener = audioRuntime.listener
+      if (!ctx) return
+      for (const h of resumeHandlers) h(ctx.currentTime)
+      if (listener) {
+        listener.gain.gain.cancelScheduledValues(0)
+        listener.gain.gain.value = useStore.getState().muted ? 0 : 1
+      }
+    })
+  }
+}
+
+// ---- voice limiter ---------------------------------------------------
+// Every BufferSource we start registers here: per-pool cap (drop the
+// OLDEST voice in that pool) plus a global concurrent cap as a backstop.
+interface Voice {
+  category: string
+  src: AudioBufferSourceNode
+}
+const voices: Voice[] = []
+const MAX_VOICES_PER_POOL = 4
+const MAX_VOICES_GLOBAL = 16
+
+function dropVoice(v: Voice) {
+  const i = voices.indexOf(v)
+  if (i >= 0) voices.splice(i, 1)
+}
+function stopVoice(v: Voice) {
+  dropVoice(v)
+  try {
+    v.src.stop()
+  } catch {
+    // Already ended/stopped — dropping the bookkeeping is enough.
+  }
+}
+
+/** Track a source against the caps. Call BEFORE src.start(). Pools with
+ * legitimate overlap (uke strum tails, crossfade pairs) pass their own
+ * cap. */
+export function registerVoice(category: string, src: AudioBufferSourceNode, cap = MAX_VOICES_PER_POOL) {
+  const mine = voices.filter((v) => v.category === category)
+  if (mine.length >= cap) stopVoice(mine[0])
+  if (voices.length >= MAX_VOICES_GLOBAL) stopVoice(voices[0])
+  const voice: Voice = { category, src }
+  voices.push(voice)
+  src.addEventListener('ended', () => dropVoice(voice))
+}
+
+/** Live voice census — debug + e2e caps assertion. */
+export function voiceCensus(): { total: number; byPool: Record<string, number> } {
+  const byPool: Record<string, number> = {}
+  for (const v of voices) byPool[v.category] = (byPool[v.category] ?? 0) + 1
+  return { total: voices.length, byPool }
 }
 
 /** Create the context, listener, and buses. Idempotent; call ONLY from
@@ -265,6 +357,12 @@ export function armAudio(camera: THREE.Camera) {
     if (s.muted !== prev.muted) applyMute(s.muted)
   })
   if (ctx.state === 'suspended') void ctx.resume()
+  // Tab-hidden protection: hidden tabs, mobile app switches, and window
+  // occlusion all land on visibilitychange (pagehide covers the iOS
+  // app-switch edge; the handler just re-reads document.hidden).
+  document.addEventListener('visibilitychange', handleVisibility)
+  window.addEventListener('pagehide', handleVisibility)
+  window.addEventListener('pageshow', handleVisibility)
   for (const cb of gestureCallbacks.splice(0)) cb()
   const w = window as unknown as { __audioArmed?: boolean; __audioDebug?: () => unknown }
   w.__audioArmed = true
@@ -273,5 +371,7 @@ export function armAudio(camera: THREE.Camera) {
     music: audioRuntime.buses?.music.gain.value ?? 0,
     world: audioRuntime.buses?.world.gain.value ?? 0,
     ui: audioRuntime.buses?.ui.gain.value ?? 0,
+    ctxState: ctx.state,
+    voices: voiceCensus(),
   })
 }

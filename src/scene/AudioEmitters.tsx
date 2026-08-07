@@ -1,7 +1,7 @@
 import { useFrame } from '@react-three/fiber'
 import { useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
-import { audioRuntime, onArmed, play2d, playAt, routeToBus, syncPanner } from '../audio/core'
+import { audioRuntime, onArmed, onAudioResume, play2d, playAt, routeToBus, syncPanner } from '../audio/core'
 import { CrossfadeLoop } from '../audio/loops'
 import { latLongToUnit, poleInPlanetSpace } from '../controls/planetMath'
 import { controlsRuntime } from '../controls/usePlanetController'
@@ -88,10 +88,16 @@ export function WorldEmitters() {
       routeToBus(cry, 'world')
       st.current.cryNode = cry
       st.current.nextCry = rt.ctx.currentTime + 5
+      // Tab return: re-arm the cry timer from now — missed cries are
+      // gone, not owed.
+      onAudioResume((now) => {
+        st.current.nextCry = now + 4 + Math.random() * 4
+      })
     })
   }, [])
 
-  useFrame((_, dt) => {
+  useFrame((_, rawDt) => {
+    const dt = Math.min(rawDt, 0.1) // resumed tabs hand the gap to frame 1
     const rt = audioRuntime
     if (!rt.ctx) return
     const s = st.current
@@ -109,6 +115,12 @@ export function WorldEmitters() {
       }
     }
     if (s.cryNode && rt.ctx.currentTime >= s.nextCry && skyRuntime.nightMix < 0.5) {
+      // Stall guard: a cry more than 0.25 s overdue was missed while the
+      // loop was stalled — skip it and re-arm rather than firing late.
+      if (rt.ctx.currentTime - s.nextCry > 0.25) {
+        s.nextCry = rt.ctx.currentTime + 6 + Math.random() * 10
+        return
+      }
       const anchors = gullAnchors.filter((a): a is THREE.Group => !!a)
       // Proximity behavior: when the player is under the flock, the
       // NEAREST gull does the talking, and it talks more often —
@@ -168,7 +180,8 @@ export function useMusicMix() {
     [],
   )
 
-  useFrame((_, dt) => {
+  useFrame((_, rawDt) => {
+    const dt = Math.min(rawDt, 0.1)
     const rt = audioRuntime
     if (!rt.armed || !rt.ctx || !rt.buses) return
     const s = st.current

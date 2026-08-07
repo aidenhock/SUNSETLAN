@@ -51,7 +51,8 @@ export function Fire() {
     return { geo: g, mat: m, life: new Float32Array(PARTICLES).fill(-1) }
   }, [])
 
-  useFrame((state, dt) => {
+  useFrame((state, rawDt) => {
+    const dt = Math.min(rawDt, 0.1) // resumed tabs hand the gap to frame 1
     const t = state.clock.elapsedTime
     // Seeded sin-noise flicker: base scale + jitter + occasional lick
     // (slow beat swelling the flame taller for a moment).
