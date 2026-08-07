@@ -74,7 +74,7 @@ export function Island() {
       palm: buildPalm(),
       rock: buildRock(),
       campfire: buildCampfire(),
-      bench: buildLogBench(),
+      log: buildLogBench(),
       crate: buildCrate(),
       rowboat: buildRowboat(),
       palapa: buildPalapa(),
@@ -122,7 +122,7 @@ export function Island() {
   const single = useMemo(
     () => ({
       campfire: [placement(MAP.campfire.lat, MAP.campfire.long)],
-      bench: [placement(MAP.bench.lat, MAP.bench.long, -0.9)],
+      logs: MAP.logs.map((l) => placement(l.lat, l.long, l.yaw)),
       crate: [placement(MAP.tv.lat, MAP.tv.long + 0.8)],
       rowboat: [placement(MAP.rowboat.lat, MAP.rowboat.long, 0.9)],
       palapa: [placement(MAP.palapa.lat, MAP.palapa.long)],
@@ -148,9 +148,9 @@ export function Island() {
       <InstancedProp parts={props.rock} placements={scatter.rocks} />
       <StaticInstances geometry={shellGeo} material={shellMat} matrices={scatter.shells} />
 
-      {/* Night beach: campfire + log bench. */}
+      {/* Night beach: campfire ringed by the three sittable logs. */}
       <InstancedProp parts={props.campfire} placements={single.campfire} />
-      <InstancedProp parts={props.bench} placements={single.bench} />
+      <InstancedProp parts={props.log} placements={single.logs} />
 
       {/* CRT crate + beached rowboat. */}
       <InstancedProp parts={props.crate} placements={single.crate} />

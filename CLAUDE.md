@@ -76,11 +76,12 @@ The sun, moon, stars, and sky gradient are **children of the rotating planet gro
 | Dock | prop | 24→13 | 0 | Segmented; walkable deck (analytic strip) |
 | Camera tripod | Photos | 14 | 0 | On the dock end, over water, facing the sun |
 | Mailbox | Contact | 24 | 6 | Dock entrance |
-| Ukulele player | NPC | 18 | 357.5 | Seated on the dock edge, legs over water |
+| Ukulele player (Koa) | NPC | 18 | 358.7 | Seated on the dock's west edge, legs over water; 0.7 m blocker |
 | Seagulls ×2–3 | critter | — | ~0 | Tilted orbit loops over sunset-side water |
 | Palapa + desk | Projects | 40 | 40 | Day-leaning side |
 | Big tree + rings | About | 50 | 300 | Dusk boundary west |
-| Campfire + log bench | prop | 22 | 180 | Night beach; flicker light + crackle |
+| Campfire | prop | 22 | 180 | Night beach; Fire 2.0 flame + flicker light + crackle; 1.2 m blocker |
+| Log circle ×3 | prop/seat | 23.4–24.3 | 178.1–181.9 | Landward arc ~2.2 m from the fire, opening toward the sea; center log perpendicular to the fire→sea axis, flanks ~35° inward; 3 seats each (E — Sit); 0.9 m blockers |
 | Ukulele on the log | Music | 22 | 173 | Aiden's music portal, by the fire |
 | CRT TV on crate | Videos | 21 | 150 | Screen glow reads at night |
 | Rowboat | prop | 18 | 210 | Beached |
