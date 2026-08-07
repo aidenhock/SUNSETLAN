@@ -109,13 +109,18 @@ export function Fire() {
     <SurfaceGroup lat={MAP.campfire.lat} long={MAP.campfire.long}>
       {/* ~1.4× the old prop flame. */}
       <group scale={1.4}>
+        {/* renderOrder 2: AFTER the water (renderOrder 1) — the flame
+            writes no depth, so the transparent sea would otherwise
+            stamp its horizon line straight through it. depthTest stays
+            ON: opaque terrain/ocean-floor still occlude a flame that
+            is genuinely behind them. */}
         {FLAME_LAYERS.map((l, i) => (
-          <mesh key={i} ref={(m) => void (cones.current[i] = m)} position={[0, l.y, 0]}>
+          <mesh key={i} ref={(m) => void (cones.current[i] = m)} position={[0, l.y, 0]} renderOrder={2}>
             <coneGeometry args={[l.r, l.h, 5]} />
             <meshBasicMaterial color={l.color} toneMapped={false} transparent opacity={i === 0 ? 0.85 : 0.95} depthWrite={false} />
           </mesh>
         ))}
-        <points ref={points} geometry={geo} material={mat} />
+        <points ref={points} geometry={geo} material={mat} renderOrder={2} />
       </group>
       <pointLight ref={light} position={[0, 0.9, 0]} distance={9} decay={1.8} color="#ff9c50" />
     </SurfaceGroup>

@@ -391,7 +391,9 @@ export function UkulelePlayer() {
             <mesh geometry={ukeGeo} material={ukeMat} position={UKE.position} quaternion={UKE.quaternion} />
           }
         />
-        <points ref={notesRef} geometry={noteGeo} material={noteMat} position={[0, 0.4, 0]} />
+        {/* renderOrder 2: after the water (1) — same transparent-sort
+            stomp as the flame; the notes float over open water. */}
+        <points ref={notesRef} geometry={noteGeo} material={noteMat} position={[0, 0.4, 0]} renderOrder={2} />
       </group>
     </SurfaceGroup>
   )
