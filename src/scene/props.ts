@@ -162,11 +162,12 @@ export function buildRock(): PropPart[] {
   ])
 }
 
-/** Campfire: stone ring, crossed logs, faceted ember-lit flame. ~1.3 m wide. */
+/** Campfire base: stone ring + crossed logs (~1.3 m wide). The FLAME
+ * is the animated <Fire> component (Fire 2.0), not part of this
+ * static prop. */
 export function buildCampfire(): PropPart[] {
   const stone = paletteMaterial(PROP_COLORS.stone)
   const wood = paletteMaterial(PROP_COLORS.woodDark)
-  const flame = paletteMaterial(PROP_COLORS.flame, PROP_COLORS.ember, 0.85)
   const pieces: Piece[] = []
   for (let i = 0; i < 6; i++) {
     const a = (i / 6) * Math.PI * 2 + 0.3
@@ -185,7 +186,6 @@ export function buildCampfire(): PropPart[] {
   for (const yaw of [0.26, 1.31, 2.36]) {
     pieces.push(at(log, wood, [0, 0.13, 0], [0, yaw, 0]))
   }
-  pieces.push(at(new THREE.ConeGeometry(0.24, 0.5, 5), flame, [0, 0.42, 0]))
   return mergeByMaterial(pieces)
 }
 
