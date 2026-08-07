@@ -42,6 +42,14 @@ Core is done and stays: avatar kinematic at the pole, input rotates the planet q
 ### The dock (rebuild)
 Longitude 0, lat 24 → 13: entrance on sand, last two segments over open water. 4–5 plank segments (each ≤ 3 m) with posts, each snapped to the surface per the rules above; deck top ≈ 0.6 m above local ground. Keep `DOCK` in `planetConfig` as the single source of truth consumed by both the visuals and `groundHeightAt` — they must never disagree. The Photos tripod stands ON the dock's far end; the mailbox at the entrance.
 
+### Sitting by the fire (3C sit system)
+Nine seats: three per log in the campfire circle, slots at ±0.6 m / 0 along each log's axis. Seat directions derive from `surfacePartMatrix` — the SAME math that places the logs — so seats can never drift off the rendered wood (`src/scene/seats.ts`).
+- **Prompt**: within 2.2 m of a log center (exit 2.7 m — same hysteresis pattern as interactables) an "E — Sit" prompt shows; interactable prompts win E when both are near. Touch gets the same thumb-zone button as interactables.
+- **Slot pick**: E sits on the slot nearest the camera's aim point — pure `selectSeat` helper in planetMath (vitest-pinned): look left along the log, get the left seat.
+- **Sit**: a ~0.4 s smoothstep-eased world-quaternion tween (delta `setFromUnitVectors(worldSeatDir → pole)` premultiplied onto the live orientation) glides the seat under the avatar — a tween, never a step, so blockers don't apply. Movement and jump are suppressed while tweening/seated.
+- **Seated**: root raised onto the log top (seat lift eases in with the tween), legs-forward pose blended ~0.15 s via the shared rig `poseHook` (idle bob keeps breathing, head look-at stays live), body eased to face the fire. Camera orbit stays free.
+- **Stand**: E or jump; a quick tween places the player just in front of the seat, fire side. Blockers only cancel inward steps, so the log's own blocker can never trap the stand-up spot.
+
 ## The two skies (new — biggest 3B item)
 
 The sun, moon, stars, and sky gradient are **children of the rotating planet group** (planet-local). That is what makes the sides permanent: walk toward long 0° and the sun rises ahead of you; walk to 180° and the moon comes up.

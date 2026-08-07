@@ -22,6 +22,13 @@ const aidenStep = () =>
 /** Jump apex (m) from the controller's ballistics: v0² / 2g. */
 const JUMP_APEX_M = (4.5 * 4.5) / (2 * 12)
 
+/** Seated-at-the-fire pose (3C sit system): thighs swing forward like
+ * Koa's dock dangle but higher (log seat), knees apart a touch, arms
+ * resting toward the lap, elbows soft. Blended in ~0.15 s over whatever
+ * the shared animation produced — the idle bob keeps breathing and the
+ * head look-at stays live (the hook never touches the head). */
+const SEAT_POSE = { leg: -1.15, legSplay: 0.08, arm: -0.3, elbow: -0.5 }
+
 /**
  * Aiden: the BlockyCharacter chibi rig configured from content/characters.ts,
  * driven by the planet controller. The controller owns the ref'd group
@@ -35,6 +42,33 @@ const JUMP_APEX_M = (4.5 * 4.5) / (2 * 12)
  */
 export const Avatar = forwardRef<THREE.Group>(function Avatar(_, ref) {
   const shadow = useRef<THREE.Mesh>(null)
+  const seat = useRef({ blend: 0, lastT: 0 })
+
+  const seatedPose: NonNullable<Parameters<typeof BlockyCharacter>[0]['poseHook']> = ({
+    armL,
+    armR,
+    foreL,
+    foreR,
+    legL,
+    legR,
+    t,
+  }) => {
+    const s = seat.current
+    const dt = Math.min(Math.max(t - s.lastT, 0), 0.05)
+    s.lastT = t
+    const target = controlsRuntime.seated ? 1 : 0
+    s.blend += (target - s.blend) * (1 - Math.exp(-dt / 0.15))
+    const b = s.blend
+    if (b < 0.001) return
+    legL.rotation.x = THREE.MathUtils.lerp(legL.rotation.x, SEAT_POSE.leg, b)
+    legR.rotation.x = THREE.MathUtils.lerp(legR.rotation.x, SEAT_POSE.leg, b)
+    legL.rotation.z = THREE.MathUtils.lerp(legL.rotation.z, -SEAT_POSE.legSplay, b)
+    legR.rotation.z = THREE.MathUtils.lerp(legR.rotation.z, SEAT_POSE.legSplay, b)
+    armL.rotation.x = THREE.MathUtils.lerp(armL.rotation.x, SEAT_POSE.arm, b)
+    armR.rotation.x = THREE.MathUtils.lerp(armR.rotation.x, SEAT_POSE.arm, b)
+    if (foreL) foreL.rotation.x = THREE.MathUtils.lerp(foreL.rotation.x, SEAT_POSE.elbow, b)
+    if (foreR) foreR.rotation.x = THREE.MathUtils.lerp(foreR.rotation.x, SEAT_POSE.elbow, b)
+  }
 
   useFrame(() => {
     const s = shadow.current
@@ -49,7 +83,7 @@ export const Avatar = forwardRef<THREE.Group>(function Avatar(_, ref) {
   return (
     <group>
       <group ref={ref}>
-        <BlockyCharacter config={AIDEN} motion={aidenMotion} onStep={aidenStep} />
+        <BlockyCharacter config={AIDEN} motion={aidenMotion} onStep={aidenStep} poseHook={seatedPose} />
       </group>
       <mesh ref={shadow} rotation-x={-Math.PI / 2}>
         <circleGeometry args={[0.5, 20]} />

@@ -8,6 +8,7 @@ import {
   polarAngle,
   poleInPlanetSpace,
   rotationStep,
+  selectSeat,
   surfaceQuaternion,
   WORLD_UP,
 } from './planetMath'
@@ -126,6 +127,45 @@ describe('cameraRelativeMoveDir', () => {
 
   it('diagonals are normalized', () => {
     expect(cameraRelativeMoveDir(1, 1, 0).length()).toBeCloseTo(1, 10)
+  })
+})
+
+describe('selectSeat (3C sit system — aim-based slot pick)', () => {
+  // A log ahead of the avatar (camera default azimuth 0 looks toward −Z):
+  // three slots spread along X at −Z, like standing before the center log.
+  const seats: ReadonlyArray<readonly [number, number]> = [
+    [-0.6, -2], // left slot
+    [0, -2], // center slot
+    [0.6, -2], // right slot
+  ]
+
+  it('looking straight at the log picks the center slot', () => {
+    expect(selectSeat(seats, 0)).toBe(1)
+  })
+
+  it('aiming left of the log picks the left slot', () => {
+    // Positive azimuth swings the camera toward +X, so its forward
+    // (−sin a, −cos a) points toward −X: the LEFT seat.
+    expect(selectSeat(seats, 0.35)).toBe(0)
+  })
+
+  it('aiming right of the log picks the right slot', () => {
+    expect(selectSeat(seats, -0.35)).toBe(2)
+  })
+
+  it('a slight aim nudge is not enough to leave the center slot', () => {
+    expect(selectSeat(seats, 0.05)).toBe(1)
+  })
+
+  it('works at any camera heading (seats behind the avatar)', () => {
+    const behind: ReadonlyArray<readonly [number, number]> = [
+      [-0.6, 2],
+      [0, 2],
+      [0.6, 2],
+    ]
+    // Azimuth π: camera on −Z looking toward +Z.
+    expect(selectSeat(behind, Math.PI)).toBe(1)
+    expect(selectSeat(behind, Math.PI - 0.35)).toBe(0)
   })
 })
 

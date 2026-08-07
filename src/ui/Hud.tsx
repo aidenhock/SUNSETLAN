@@ -1,10 +1,52 @@
 import { useEffect, useRef, useState } from 'react'
+import * as THREE from 'three'
 import { interactables } from '../content/interactables'
+import { selectSeat } from '../controls/planetMath'
+import { controlsRuntime } from '../controls/usePlanetController'
+import { PLANET_RADIUS } from '../scene/planetConfig'
+import { SEATS } from '../scene/seats'
 import { useStore } from '../store/useStore'
 import { PromptE } from './PromptE'
 
+/** Sit on the nearby log's slot nearest the camera's aim point (3C). */
+function requestSit() {
+  const { nearbyLog, sitDown } = useStore.getState()
+  if (nearbyLog === null) return
+  const logSeats = SEATS.filter((s) => s.logIndex === nearbyLog)
+  const q = controlsRuntime.planetQuaternion
+  const v = new THREE.Vector3()
+  const xz = logSeats.map((s) => {
+    v.copy(s.unit).applyQuaternion(q).multiplyScalar(PLANET_RADIUS)
+    return [v.x, v.z] as const
+  })
+  sitDown(logSeats[selectSeat(xz, controlsRuntime.azimuth)].id)
+}
+
+function SitPrompt({ seated, isTouch }: { seated: boolean; isTouch: boolean }) {
+  const standUp = useStore((s) => s.standUp)
+  if (isTouch) {
+    return (
+      <button
+        type="button"
+        onClick={() => (seated ? standUp() : requestSit())}
+        className="pointer-events-auto fixed right-6 bottom-8 z-40 flex h-20 w-20 touch-manipulation items-center justify-center rounded-full bg-lagoon font-display text-sm font-bold text-ink shadow-lg active:scale-95"
+      >
+        {seated ? 'Stand' : 'Sit'}
+      </button>
+    )
+  }
+  return (
+    <div className="pointer-events-none fixed bottom-10 left-1/2 z-40 -translate-x-1/2 rounded-lg bg-ink/85 px-4 py-2 font-display text-sand shadow-lg">
+      <kbd className="mr-2 rounded border border-sand/40 bg-ink px-1.5 py-0.5 text-sm">E</kbd>
+      {seated ? 'Stand up' : 'Sit'}
+    </div>
+  )
+}
+
 export function Hud({ isTouch }: { isTouch: boolean }) {
   const nearbyId = useStore((s) => s.nearbyId)
+  const nearbyLog = useStore((s) => s.nearbyLog)
+  const seatedSeatId = useStore((s) => s.seatedSeatId)
   const openModalId = useStore((s) => s.openModalId)
   const hasMoved = useStore((s) => s.hasMoved)
   const introDone = useStore((s) => s.introDone)
@@ -22,8 +64,14 @@ export function Hud({ isTouch }: { isTouch: boolean }) {
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.repeat) return
-      const { nearbyId, openModalId, openModal } = useStore.getState()
-      if (e.code === 'KeyE' && nearbyId && !openModalId) openModal(nearbyId)
+      const { nearbyId, nearbyLog, seatedSeatId, openModalId, openModal, standUp } =
+        useStore.getState()
+      if (e.code !== 'KeyE' || openModalId) return
+      // Priority: stand up if seated; interactables own E otherwise; the
+      // sit prompt takes it only when nothing else wants the key.
+      if (seatedSeatId) standUp()
+      else if (nearbyId) openModal(nearbyId)
+      else if (nearbyLog !== null) requestSit()
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
@@ -55,6 +103,11 @@ export function Hud({ isTouch }: { isTouch: boolean }) {
         </p>
       )}
       {nearby && !openModalId && <PromptE def={nearby} isTouch={isTouch} />}
+      {/* Sit prompt (3C): only when no interactable wants E. Stand hint
+          while seated is quieter — jump also works. */}
+      {!nearby && !openModalId && (seatedSeatId || nearbyLog !== null) && (
+        <SitPrompt seated={Boolean(seatedSeatId)} isTouch={isTouch} />
+      )}
 
       <div className="pointer-events-auto fixed top-6 right-6 flex flex-col items-end gap-2">
         <button

@@ -16,6 +16,7 @@ import {
   surfaceUnderfoot,
   surfOffset,
 } from '../scene/planetConfig'
+import { FIRE_UNIT, LOG_UNITS, seatById } from '../scene/seats'
 import { useStore } from '../store/useStore'
 import {
   applyStep,
@@ -65,12 +66,23 @@ export const controlsRuntime = {
   /** The live planet orientation, published per frame for the camera's
    * ground-floor clamp (read-only elsewhere). */
   planetQuaternion: new THREE.Quaternion(),
+  /** True while seated at the fire (or tweening onto a seat) — the avatar
+   * pose blend and the e2e suite read this. */
+  seated: false,
 }
 
 const JUMP_V0 = 4.5
 const JUMP_G = 12
 const MAX_DT = 0.05
 const SEA_LEVEL = PLANET_RADIUS
+
+// Sit system (3C): prompt hysteresis around a log, the eased world tween
+// that carries the chosen seat under the pole, and the root raise that
+// parks the avatar's seat on the log top (log top ≈ 0.42 m after sink).
+const SIT_ARC_M = 2.2
+const SIT_EXIT_ARC_M = 2.7
+const SIT_TWEEN_S = 0.4
+const SEAT_RAISE_M = 0.3
 
 // Frame-loop scratch — the controller allocates nothing per frame.
 const _poleBefore = new THREE.Vector3()
@@ -80,6 +92,9 @@ const _moveDir = new THREE.Vector3()
 const _stepQ = new THREE.Quaternion()
 const _candQ = new THREE.Quaternion()
 const _teleportUnit = new THREE.Vector3()
+const _seatWorldDir = new THREE.Vector3()
+const _fireWorld = new THREE.Vector3()
+const _sitDelta = new THREE.Quaternion()
 
 interface ControllerRefs {
   planetRef: React.RefObject<THREE.Group | null>
@@ -99,6 +114,14 @@ export function usePlanetController({ planetRef, avatarRef }: ControllerRefs) {
   const jumpT = useRef<number | null>(null) // seconds since jump start, null = grounded
   const yaw = useRef(0)
   const targetYaw = useRef(0)
+  // Sit system: the store's seatedSeatId is the source of truth; the
+  // controller mirrors it to detect sit/stand edges and runs the world
+  // tween + seat lift. lastJump edge-detects the stand-up jump press.
+  const seatedId = useRef<string | null>(null)
+  const sitTween = useRef<{ t: number; from: THREE.Quaternion; to: THREE.Quaternion } | null>(null)
+  const sitTweenQs = useRef({ from: new THREE.Quaternion(), to: new THREE.Quaternion() })
+  const seatLift = useRef(0)
+  const lastJump = useRef(false)
   // Wet/dry state against the LIVE waterline (sea level + surf). Spawn is
   // dry; initializing wet would fire a phantom ripple on the first frame.
   const lastWet = useRef(false)
@@ -139,6 +162,44 @@ export function usePlanetController({ planetRef, avatarRef }: ControllerRefs) {
       quat.current.setFromUnitVectors(_teleportUnit.copy(latLongToUnit(lat, long)), WORLD_UP)
     }
 
+    // ---- sit system (3C) ----------------------------------------------
+    // Sit/stand edges from the store. Both start a short eased world tween:
+    // a quaternion DELTA (setFromUnitVectors world-seat-dir → pole) composed
+    // onto the live orientation — never a step, so blockers don't apply and
+    // the world glides the seat (or the stand-up spot in front of it, fire
+    // side) under the avatar.
+    const storeSeat = store.seatedSeatId
+    if (storeSeat !== seatedId.current) {
+      const seat = seatById(storeSeat ?? seatedId.current ?? '')
+      if (seat) {
+        const dest = storeSeat ? seat.unit : seat.standUnit
+        _seatWorldDir.copy(dest).applyQuaternion(quat.current)
+        _sitDelta.setFromUnitVectors(_seatWorldDir, WORLD_UP)
+        const qs = sitTweenQs.current
+        qs.from.copy(quat.current)
+        qs.to.multiplyQuaternions(_sitDelta, quat.current).normalize()
+        sitTween.current = { t: 0, from: qs.from, to: qs.to }
+        if (storeSeat) {
+          // Turn to face the fire where it will be once the tween lands.
+          _fireWorld.copy(FIRE_UNIT).applyQuaternion(qs.to)
+          targetYaw.current = Math.atan2(_fireWorld.x, _fireWorld.z)
+        }
+      }
+      seatedId.current = storeSeat
+    }
+    const sitting = seatedId.current !== null
+    if (sitTween.current) {
+      const tw = sitTween.current
+      tw.t += dt / SIT_TWEEN_S
+      const s = THREE.MathUtils.smoothstep(Math.min(tw.t, 1), 0, 1)
+      quat.current.slerpQuaternions(tw.from, tw.to, s)
+      if (tw.t >= 1) {
+        quat.current.copy(tw.to)
+        sitTween.current = null
+      }
+    }
+    controlsRuntime.seated = sitting
+
     // ---- input --------------------------------------------------------
     const keys = getKeys()
     let ix = (keys.rightward ? 1 : 0) - (keys.leftward ? 1 : 0)
@@ -150,7 +211,12 @@ export function usePlanetController({ planetRef, avatarRef }: ControllerRefs) {
       // Full joystick deflection sprints — phones have no Shift key.
       sprinting = Math.hypot(ix, iz) >= SPRINT_JOY_THRESHOLD
     }
-    const inputActive = (ix !== 0 || iz !== 0) && !store.openModalId && store.introDone
+    const inputActive =
+      (ix !== 0 || iz !== 0) &&
+      !store.openModalId &&
+      store.introDone &&
+      !sitting &&
+      !sitTween.current
     const speed = sprinting ? SPRINT_SPEED : MOVE_SPEED
 
     poleInPlanetSpace(quat.current, _poleBefore)
@@ -194,7 +260,10 @@ export function usePlanetController({ planetRef, avatarRef }: ControllerRefs) {
         targetYaw.current = Math.atan2(_moveDir.x, _moveDir.z)
         break
       }
-      // Face the direction of travel (frame-rate-independent smoothing).
+    }
+    // Face the travel direction — or the fire while sitting down (the
+    // easing runs unconditionally; targetYaw only changes on input/sit).
+    {
       let d = targetYaw.current - yaw.current
       d = Math.atan2(Math.sin(d), Math.cos(d))
       yaw.current += d * (1 - Math.exp(-12 * dt))
@@ -225,16 +294,49 @@ export function usePlanetController({ planetRef, avatarRef }: ControllerRefs) {
     }
     if (nearest !== store.nearbyId) store.setNearby(nearest)
 
+    // Sit-prompt proximity (same hysteresis pattern). Hidden while seated
+    // or tweening; the Hud gives interactable prompts priority on E.
+    let nearLog: number | null = null
+    if (!sitting && !sitTween.current) {
+      let bestArc = SIT_ARC_M
+      for (let i = 0; i < LOG_UNITS.length; i++) {
+        const arc = _poleAfter.angleTo(LOG_UNITS[i]) * PLANET_RADIUS
+        if (arc <= bestArc) {
+          nearLog = i
+          bestArc = arc
+        }
+      }
+      if (
+        nearLog === null &&
+        store.nearbyLog !== null &&
+        _poleAfter.angleTo(LOG_UNITS[store.nearbyLog]) * PLANET_RADIUS <= SIT_EXIT_ARC_M
+      ) {
+        nearLog = store.nearbyLog
+      }
+    }
+    if (nearLog !== store.nearbyLog) store.setNearbyLog(nearLog)
+
     // ---- cosmetic jump + analytic terrain height -----------------------
     // 3C: takeoff/landing fire Aiden's double-tap from the surface pool
     // (never a single heavy thud).
-    if (keys.jump && jumpT.current === null && !store.openModalId) {
+    const jumpPressed = Boolean(keys.jump)
+    if (jumpPressed && !lastJump.current && sitting && !store.openModalId) {
+      // Jump is the other stand-up control while seated — no launch.
+      store.standUp()
+    } else if (
+      jumpPressed &&
+      jumpT.current === null &&
+      !store.openModalId &&
+      !sitting &&
+      !sitTween.current
+    ) {
       jumpT.current = 0
       jumpTaps(
         surfaceUnderfoot(controlsRuntime.surfPolarDeg, controlsRuntime.surfLongDeg, controlsRuntime.wet),
         false,
       )
     }
+    lastJump.current = jumpPressed
     let jumpOffset = 0
     if (jumpT.current !== null) {
       jumpT.current += dt
@@ -262,7 +364,10 @@ export function usePlanetController({ planetRef, avatarRef }: ControllerRefs) {
     }
     lastWet.current = wet
 
-    avatar.position.y = groundY + jumpOffset
+    // Seat lift eases in alongside the sit tween: the root raise that puts
+    // the seated hips on the log top (~0.42 m after sink; stubby legs).
+    seatLift.current += ((sitting ? SEAT_RAISE_M : 0) - seatLift.current) * (1 - Math.exp(-dt / 0.15))
+    avatar.position.y = groundY + jumpOffset + seatLift.current
     avatar.rotation.y = yaw.current
     controlsRuntime.avatarYaw = yaw.current
     controlsRuntime.groundY = groundY

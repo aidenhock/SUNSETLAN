@@ -128,6 +128,29 @@ export function meridianYaw(latDeg: number, longDeg: number): number {
 }
 
 /**
+ * Aim-based seat slot selection (3C sit system). The camera at `azimuth`
+ * looks through the avatar (azimuth 0 = camera on +Z looking toward −Z),
+ * so its aim point sits `aimDistM` along −(sin a, cos a) in the world XZ
+ * plane with the avatar at the origin. Returns the index of the seat
+ * whose world XZ position is nearest that aim point — look left along a
+ * log and E picks the left slot.
+ */
+export function selectSeat(seatsXZ: ReadonlyArray<readonly [number, number]>, azimuth: number, aimDistM = 3): number {
+  const ax = -Math.sin(azimuth) * aimDistM
+  const az = -Math.cos(azimuth) * aimDistM
+  let best = 0
+  let bestD = Infinity
+  for (let i = 0; i < seatsXZ.length; i++) {
+    const d = (seatsXZ[i][0] - ax) ** 2 + (seatsXZ[i][1] - az) ** 2
+    if (d < bestD) {
+      bestD = d
+      best = i
+    }
+  }
+  return best
+}
+
+/**
  * Camera-relative move direction in the world XZ plane from raw input.
  * `ix` = right(+)/left(-), `iz` = forward(+)/back(-); `azimuth` is the
  * camera's yaw around the avatar (0 = camera on +Z looking toward -Z).
