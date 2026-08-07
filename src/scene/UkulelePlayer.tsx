@@ -55,15 +55,40 @@ const ukeGeo = (() => {
 })()
 const ukeMat = new THREE.MeshLambertMaterial({ vertexColors: true })
 
-/** Torso-local mount + uke-local landmarks (authored in the studio via
- * the per-arm sliders; the arm pose in koaPose targets these). */
+/** Bug pass 3 (the sideways uke): the mount orientation is built from
+ * EXPLICIT torso-basis vectors — raw Eulers guessed in the wrong basis
+ * are what turned it sideways. Torso space: +x = the character's
+ * anatomical LEFT (the rig's armR side), +y up, +z out of the chest
+ * (faceZ is +z in the rig). Wanted: body cradled over the lap,
+ * soundboard (uke-local +y) facing OUTWARD from the chest with a
+ * slight upward cradle tilt, neck (uke-local +x) angled ~35° up toward
+ * his left. The basis is orthonormalized so the matrix is always a
+ * pure rotation. */
+const UKE_ORIENTATION = (() => {
+  const neckUp = THREE.MathUtils.degToRad(35)
+  // Neck direction: toward his left, pitched 35° up.
+  const x = new THREE.Vector3(Math.cos(neckUp), Math.sin(neckUp), 0)
+  // Soundboard normal: out of the chest, tilted up into the cradle;
+  // orthogonalized against the neck.
+  const y = new THREE.Vector3(0, 0.35, 0.94)
+  y.addScaledVector(x, -y.dot(x)).normalize()
+  const z = new THREE.Vector3().crossVectors(x, y)
+  return new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(x, y, z))
+})()
+
+/** Torso-local mount + uke-local landmarks (the arm pose in koaPose
+ * targets these; helpers below express them in torso space). */
 const UKE = {
-  position: new THREE.Vector3(0.02, 0.3, 0.21),
-  rotation: new THREE.Euler(-0.55, 0.15, 0.55),
+  position: new THREE.Vector3(0.03, 0.16, 0.26),
+  quaternion: UKE_ORIENTATION,
   /** Mid-neck, where the fret hand grips (uke-local). */
   neckGrip: new THREE.Vector3(0.3, 0.04, 0),
   /** Body center, where the strum forearm sweeps (uke-local). */
   strumPoint: new THREE.Vector3(0.02, 0.1, 0),
+}
+/** Landmark in torso space — the target the matching hand reaches for. */
+export function ukeLandmarkTorso(local: THREE.Vector3): THREE.Vector3 {
+  return local.clone().applyQuaternion(UKE.quaternion).add(UKE.position)
 }
 
 /**
@@ -318,26 +343,30 @@ export function UkulelePlayer() {
     head,
     t,
   }) => {
-    // Dangling legs over the edge, gentle alternate kicks.
-    legL.rotation.x = 0.55 + Math.sin(t * 1.3) * 0.08
-    legR.rotation.x = 0.55 + Math.sin(t * 1.3 + Math.PI) * 0.08
-    // Pose repair: the uke neck points toward the character's LEFT
-    // (+x) — which is the rig's armR (mounted at +shoulderX). Fret hand
-    // = armR reaching up the neck to UKE.neckGrip; strum hand = armL
-    // cradling over UKE.strumPoint, the STRUM a forearm-only flick.
-    armR.rotation.x = -0.5
-    armR.rotation.z = 0.85
+    // Dangling legs over the edge — forward flex is NEGATIVE x on this
+    // rig (AIR_POSE convention); +0.55 pointed them backward under the
+    // deck. Gentle alternate kicks.
+    legL.rotation.x = -0.55 - Math.sin(t * 1.3) * 0.08
+    legR.rotation.x = -0.55 - Math.sin(t * 1.3 + Math.PI) * 0.08
+    // Arms solved NUMERICALLY onto the uke landmarks (throwaway grid
+    // probe over the real rig chain, torso space): the fret wrist
+    // (armR — the character's anatomical left, neck side) lands on
+    // UKE.neckGrip within ~2 mm; the strum arm (armL) aims its wrist
+    // at UKE.strumPoint with a resting elbow bend so the STRUM flick
+    // rotates from the ELBOW, sweeping the wrist through the point.
+    armR.rotation.x = -0.95
+    armR.rotation.z = 0.25
     if (foreR) {
-      foreR.rotation.x = -1.15
-      foreR.rotation.z = 0.1
+      foreR.rotation.x = -0.95
+      foreR.rotation.z = 0.42
     }
     const since = t - pose.current.lastStrumT
     const flick = since < 0.18 ? Math.sin((since / 0.18) * Math.PI) : 0
-    armL.rotation.x = -0.62
-    armL.rotation.z = -0.28
+    armL.rotation.x = -1.15
+    armL.rotation.z = 0.35
     if (foreL) {
-      foreL.rotation.x = -1.05 - flick * 0.4
-      foreL.rotation.z = -0.12
+      foreL.rotation.x = -0.25 - flick * 0.45
+      foreL.rotation.z = 0
     }
     // Head bob on the beat.
     head.rotation.z += Math.sin((t * BPM) / 60 * Math.PI) * 0.04
@@ -359,7 +388,7 @@ export function UkulelePlayer() {
           torsoAttachment={
             /* TORSO-space mount — the uke can never detach from the
                body again (root-space anchoring was the float bug). */
-            <mesh geometry={ukeGeo} material={ukeMat} position={UKE.position} rotation={UKE.rotation} />
+            <mesh geometry={ukeGeo} material={ukeMat} position={UKE.position} quaternion={UKE.quaternion} />
           }
         />
         <points ref={notesRef} geometry={noteGeo} material={noteMat} position={[0, 0.4, 0]} />
