@@ -128,26 +128,26 @@ export function meridianYaw(latDeg: number, longDeg: number): number {
 }
 
 /**
- * Aim-based seat slot selection (3C sit system). The camera at `azimuth`
- * looks through the avatar (azimuth 0 = camera on +Z looking toward −Z),
- * so its aim point sits `aimDistM` along −(sin a, cos a) in the world XZ
- * plane with the avatar at the origin. Returns the index of the seat
- * whose world XZ position is nearest that aim point — look left along a
- * log and E picks the left slot.
+ * Free-position sitting (campfire polish 4 — replaces the 3-slot pick).
+ * The camera at `azimuth` looks through the avatar (azimuth 0 = camera
+ * on +Z looking toward −Z), so its aim point sits `aimDistM` along
+ * −(sin a, cos a) in the world XZ plane with the avatar at the origin.
+ * Project that aim point onto the log's centerline (center + axis·s)
+ * and clamp to the usable span — you sit exactly where you aimed,
+ * continuously, never at fixed slots. Returns the signed offset in
+ * meters along the log's axis. Pure — unit-tested.
  */
-export function selectSeat(seatsXZ: ReadonlyArray<readonly [number, number]>, azimuth: number, aimDistM = 3): number {
-  const ax = -Math.sin(azimuth) * aimDistM
-  const az = -Math.cos(azimuth) * aimDistM
-  let best = 0
-  let bestD = Infinity
-  for (let i = 0; i < seatsXZ.length; i++) {
-    const d = (seatsXZ[i][0] - ax) ** 2 + (seatsXZ[i][1] - az) ** 2
-    if (d < bestD) {
-      bestD = d
-      best = i
-    }
-  }
-  return best
+export function projectSeatOffset(
+  logCenterXZ: readonly [number, number],
+  logAxisXZ: readonly [number, number],
+  azimuth: number,
+  halfSpanM: number,
+  aimDistM = 3,
+): number {
+  const relX = -Math.sin(azimuth) * aimDistM - logCenterXZ[0]
+  const relZ = -Math.cos(azimuth) * aimDistM - logCenterXZ[1]
+  const s = relX * logAxisXZ[0] + relZ * logAxisXZ[1]
+  return THREE.MathUtils.clamp(s, -halfSpanM, halfSpanM)
 }
 
 /**

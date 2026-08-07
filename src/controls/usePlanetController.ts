@@ -16,7 +16,7 @@ import {
   surfaceUnderfoot,
   surfOffset,
 } from '../scene/planetConfig'
-import { FIRE_UNIT, LOG_UNITS, seatById } from '../scene/seats'
+import { FIRE_UNIT, LOG_UNITS, seatUnit, standUnit, type SeatSpot } from '../scene/seats'
 import { useStore } from '../store/useStore'
 import {
   applyStep,
@@ -114,10 +114,10 @@ export function usePlanetController({ planetRef, avatarRef }: ControllerRefs) {
   const jumpT = useRef<number | null>(null) // seconds since jump start, null = grounded
   const yaw = useRef(0)
   const targetYaw = useRef(0)
-  // Sit system: the store's seatedSeatId is the source of truth; the
+  // Sit system: the store's seatedSeat is the source of truth; the
   // controller mirrors it to detect sit/stand edges and runs the world
   // tween + seat lift. lastJump edge-detects the stand-up jump press.
-  const seatedId = useRef<string | null>(null)
+  const seatedId = useRef<SeatSpot | null>(null)
   const sitTween = useRef<{ t: number; from: THREE.Quaternion; to: THREE.Quaternion } | null>(null)
   const sitTweenQs = useRef({ from: new THREE.Quaternion(), to: new THREE.Quaternion() })
   const seatLift = useRef(0)
@@ -168,11 +168,12 @@ export function usePlanetController({ planetRef, avatarRef }: ControllerRefs) {
     // onto the live orientation — never a step, so blockers don't apply and
     // the world glides the seat (or the stand-up spot in front of it, fire
     // side) under the avatar.
-    const storeSeat = store.seatedSeatId
+    const storeSeat = store.seatedSeat
     if (storeSeat !== seatedId.current) {
-      const seat = seatById(storeSeat ?? seatedId.current ?? '')
+      const seat = storeSeat ?? seatedId.current
       if (seat) {
-        const dest = storeSeat ? seat.unit : seat.standUnit
+        // seatUnit/standUnit allocate — sit/stand are events, not frames.
+        const dest = storeSeat ? seatUnit(seat) : standUnit(seat)
         _seatWorldDir.copy(dest).applyQuaternion(quat.current)
         _sitDelta.setFromUnitVectors(_seatWorldDir, WORLD_UP)
         const qs = sitTweenQs.current

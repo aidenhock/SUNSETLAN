@@ -8,8 +8,9 @@ interface AppState {
   nearbyId: string | null
   /** Log circle index the player is near (sit prompt), if any. */
   nearbyLog: number | null
-  /** Seat id from scene/seats.ts while seated at the fire, else null. */
-  seatedSeatId: string | null
+  /** Free seat position ({ log, offsetM } per scene/seats.ts) while
+   * seated at the fire, else null. */
+  seatedSeat: { log: number; offsetM: number } | null
   /** Interactable whose modal is open, if any. Controls are disabled while set. */
   openModalId: string | null
   muted: boolean
@@ -24,7 +25,7 @@ interface AppState {
   settings: { cameraMode: CameraMode }
   setNearby: (id: string | null) => void
   setNearbyLog: (index: number | null) => void
-  sitDown: (seatId: string) => void
+  sitDown: (seat: { log: number; offsetM: number }) => void
   standUp: () => void
   openModal: (id: string) => void
   closeModal: () => void
@@ -48,7 +49,7 @@ const persistedMute = (() => {
 export const useStore = create<AppState>((set) => ({
   nearbyId: null,
   nearbyLog: null,
-  seatedSeatId: null,
+  seatedSeat: null,
   openModalId: null,
   muted: persistedMute,
   qualityTier: 'high',
@@ -58,8 +59,8 @@ export const useStore = create<AppState>((set) => ({
   settings: { cameraMode: 'pointerLock' },
   setNearby: (id) => set({ nearbyId: id }),
   setNearbyLog: (index) => set({ nearbyLog: index }),
-  sitDown: (seatId) => set({ seatedSeatId: seatId }),
-  standUp: () => set({ seatedSeatId: null }),
+  sitDown: (seat) => set({ seatedSeat: seat }),
+  standUp: () => set({ seatedSeat: null }),
   openModal: (id) => set({ openModalId: id }),
   closeModal: () => set({ openModalId: null }),
   setMuted: (muted) => {

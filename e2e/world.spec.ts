@@ -75,20 +75,23 @@ test('desktop: sit system — E sits and stands, movement suppressed while seate
     )
   }
 
-  // Teleport just seaward of the center log, facing it (north at long 180).
+  // Teleport just seaward of the center log (lat 25.3), facing it.
   await page.evaluate(() => {
-    window.__controls!.poseOverride = { lat: 22.8, long: 180 }
+    window.__controls!.poseOverride = { lat: 23.6, long: 180 }
     window.__controls!.azimuthOverride = Math.PI
   })
   await page.waitForTimeout(700)
   expect(await page.evaluate(() => window.__store!.getState().nearbyLog)).toBe(0)
   await expect(page.getByText('Sit')).toBeVisible()
 
-  // E sits: aim straight at the log picks the center slot; the world tween
-  // parks the seat under the pole and suppresses movement.
+  // E sits: free-position — aiming straight at the log center projects
+  // to its middle; the world tween parks the seat under the pole and
+  // suppresses movement.
   await page.keyboard.press('KeyE')
   await settlePolar()
-  expect(await page.evaluate(() => window.__store!.getState().seatedSeatId)).toBe('0:1')
+  const seat = await page.evaluate(() => window.__store!.getState().seatedSeat)
+  expect(seat?.log).toBe(0)
+  expect(Math.abs(seat?.offsetM ?? 99)).toBeLessThan(0.2)
   expect(await page.evaluate(() => window.__controls!.seated)).toBe(true)
   const seatedPolar = await page.evaluate(() => window.__controls!.surfPolarDeg)
   await page.keyboard.down('KeyW')
@@ -103,7 +106,7 @@ test('desktop: sit system — E sits and stands, movement suppressed while seate
   // comes back.
   await page.keyboard.press('KeyE')
   await settlePolar()
-  expect(await page.evaluate(() => window.__store!.getState().seatedSeatId)).toBeNull()
+  expect(await page.evaluate(() => window.__store!.getState().seatedSeat)).toBeNull()
   expect(await page.evaluate(() => window.__controls!.seated)).toBe(false)
   const stood = await page.evaluate(() => [
     window.__controls!.surfPolarDeg,
@@ -128,15 +131,19 @@ test('desktop: sit system — E sits and stands, movement suppressed while seate
     'movement must resume after standing',
   ).toBeGreaterThan(0.2)
 
-  // Jump also stands up.
+  // Jump also stands up — and an AIMED sit lands off-center on the wood
+  // (continuous projection, not a slot).
   await page.evaluate(() => {
-    window.__controls!.poseOverride = { lat: 22.8, long: 180 }
-    window.__controls!.azimuthOverride = Math.PI
+    window.__controls!.poseOverride = { lat: 23.6, long: 180 }
+    window.__controls!.azimuthOverride = Math.PI + 0.2
   })
   await page.waitForTimeout(500)
   await page.keyboard.press('KeyE')
   await settlePolar()
   expect(await page.evaluate(() => window.__controls!.seated)).toBe(true)
+  const aimed = await page.evaluate(() => window.__store!.getState().seatedSeat)
+  expect(Math.abs(aimed?.offsetM ?? 0)).toBeGreaterThan(0.3)
+  expect(Math.abs(aimed?.offsetM ?? 99)).toBeLessThanOrEqual(0.7)
   // Hold Space long enough to span a frame — the controller POLLS the key
   // map, so a synthetic instant press can fall between slow headless
   // frames (a real tap always spans several).

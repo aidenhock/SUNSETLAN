@@ -7,8 +7,8 @@ import {
   latLongToUnit,
   polarAngle,
   poleInPlanetSpace,
+  projectSeatOffset,
   rotationStep,
-  selectSeat,
   surfaceQuaternion,
   WORLD_UP,
 } from './planetMath'
@@ -130,42 +130,40 @@ describe('cameraRelativeMoveDir', () => {
   })
 })
 
-describe('selectSeat (3C sit system — aim-based slot pick)', () => {
-  // A log ahead of the avatar (camera default azimuth 0 looks toward −Z):
-  // three slots spread along X at −Z, like standing before the center log.
-  const seats: ReadonlyArray<readonly [number, number]> = [
-    [-0.6, -2], // left slot
-    [0, -2], // center slot
-    [0.6, -2], // right slot
-  ]
+describe('projectSeatOffset (free-position sitting — aim onto the centerline)', () => {
+  // A log 3 m ahead of the avatar (camera azimuth 0 aims toward −Z),
+  // its axis running along X.
+  const center: readonly [number, number] = [0, -3]
+  const axis: readonly [number, number] = [1, 0]
 
-  it('looking straight at the log picks the center slot', () => {
-    expect(selectSeat(seats, 0)).toBe(1)
+  it('aiming straight at the log center sits at its middle', () => {
+    expect(projectSeatOffset(center, axis, 0, 0.7)).toBeCloseTo(0, 10)
   })
 
-  it('aiming left of the log picks the left slot', () => {
-    // Positive azimuth swings the camera toward +X, so its forward
-    // (−sin a, −cos a) points toward −X: the LEFT seat.
-    expect(selectSeat(seats, 0.35)).toBe(0)
+  it('a small aim swing projects CONTINUOUSLY along the wood', () => {
+    // Positive azimuth swings the camera toward +X, so the aim point
+    // moves toward −X — the projection follows it exactly, no slots.
+    expect(projectSeatOffset(center, axis, 0.15, 0.7)).toBeCloseTo(-3 * Math.sin(0.15), 10)
+    expect(projectSeatOffset(center, axis, -0.1, 0.7)).toBeCloseTo(3 * Math.sin(0.1), 10)
   })
 
-  it('aiming right of the log picks the right slot', () => {
-    expect(selectSeat(seats, -0.35)).toBe(2)
+  it('aiming past an end clamps to the usable span (0.3 m end margins)', () => {
+    expect(projectSeatOffset(center, axis, 0.5, 0.7)).toBe(-0.7)
+    expect(projectSeatOffset(center, axis, -0.5, 0.7)).toBe(0.7)
   })
 
-  it('a slight aim nudge is not enough to leave the center slot', () => {
-    expect(selectSeat(seats, 0.05)).toBe(1)
-  })
-
-  it('works at any camera heading (seats behind the avatar)', () => {
-    const behind: ReadonlyArray<readonly [number, number]> = [
-      [-0.6, 2],
-      [0, 2],
-      [0.6, 2],
-    ]
-    // Azimuth π: camera on −Z looking toward +Z.
-    expect(selectSeat(behind, Math.PI)).toBe(1)
-    expect(selectSeat(behind, Math.PI - 0.35)).toBe(0)
+  it('returns the true perpendicular foot on a diagonal log', () => {
+    const dCenter: readonly [number, number] = [0.4, -2.6]
+    const inv = Math.SQRT1_2
+    const dAxis: readonly [number, number] = [inv, -inv]
+    const s = projectSeatOffset(dCenter, dAxis, 0.2, 0.7)
+    // Minimal-distance property: nudging the seat either way along the
+    // axis only moves it AWAY from the aim point.
+    const aim: readonly [number, number] = [-Math.sin(0.2) * 3, -Math.cos(0.2) * 3]
+    const distAt = (t: number) =>
+      Math.hypot(dCenter[0] + dAxis[0] * t - aim[0], dCenter[1] + dAxis[1] * t - aim[1])
+    expect(distAt(s)).toBeLessThanOrEqual(distAt(s + 0.05) + 1e-12)
+    expect(distAt(s)).toBeLessThanOrEqual(distAt(s - 0.05) + 1e-12)
   })
 })
 

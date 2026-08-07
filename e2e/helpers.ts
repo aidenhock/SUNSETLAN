@@ -8,7 +8,7 @@ declare global {
         openModal: (id: string) => void
         closeModal: () => void
         nearbyLog: number | null
-        seatedSeatId: string | null
+        seatedSeat: { log: number; offsetM: number } | null
       }
     }
     __controls?: {
