@@ -7,11 +7,16 @@ declare global {
       getState: () => {
         openModal: (id: string) => void
         closeModal: () => void
+        nearbyLog: number | null
+        seatedSeatId: string | null
       }
     }
     __controls?: {
       azimuthOverride: number | null
       poseOverride: { lat: number; long: number } | null
+      seated: boolean
+      surfPolarDeg: number
+      surfLongDeg: number
     }
   }
 }
