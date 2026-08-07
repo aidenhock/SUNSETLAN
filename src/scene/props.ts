@@ -162,29 +162,59 @@ export function buildRock(): PropPart[] {
   ])
 }
 
-/** Campfire base: stone ring + crossed logs (~1.3 m wide). The FLAME
- * is the animated <Fire> component (Fire 2.0), not part of this
- * static prop. */
+/** Campfire base (Fire 2.0 rebuild): a TEEPEE of five chunky faceted
+ * logs leaning inward — visible outer ends, per-log lean/roll
+ * variance — ringed by irregular ROUNDED stones (varied dodecahedra,
+ * never uniform cubes), each sunk so it bites the sand. The FLAME is
+ * the animated <Fire> component, not part of this static prop. */
 export function buildCampfire(): PropPart[] {
   const stone = paletteMaterial(PROP_COLORS.stone)
   const wood = paletteMaterial(PROP_COLORS.woodDark)
+  const rings = paletteMaterial(PROP_COLORS.woodLight)
   const pieces: Piece[] = []
-  for (let i = 0; i < 6; i++) {
-    const a = (i / 6) * Math.PI * 2 + 0.3
-    const s = i % 2 === 0 ? 1 : 0.8
+  // Teepee logs: bases on a ~0.30 m circle, tips crossing near the
+  // center at ~0.5 m. Lean/length/roll jitter is deterministic.
+  const LOGS = [
+    { az: 0.4, lean: 0.62, len: 0.68, r: 0.062 },
+    { az: 1.75, lean: 0.55, len: 0.62, r: 0.07 },
+    { az: 3.0, lean: 0.66, len: 0.7, r: 0.058 },
+    { az: 4.25, lean: 0.58, len: 0.6, r: 0.072 },
+    { az: 5.45, lean: 0.63, len: 0.66, r: 0.065 },
+  ]
+  for (const l of LOGS) {
+    // Local: log along +y, leaned outward at the base by rotating
+    // about the tangent axis, then swung to its azimuth.
+    const dir = new THREE.Vector3(Math.cos(l.az), 0, Math.sin(l.az))
+    const mid = dir.clone().multiplyScalar(0.17).setY(l.len * 0.42)
+    const tilt = new THREE.Quaternion().setFromAxisAngle(
+      new THREE.Vector3(-dir.z, 0, dir.x),
+      -l.lean,
+    )
+    const e = new THREE.Euler().setFromQuaternion(tilt)
     pieces.push(
-      at(
-        new THREE.BoxGeometry(0.24, 0.2, 0.2),
-        stone,
-        [Math.cos(a) * 0.55, 0.09, Math.sin(a) * 0.55],
-        [0, -a, 0],
-        [s, s, s],
-      ),
+      at(new THREE.CylinderGeometry(l.r, l.r * 1.12, l.len, 6), wood, [mid.x, mid.y, mid.z], [e.x, e.y, e.z]),
+    )
+    // Lighter end disc on the outer (base) end — the visible cut face.
+    const end = dir.clone().multiplyScalar(0.17 + Math.sin(l.lean) * l.len * 0.5)
+    end.y = l.len * 0.42 - Math.cos(l.lean) * l.len * 0.5 + 0.012
+    pieces.push(
+      at(new THREE.CylinderGeometry(l.r * 1.08, l.r * 1.08, 0.03, 6), rings, [end.x, Math.max(end.y, 0.05), end.z], [e.x, e.y, e.z]),
     )
   }
-  const log = new THREE.BoxGeometry(0.75, 0.13, 0.13)
-  for (const yaw of [0.26, 1.31, 2.36]) {
-    pieces.push(at(log, wood, [0, 0.13, 0], [0, yaw, 0]))
+  // Stone ring: 9 rounded irregular stones, sunk ~30% for bite.
+  for (let i = 0; i < 9; i++) {
+    const a = (i / 9) * Math.PI * 2 + 0.22 + (i % 3) * 0.09
+    const r = 0.075 + ((i * 37) % 5) * 0.009
+    const squash = 0.75 + ((i * 23) % 4) * 0.1
+    pieces.push(
+      at(
+        new THREE.DodecahedronGeometry(r, 0),
+        stone,
+        [Math.cos(a) * 0.56, r * squash * 0.62, Math.sin(a) * 0.56],
+        [i * 0.7, a, i * 1.3],
+        [1 + ((i * 13) % 3) * 0.14, squash, 1 - ((i * 7) % 3) * 0.08],
+      ),
+    )
   }
   return mergeByMaterial(pieces)
 }
