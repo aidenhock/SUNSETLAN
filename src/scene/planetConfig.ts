@@ -312,8 +312,10 @@ export const scatterProps: ScatterProp[] = [
 
 /** Landmark obstacles from the map table (shells don't block). */
 const landmarkBlockers: { lat: number; long: number; radius: number }[] = [
-  { lat: MAP.campfire.lat, long: MAP.campfire.long, radius: 1.0 },
-  { lat: MAP.bench.lat, long: MAP.bench.long, radius: 0.9 },
+  // You can never walk over the fire (slide-along like every blocker).
+  { lat: MAP.campfire.lat, long: MAP.campfire.long, radius: 1.2 },
+  // …or through Koa.
+  { lat: MAP.ukulelePlayer.lat, long: MAP.ukulelePlayer.long, radius: 0.7 },
   { lat: MAP.tree.lat, long: MAP.tree.long, radius: 1.6 },
   { lat: MAP.palapa.lat, long: MAP.palapa.long - 2, radius: 1.2 }, // desk
   { lat: MAP.tv.lat, long: MAP.tv.long + 0.8, radius: 0.9 }, // crate
