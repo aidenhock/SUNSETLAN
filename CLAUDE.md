@@ -84,7 +84,7 @@ The sun, moon, stars, and sky gradient are **children of the rotating planet gro
 | Dock | prop | 24→13 | 0 | Segmented; walkable deck (analytic strip) |
 | Camera tripod | Photos | 14 | 0 | On the dock end, over water, facing the sun |
 | Mailbox | Contact | 24 | 6 | Dock entrance |
-| Ukulele player (Koa) | NPC | 18 | 359.05 | Seat ON the dock's west edge (cross-track ~0.91 m < the 1 m half-width), legs over water; 0.7 m blocker |
+| Ukulele player (Koa) | NPC | 18 | 359.05 | Seat ON the dock's west edge (cross-track ~0.87 m < the 1 m half-width), legs over water; 0.7 m blocker |
 | Seagulls ×2–3 | critter | — | ~0 | Tilted orbit loops over sunset-side water |
 | Palapa + desk | Projects | 40 | 40 | Day-leaning side |
 | Big tree + rings | About | 50 | 300 | Dusk boundary west |

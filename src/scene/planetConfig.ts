@@ -126,7 +126,7 @@ const THREE_DEG = Math.PI / 180
 export const MAP = {
   tripod: { lat: 14, long: 0 }, // Photos — on the dock end, over water
   mailbox: { lat: 24, long: 6 }, // Contact — dock entrance
-  // NPC — seat ON the dock's west edge (cross-track ~0.91 m < the 1 m
+  // NPC — seat ON the dock's west edge (cross-track ~0.87 m < the 1 m
   // half-width, so his butt overlaps the deck), legs over the surf.
   // 358.7 hovered his center 0.19 m PAST the edge — the floating bug.
   ukulelePlayer: { lat: 18, long: 359.05 },

@@ -273,6 +273,10 @@ function handleVisibility() {
   } else {
     audioPause.hidden = false
     void rt.ctx.resume().then(() => {
+      // Rapid hide→show→hide: this resolves AFTER a newer suspend —
+      // restoring the master then would leave it hot while hidden.
+      // Bail; the next visible runs its own resume path.
+      if (audioPause.hidden) return
       const ctx = audioRuntime.ctx
       const listener = audioRuntime.listener
       if (!ctx) return
