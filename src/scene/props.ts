@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js'
+import { tintGeometry } from './geometryUtils'
 
 /**
  * Chunky primitive props — the style bible's hand-built replacements for the
@@ -166,26 +167,39 @@ export function buildRock(): PropPart[] {
 // its wood catches the firelight with baked warm vertex tints and a
 // flickering emissive, which a shared static palette prop can't do.
 
-/** Music portal (Phase 4 kickoff): the chunky ukulele leaning against
- * a short driftwood log — replaces the last placeholder cube on the
- * night side. Same proportions language as Koa's instrument. */
+/** Music portal (Phase 4 kickoff): the chunky ukulele resting on a
+ * short driftwood log — replaces the last placeholder cube on the
+ * night side. ONE vertex-tinted merged mesh (draw-call budget: three
+ * palette materials would cost three draws right at the 50-call
+ * mobile line). */
 export function buildMusicUke(): PropPart[] {
-  const wood = paletteMaterial(PROP_COLORS.woodDark)
-  const body = paletteMaterial('#b5773f')
-  const dark = paletteMaterial('#5a4632')
-  const pieces: Piece[] = []
-  // Driftwood log lying along x, slightly rolled.
-  pieces.push(at(new THREE.CylinderGeometry(0.16, 0.16, 1.1, 7), wood, [0, 0.16, 0], [0.1, 0, Math.PI / 2]))
-  pieces.push(at(new THREE.CylinderGeometry(0.165, 0.165, 0.03, 7), dark, [0.56, 0.16, 0], [0.1, 0, Math.PI / 2]))
-  // The uke rests ON TOP of the log ("ukulele on the log"), soundboard
-  // up, neck rising gently past the log's end — readable from every
-  // orbit angle.
+  const tinted = (g: THREE.BufferGeometry, color: string, pos: [number, number, number], rot: [number, number, number] = [0, 0, 0], scale: [number, number, number] = [1, 1, 1]) => {
+    const n = tintGeometry(normalizeForMerge(g), color)
+    g.dispose()
+    n.applyMatrix4(
+      new THREE.Matrix4().compose(
+        new THREE.Vector3(...pos),
+        new THREE.Quaternion().setFromEuler(new THREE.Euler(...rot)),
+        new THREE.Vector3(...scale),
+      ),
+    )
+    return n
+  }
   const rest: [number, number, number] = [-0.12, 0.2, 0.08]
-  pieces.push(at(new THREE.SphereGeometry(0.19, 12, 8), body, [0.18, 0.36, 0], rest, [1.15, 0.5, 1]))
-  pieces.push(at(new THREE.CylinderGeometry(0.058, 0.058, 0.025, 10), dark, [0.14, 0.45, 0.01], rest))
-  pieces.push(at(new THREE.BoxGeometry(0.36, 0.045, 0.08), dark, [-0.12, 0.41, -0.05], [-0.12, 0.2, 0.12]))
-  pieces.push(at(new THREE.BoxGeometry(0.1, 0.055, 0.1), dark, [-0.29, 0.44, -0.09], [-0.12, 0.2, 0.12]))
-  return mergeByMaterial(pieces)
+  const parts = [
+    // Driftwood log lying along x, slightly rolled, lighter end cut.
+    tinted(new THREE.CylinderGeometry(0.16, 0.16, 1.1, 7), PROP_COLORS.woodDark, [0, 0.16, 0], [0.1, 0, Math.PI / 2]),
+    tinted(new THREE.CylinderGeometry(0.165, 0.165, 0.03, 7), PROP_COLORS.woodLight, [0.56, 0.16, 0], [0.1, 0, Math.PI / 2]),
+    // The uke ON TOP ("ukulele on the log"), soundboard up, neck rising
+    // gently past the log's end — readable from every orbit angle.
+    tinted(new THREE.SphereGeometry(0.19, 12, 8), '#b5773f', [0.18, 0.36, 0], rest, [1.15, 0.5, 1]),
+    tinted(new THREE.CylinderGeometry(0.058, 0.058, 0.025, 10), '#5a4632', [0.14, 0.45, 0.01], rest),
+    tinted(new THREE.BoxGeometry(0.36, 0.045, 0.08), '#5a4632', [-0.12, 0.41, -0.05], [-0.12, 0.2, 0.12]),
+    tinted(new THREE.BoxGeometry(0.1, 0.055, 0.1), '#5a4632', [-0.29, 0.44, -0.09], [-0.12, 0.2, 0.12]),
+  ]
+  const merged = mergeGeometries(parts)
+  for (const p of parts) p.dispose()
+  return [{ geometry: merged, material: new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }) }]
 }
 
 /** Log bench: fat faceted log lying along x with lighter end rings. 2 m long. */

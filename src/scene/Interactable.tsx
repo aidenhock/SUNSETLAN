@@ -138,10 +138,13 @@ function PropBody({
     // Self-brighten, don't tint: each part's emissive is its OWN color,
     // so the highlight lifts the prop without a hue shift — a flat teal
     // emissive turned every shaded face grey-green (worst on dark wood,
-    // where the tint was all you could see).
+    // where the tint was all you could see). Vertex-tinted parts carry
+    // their color in the GEOMETRY (material.color is white — copying it
+    // washed the merged uke to paper); those get a warm-wood lift.
     for (const p of parts) {
-      if (isNearby) p.material.emissive.copy(p.material.color)
-      else p.material.emissive.set('#000000')
+      if (!isNearby) p.material.emissive.set('#000000')
+      else if (p.material.vertexColors) p.material.emissive.set('#7a5f3d')
+      else p.material.emissive.copy(p.material.color)
     }
   }, [parts, isNearby])
   // Night-scaled: after dark the same lift reads much stronger.
