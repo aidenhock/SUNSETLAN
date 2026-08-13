@@ -4,12 +4,13 @@ import * as THREE from 'three'
 import { meridianYaw, surfaceQuaternion } from '../controls/planetMath'
 import type { InteractableDef, PropKind } from '../content/interactables'
 import { useStore } from '../store/useStore'
-import { buildMailbox, buildTripod, type PropPart } from './props'
+import { buildMailbox, buildMusicUke, buildTripod, type PropPart } from './props'
 import { skyRuntime } from './useSkyState'
 
 const PROP_BUILDERS: Record<PropKind, () => PropPart[]> = {
   tripod: buildTripod,
   mailbox: buildMailbox,
+  uke: buildMusicUke,
 }
 
 /**
@@ -134,11 +135,20 @@ function PropBody({
     [kind],
   )
   useEffect(() => {
+    // Self-brighten, don't tint: each part's emissive is its OWN color,
+    // so the highlight lifts the prop without a hue shift — a flat teal
+    // emissive turned every shaded face grey-green (worst on dark wood,
+    // where the tint was all you could see).
     for (const p of parts) {
-      p.material.emissive.set(isNearby ? '#35a7a0' : '#000000')
-      p.material.emissiveIntensity = 0.35
+      if (isNearby) p.material.emissive.copy(p.material.color)
+      else p.material.emissive.set('#000000')
     }
   }, [parts, isNearby])
+  // Night-scaled: after dark the same lift reads much stronger.
+  useFrame(() => {
+    const intensity = (isNearby ? 0.3 : 0) * (1 - 0.6 * skyRuntime.nightMix)
+    for (const p of parts) p.material.emissiveIntensity = intensity
+  })
 
   return (
     <>

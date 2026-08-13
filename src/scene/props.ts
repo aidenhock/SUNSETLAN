@@ -162,60 +162,29 @@ export function buildRock(): PropPart[] {
   ])
 }
 
-/** Campfire base (Fire 2.0 rebuild): a TEEPEE of five chunky faceted
- * logs leaning inward — visible outer ends, per-log lean/roll
- * variance — ringed by irregular ROUNDED stones (varied dodecahedra,
- * never uniform cubes), each sunk so it bites the sand. The FLAME is
- * the animated <Fire> component, not part of this static prop. */
-export function buildCampfire(): PropPart[] {
-  const stone = paletteMaterial(PROP_COLORS.stone)
+// The campfire base (teepee logs + stone ring) lives in <Fire> now —
+// its wood catches the firelight with baked warm vertex tints and a
+// flickering emissive, which a shared static palette prop can't do.
+
+/** Music portal (Phase 4 kickoff): the chunky ukulele leaning against
+ * a short driftwood log — replaces the last placeholder cube on the
+ * night side. Same proportions language as Koa's instrument. */
+export function buildMusicUke(): PropPart[] {
   const wood = paletteMaterial(PROP_COLORS.woodDark)
-  const rings = paletteMaterial(PROP_COLORS.woodLight)
+  const body = paletteMaterial('#b5773f')
+  const dark = paletteMaterial('#5a4632')
   const pieces: Piece[] = []
-  // Teepee logs: bases on a ~0.30 m circle, tips crossing near the
-  // center at ~0.5 m. Lean/length/roll jitter is deterministic.
-  const LOGS = [
-    { az: 0.4, lean: 0.62, len: 0.68, r: 0.062 },
-    { az: 1.75, lean: 0.55, len: 0.62, r: 0.07 },
-    { az: 3.0, lean: 0.66, len: 0.7, r: 0.058 },
-    { az: 4.25, lean: 0.58, len: 0.6, r: 0.072 },
-    { az: 5.45, lean: 0.63, len: 0.66, r: 0.065 },
-  ]
-  for (const l of LOGS) {
-    // Local: log along +y, leaned outward at the base by rotating
-    // about the tangent axis, then swung to its azimuth.
-    const dir = new THREE.Vector3(Math.cos(l.az), 0, Math.sin(l.az))
-    const mid = dir.clone().multiplyScalar(0.17).setY(l.len * 0.42)
-    const tilt = new THREE.Quaternion().setFromAxisAngle(
-      new THREE.Vector3(-dir.z, 0, dir.x),
-      -l.lean,
-    )
-    const e = new THREE.Euler().setFromQuaternion(tilt)
-    pieces.push(
-      at(new THREE.CylinderGeometry(l.r, l.r * 1.12, l.len, 6), wood, [mid.x, mid.y, mid.z], [e.x, e.y, e.z]),
-    )
-    // Lighter end disc on the outer (base) end — the visible cut face.
-    const end = dir.clone().multiplyScalar(0.17 + Math.sin(l.lean) * l.len * 0.5)
-    end.y = l.len * 0.42 - Math.cos(l.lean) * l.len * 0.5 + 0.012
-    pieces.push(
-      at(new THREE.CylinderGeometry(l.r * 1.08, l.r * 1.08, 0.03, 6), rings, [end.x, Math.max(end.y, 0.05), end.z], [e.x, e.y, e.z]),
-    )
-  }
-  // Stone ring: 9 rounded irregular stones, sunk ~30% for bite.
-  for (let i = 0; i < 9; i++) {
-    const a = (i / 9) * Math.PI * 2 + 0.22 + (i % 3) * 0.09
-    const r = 0.075 + ((i * 37) % 5) * 0.009
-    const squash = 0.75 + ((i * 23) % 4) * 0.1
-    pieces.push(
-      at(
-        new THREE.DodecahedronGeometry(r, 0),
-        stone,
-        [Math.cos(a) * 0.56, r * squash * 0.62, Math.sin(a) * 0.56],
-        [i * 0.7, a, i * 1.3],
-        [1 + ((i * 13) % 3) * 0.14, squash, 1 - ((i * 7) % 3) * 0.08],
-      ),
-    )
-  }
+  // Driftwood log lying along x, slightly rolled.
+  pieces.push(at(new THREE.CylinderGeometry(0.16, 0.16, 1.1, 7), wood, [0, 0.16, 0], [0.1, 0, Math.PI / 2]))
+  pieces.push(at(new THREE.CylinderGeometry(0.165, 0.165, 0.03, 7), dark, [0.56, 0.16, 0], [0.1, 0, Math.PI / 2]))
+  // The uke rests ON TOP of the log ("ukulele on the log"), soundboard
+  // up, neck rising gently past the log's end — readable from every
+  // orbit angle.
+  const rest: [number, number, number] = [-0.12, 0.2, 0.08]
+  pieces.push(at(new THREE.SphereGeometry(0.19, 12, 8), body, [0.18, 0.36, 0], rest, [1.15, 0.5, 1]))
+  pieces.push(at(new THREE.CylinderGeometry(0.058, 0.058, 0.025, 10), dark, [0.14, 0.45, 0.01], rest))
+  pieces.push(at(new THREE.BoxGeometry(0.36, 0.045, 0.08), dark, [-0.12, 0.41, -0.05], [-0.12, 0.2, 0.12]))
+  pieces.push(at(new THREE.BoxGeometry(0.1, 0.055, 0.1), dark, [-0.29, 0.44, -0.09], [-0.12, 0.2, 0.12]))
   return mergeByMaterial(pieces)
 }
 

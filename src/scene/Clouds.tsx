@@ -31,7 +31,7 @@ const AVOID_RAD = THREE.MathUtils.degToRad(18)
 const SPAWN_POLAR_MIN = THREE.MathUtils.degToRad(18)
 const SPAWN_POLAR_MAX = THREE.MathUtils.degToRad(70)
 /** Fixed planet-local wind axis — oblique so paths cross the island. */
-const WIND_AXIS = new THREE.Vector3(0.35, 0.8, 0.49).normalize()
+export const WIND_AXIS = new THREE.Vector3(0.35, 0.8, 0.49).normalize()
 
 const VARIANT_SEEDS = [4001, 4013, 4027]
 
