@@ -40,6 +40,55 @@ export function tintGeometry(geometry: THREE.BufferGeometry, hex: string): THREE
   return geometry
 }
 
+/**
+ * Bake a warm tint toward a light point (the campfire): each vertex
+ * lerps from `base` to `warm` by how much its face points at the
+ * target, scaled by a distance window — Lambert diffuse alone leaves
+ * fire-facing sides black at night, so the read is baked in. Returns a
+ * non-indexed clone with vertex colors; the input is left untouched.
+ * `nearM`..`farM` map distance → full..zero strength; `facingMin/Max`
+ * bound the facing term's weight across that window.
+ */
+export function bakeWarmTintToward(
+  geometry: THREE.BufferGeometry,
+  target: THREE.Vector3,
+  base: string,
+  warm: string,
+  opts: { ambient?: number; nearM?: number; farM?: number; facingMin?: number; facingMax?: number } = {},
+): THREE.BufferGeometry {
+  const { ambient = 0.15, nearM = 0.15, farM = 1.57, facingMin = 0.35, facingMax = 0.9 } = opts
+  const g = geometry.index ? geometry.toNonIndexed() : geometry.clone()
+  g.computeVertexNormals()
+  const pos = g.attributes.position as THREE.BufferAttribute
+  const nor = g.attributes.normal as THREE.BufferAttribute
+  const colors = new Float32Array(pos.count * 3)
+  const cBase = new THREE.Color(base)
+  const cWarm = new THREE.Color(warm)
+  const c = new THREE.Color()
+  const p = new THREE.Vector3()
+  const n = new THREE.Vector3()
+  const toTarget = new THREE.Vector3()
+  for (let i = 0; i < pos.count; i++) {
+    p.fromBufferAttribute(pos, i)
+    n.fromBufferAttribute(nor, i)
+    toTarget.copy(target).sub(p)
+    const d = toTarget.length()
+    const strength = THREE.MathUtils.clamp((farM - d) / (farM - nearM), 0, 1)
+    const facing = Math.max(0, toTarget.normalize().dot(n))
+    const lift = THREE.MathUtils.clamp(
+      ambient + facing * THREE.MathUtils.lerp(facingMin, facingMax, strength),
+      0,
+      1,
+    )
+    c.lerpColors(cBase, cWarm, lift)
+    colors[i * 3] = c.r
+    colors[i * 3 + 1] = c.g
+    colors[i * 3 + 2] = c.b
+  }
+  g.setAttribute('color', new THREE.BufferAttribute(colors, 3))
+  return g
+}
+
 /** One paint band of the continuous terrain (v3.2) — polar-ordered. */
 export interface TerrainBand {
   untilPolarDeg: number

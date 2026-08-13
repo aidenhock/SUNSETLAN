@@ -5,6 +5,7 @@ import { mulberry32 } from '../audio/procedural'
 import { latLongToUnit, meridianYaw, surfaceQuaternion } from '../controls/planetMath'
 import { useStore } from '../store/useStore'
 import { WIND_AXIS } from './Clouds'
+import { bakeWarmTintToward } from './geometryUtils'
 import { MAP } from './planetConfig'
 import { skyRuntime } from './useSkyState'
 import { SurfaceGroup } from './SurfaceGroup'
@@ -101,34 +102,12 @@ const WIND = (() => {
 // whose intensity flickers with the tongues' combined amplitude.
 const FIRE_HEART = new THREE.Vector3(0, 0.45, 0)
 
-/** Bake warmth: lerp each vertex toward `warm` by how much its face
- * points at (and sits near) the fire heart. */
+/** Bake warmth toward the fire heart (shared helper; defaults
+ * reproduce the original near-fire curve). */
 function bakeFirelight(geo: THREE.BufferGeometry, base: string, warm: string, ambient = 0.15) {
-  const g = geo.toNonIndexed()
-  g.computeVertexNormals()
-  const pos = g.attributes.position as THREE.BufferAttribute
-  const nor = g.attributes.normal as THREE.BufferAttribute
-  const colors = new Float32Array(pos.count * 3)
-  const cBase = new THREE.Color(base)
-  const cWarm = new THREE.Color(warm)
-  const c = new THREE.Color()
-  const p = new THREE.Vector3()
-  const n = new THREE.Vector3()
-  const toFire = new THREE.Vector3()
-  for (let i = 0; i < pos.count; i++) {
-    p.fromBufferAttribute(pos, i)
-    n.fromBufferAttribute(nor, i)
-    toFire.copy(FIRE_HEART).sub(p)
-    const near = THREE.MathUtils.clamp(1.1 - toFire.length() * 0.7, 0, 1)
-    const facing = Math.max(0, toFire.normalize().dot(n))
-    const lift = THREE.MathUtils.clamp(ambient + facing * (0.35 + 0.55 * near), 0, 1)
-    c.lerpColors(cBase, cWarm, lift)
-    colors[i * 3] = c.r
-    colors[i * 3 + 1] = c.g
-    colors[i * 3 + 2] = c.b
-  }
-  g.setAttribute('color', new THREE.BufferAttribute(colors, 3))
-  return g
+  const baked = bakeWarmTintToward(geo, FIRE_HEART, base, warm, { ambient })
+  geo.dispose()
+  return baked
 }
 
 /** Teepee: five chunky faceted logs leaning inward — warm bark, lighter
@@ -392,7 +371,11 @@ export function Fire() {
         <points ref={smallPts} geometry={pools.small.g} material={pools.small.m} renderOrder={2} />
         <points ref={largePts} geometry={pools.large.g} material={pools.large.m} renderOrder={2} />
       </group>
-      <pointLight ref={light} position={[0, 0.9, 0]} distance={9} decay={1.8} color="#ff9c50" />
+      {/* Campfire fix: decay 1.8 died by ~2.5 m — the seating logs at
+          3.2 m got nothing. Gentler falloff + longer range carries the
+          flicker to ~4 m; the baked log tint guarantees the warm read
+          regardless. */}
+      <pointLight ref={light} position={[0, 0.9, 0]} distance={13} decay={1.1} color="#ff9c50" />
     </SurfaceGroup>
   )
 }

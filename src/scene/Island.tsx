@@ -1,7 +1,9 @@
 import { useMemo } from 'react'
 import * as THREE from 'three'
+import { latLongToUnit } from '../controls/planetMath'
 import { groundAltitudeAt } from '../controls/terrain'
-import { facetTerrain } from './geometryUtils'
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
+import { bakeWarmTintToward, facetTerrain } from './geometryUtils'
 import {
   DOCK,
   MAP,
@@ -15,7 +17,6 @@ import { IDENTITY_Q, InstancedProp, StaticInstances, surfacePartMatrix } from '.
 import {
   buildBigTree,
   buildCrate,
-  buildLogBench,
   buildPalapa,
   buildPalm,
   buildRock,
@@ -72,7 +73,6 @@ export function Island() {
     () => ({
       palm: buildPalm(),
       rock: buildRock(),
-      log: buildLogBench(),
       crate: buildCrate(),
       rowboat: buildRowboat(),
       palapa: buildPalapa(),
@@ -117,9 +117,57 @@ export function Island() {
     return new THREE.BoxGeometry(DOCK.halfWidthM * 2, DOCK.plankThicknessM, segLengthM)
   }, [])
 
+  // The seating logs are FIRE FURNITURE (campfire fix): one merged
+  // vertex-tinted mesh — proper bark + lighter end-grain caps — with a
+  // warm tint BAKED toward the fire heart, distance-scaled, so their
+  // fire-facing sides read warm-lit even where the point light thins
+  // (Lambert diffuse alone left them black; the shared instanced
+  // palette material could never carry a per-log bake). Geometry
+  // matches buildLogBench exactly — the sit system's log-top math
+  // (seats.ts) must keep agreeing with the rendered wood.
+  const seatingLogs = useMemo(() => {
+    const fireAlt = groundAltitudeAt(MAP.campfire.lat, MAP.campfire.long) - SINK_M + 0.45
+    const firePoint = latLongToUnit(MAP.campfire.lat, MAP.campfire.long).multiplyScalar(
+      PLANET_RADIUS + fireAlt,
+    )
+    const parts: THREE.BufferGeometry[] = []
+    const bake = (g: THREE.BufferGeometry, m: THREE.Matrix4, base: string, warm: string) => {
+      g.applyMatrix4(m)
+      const baked = bakeWarmTintToward(g, firePoint, base, warm, {
+        ambient: 0.08,
+        nearM: 2.0,
+        farM: 4.6,
+        facingMin: 0.25,
+        facingMax: 0.85,
+      })
+      g.dispose()
+      baked.deleteAttribute('uv')
+      parts.push(baked)
+    }
+    for (const l of MAP.logs) {
+      const m = placement(l.lat, l.long, l.yaw)
+      bake(
+        new THREE.CylinderGeometry(0.26, 0.26, 2.0, 7).rotateZ(Math.PI / 2).translate(0, 0.26, 0),
+        m,
+        '#96714a',
+        '#f2a55e',
+      )
+      for (const x of [1.0, -1.0]) {
+        bake(
+          new THREE.CylinderGeometry(0.27, 0.27, 0.03, 7).rotateZ(Math.PI / 2).translate(x, 0.26, 0),
+          m,
+          '#c99e6a',
+          '#f6c088',
+        )
+      }
+    }
+    const merged = mergeGeometries(parts)
+    parts.forEach((p) => p.dispose())
+    return merged
+  }, [])
+
   const single = useMemo(
     () => ({
-      logs: MAP.logs.map((l) => placement(l.lat, l.long, l.yaw)),
       crate: [placement(MAP.tv.lat, MAP.tv.long + 0.8)],
       rowboat: [placement(MAP.rowboat.lat, MAP.rowboat.long, 0.9)],
       palapa: [placement(MAP.palapa.lat, MAP.palapa.long)],
@@ -145,9 +193,11 @@ export function Island() {
       <InstancedProp parts={props.rock} placements={scatter.rocks} />
       <StaticInstances geometry={shellGeo} material={shellMat} matrices={scatter.shells} />
 
-      {/* Night beach: the three sittable logs (the fire itself — flame,
-          teepee wood, stone ring — is the animated <Fire> component). */}
-      <InstancedProp parts={props.log} placements={single.logs} />
+      {/* Night beach: the three sittable logs, fire-lit (the fire itself —
+          flame, teepee wood, stone ring — is the animated <Fire> component). */}
+      <mesh geometry={seatingLogs}>
+        <meshLambertMaterial vertexColors flatShading />
+      </mesh>
 
       {/* CRT crate + beached rowboat. */}
       <InstancedProp parts={props.crate} placements={single.crate} />
