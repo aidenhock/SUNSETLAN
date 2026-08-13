@@ -50,3 +50,47 @@ test('mobile: joystick sprint, tap button, modal round-trip, orbit drag', async 
 
   expect(realErrors(errors)).toEqual([])
 })
+
+test('mobile: photo gallery pages by tap and swipe; viewer opens and closes', async ({ page }) => {
+  const errors = collectErrors(page)
+  await gotoWorld(page)
+  await page.waitForTimeout(600)
+  await page.evaluate(() => window.__store!.getState().openModal('photos'))
+  const shell = page.getByRole('dialog', { name: 'Photos' })
+  await expect(shell).toBeVisible({ timeout: 2000 })
+  await expect(page.getByText('1–6 of 13')).toBeVisible()
+
+  // Tap the page arrow.
+  const next = (await page.getByRole('button', { name: 'Next page' }).boundingBox())!
+  await page.touchscreen.tap(next.x + next.width / 2, next.y + next.height / 2)
+  await expect(page.getByText('7–12 of 13')).toBeVisible()
+
+  // Swipe the grid back a page (pointer-event drag).
+  const grid = (await page.locator('[data-photo-idx]').first().boundingBox())!
+  await page.mouse.move(grid.x + 30, grid.y + 30)
+  await page.mouse.down()
+  await page.mouse.move(grid.x + 160, grid.y + 34, { steps: 8 })
+  await page.mouse.up()
+  await expect(page.getByText('1–6 of 13')).toBeVisible()
+
+  // Open a tile; swipe inside the viewer advances the photo and must
+  // NOT exit it (the synthesized post-drag click is consumed).
+  const tile = (await page.locator('[data-photo-idx="0"]').boundingBox())!
+  await page.touchscreen.tap(tile.x + tile.width / 2, tile.y + tile.height / 2)
+  const viewer = page.getByRole('dialog', { name: /^Photo:/ })
+  await expect(viewer).toBeVisible()
+  await expect(viewer.getByText('1 of 13')).toBeVisible()
+  const vp = page.viewportSize()!
+  await page.mouse.move(vp.width * 0.7, vp.height * 0.5)
+  await page.mouse.down()
+  await page.mouse.move(vp.width * 0.25, vp.height * 0.52, { steps: 8 })
+  await page.mouse.up()
+  await expect(viewer).toBeVisible()
+  await expect(viewer.getByText('2 of 13')).toBeVisible()
+  const back = (await page.getByRole('button', { name: 'Back to grid' }).boundingBox())!
+  await page.touchscreen.tap(back.x + back.width / 2, back.y + back.height / 2)
+  await expect(viewer).toBeHidden()
+  await page.evaluate(() => window.__store!.getState().closeModal())
+  await expect(shell).toBeHidden()
+  expect(realErrors(errors)).toEqual([])
+})
