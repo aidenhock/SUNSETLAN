@@ -12,3 +12,9 @@ test-results/
 playwright-report/
 sweep-shots/
 **/_originals/
+
+# Session scratch (agent probes, one-off checks)
+test_*.mjs
+verify_*.mjs
+trim_silence.py
+staging/
