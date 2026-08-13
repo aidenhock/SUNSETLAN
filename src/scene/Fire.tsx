@@ -112,15 +112,18 @@ function bakeFirelight(geo: THREE.BufferGeometry, base: string, warm: string, am
 
 /** Teepee: five chunky faceted logs leaning inward — warm bark, lighter
  * end-grain caps, per-log lean/length/roll variance, no two identical.
- * ONE merged vertex-tinted geometry (one draw call). */
+ * Campfire fix: the lean is LOW and splayed so the outer ends emerge
+ * clearly OUTSIDE the flame's core — seen against the glow, never
+ * silhouetted inside it — and the inner tips bake to ember orange
+ * where they meet the fire. ONE merged vertex-tinted geometry. */
 function teepeeGeometry(): THREE.BufferGeometry {
   const parts: THREE.BufferGeometry[] = []
   const LOGS = [
-    { az: 0.4, lean: 0.62, len: 0.68, r: 0.062, roll: 0.2 },
-    { az: 1.75, lean: 0.55, len: 0.62, r: 0.07, roll: 1.1 },
-    { az: 3.0, lean: 0.66, len: 0.7, r: 0.058, roll: 2.3 },
-    { az: 4.25, lean: 0.58, len: 0.6, r: 0.072, roll: 0.7 },
-    { az: 5.45, lean: 0.63, len: 0.66, r: 0.065, roll: 1.8 },
+    { az: 0.4, lean: 0.92, len: 0.8, r: 0.062, roll: 0.2 },
+    { az: 1.75, lean: 0.85, len: 0.74, r: 0.07, roll: 1.1 },
+    { az: 3.0, lean: 0.96, len: 0.82, r: 0.058, roll: 2.3 },
+    { az: 4.25, lean: 0.88, len: 0.72, r: 0.072, roll: 0.7 },
+    { az: 5.45, lean: 0.93, len: 0.78, r: 0.065, roll: 1.8 },
   ]
   for (const l of LOGS) {
     const dir = new THREE.Vector3(Math.cos(l.az), 0, Math.sin(l.az))
@@ -128,21 +131,39 @@ function teepeeGeometry(): THREE.BufferGeometry {
       .setFromAxisAngle(new THREE.Vector3(-dir.z, 0, dir.x), -l.lean)
       .multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), l.roll))
     const m = new THREE.Matrix4().compose(
-      dir.clone().multiplyScalar(0.17).setY(l.len * 0.42),
+      dir.clone().multiplyScalar(0.3).setY(l.len * 0.5 * Math.cos(l.lean) + 0.03),
       tilt,
       new THREE.Vector3(1, 1, 1),
     )
     const bark = bakeFirelight(new THREE.CylinderGeometry(l.r, l.r * 1.14, l.len, 6).applyMatrix4(m), '#96714a', '#f0a45c')
-    parts.push(bark)
+    parts.push(emberTips(bark))
     // Lighter end-grain caps on both cut faces.
     for (const endY of [l.len / 2, -l.len / 2]) {
       const cap = new THREE.CylinderGeometry(l.r * 1.02, l.r * 1.02, 0.028, 6)
       cap.translate(0, endY, 0)
       cap.applyMatrix4(m)
-      parts.push(bakeFirelight(cap, '#c99e6a', '#f6c088', 0.2))
+      parts.push(emberTips(bakeFirelight(cap, '#c99e6a', '#f6c088', 0.2)))
     }
   }
   return mergeParts(parts)
+}
+
+/** Second bake pass: vertices near the fire heart glow ember orange —
+ * the tips inside the flame read as burning, never as dark holes. */
+function emberTips(g: THREE.BufferGeometry): THREE.BufferGeometry {
+  const pos = g.attributes.position as THREE.BufferAttribute
+  const col = g.attributes.color as THREE.BufferAttribute
+  const ember = new THREE.Color('#ffc06a')
+  const c = new THREE.Color()
+  const p = new THREE.Vector3()
+  for (let i = 0; i < pos.count; i++) {
+    p.fromBufferAttribute(pos, i)
+    const hot = THREE.MathUtils.clamp(1 - p.distanceTo(FIRE_HEART) / 0.32, 0, 1)
+    if (hot <= 0) continue
+    c.fromBufferAttribute(col, i).lerp(ember, hot * 0.9)
+    col.setXYZ(i, c.r, c.g, c.b)
+  }
+  return g
 }
 
 /** A deliberate RING of 10 chunky rounded stones encircling the base —
@@ -153,16 +174,18 @@ function stoneRingGeometry(): THREE.BufferGeometry {
   const COUNT = 10
   for (let i = 0; i < COUNT; i++) {
     const a = (i / COUNT) * Math.PI * 2 + ((i * 29) % 7) * 0.03 - 0.09
-    const r = 0.085 + ((i * 37) % 5) * 0.011
-    const squash = 0.72 + ((i * 23) % 4) * 0.09
+    // Chunky: r 0.10–0.16 — the old 0.085 pebbles read as scattered
+    // chips instead of a built pit.
+    const r = 0.1 + ((i * 37) % 5) * 0.015
+    const squash = 0.7 + ((i * 23) % 4) * 0.09
     const g = new THREE.DodecahedronGeometry(r, 0)
     const m = new THREE.Matrix4().compose(
-      new THREE.Vector3(Math.cos(a) * 0.6, r * squash * 0.55, Math.sin(a) * 0.6),
+      new THREE.Vector3(Math.cos(a) * 0.66, r * squash * 0.42, Math.sin(a) * 0.66),
       new THREE.Quaternion().setFromEuler(new THREE.Euler(i * 0.7, a, i * 1.3)),
       new THREE.Vector3(1 + ((i * 13) % 3) * 0.12, squash, 1 - ((i * 7) % 3) * 0.07),
     )
     g.applyMatrix4(m)
-    parts.push(bakeFirelight(g, '#c3bcae', '#e8b98a', 0.08))
+    parts.push(bakeFirelight(g, '#c3bcae', '#f0b070', 0.06))
   }
   return mergeParts(parts)
 }
@@ -302,8 +325,13 @@ export function Fire() {
       for (let i = 0; i < pool.life.length; i++) {
         const kind = kindOf(i)
         if (pool.life[i] <= 0) {
-          const spawnRate = kind === 'ember' ? 2.6 : kind === 'largeEmber' ? 0.5 : kind === 'smoke' ? 0.5 : 1.1
-          if (tier === 'low' || rng() > dt * spawnRate) continue
+          const spawnRate = kind === 'ember' ? 3.0 : kind === 'largeEmber' ? 0.5 : kind === 'smoke' ? 0.5 : 1.1
+          // Low tier keeps a REDUCED pool — six small embers, no
+          // ash/smoke/large — never an empty sky over the fire (the
+          // old blanket gate zeroed the air on tier drops, which is
+          // exactly what Aiden's sparse-star screenshot showed).
+          if (tier === 'low' && !(kind === 'ember' && i < 6)) continue
+          if (rng() > dt * spawnRate) continue
           // Longer lives = higher air: embers clear ~3 m over the flame,
           // ash rides the wind well above it before fading.
           pool.max[i] =
