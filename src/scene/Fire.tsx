@@ -110,28 +110,34 @@ function bakeFirelight(geo: THREE.BufferGeometry, base: string, warm: string, am
   return baked
 }
 
-/** Teepee: five chunky faceted logs leaning inward — warm bark, lighter
- * end-grain caps, per-log lean/length/roll variance, no two identical.
- * Campfire fix: the lean is LOW and splayed so the outer ends emerge
- * clearly OUTSIDE the flame's core — seen against the glow, never
- * silhouetted inside it — and the inner tips bake to ember orange
- * where they meet the fire. ONE merged vertex-tinted geometry. */
+/** Teepee POINTING INWARD (Aiden's call): bases rest on the sand
+ * OUTSIDE the fire, tips lean IN and meet over the heart — the
+ * classic crossed-logs read. (The previous splay tilted the tops
+ * outward: petals, not a teepee.) Warm bark, lighter end-grain caps,
+ * per-log lean/length/roll variance; the meeting tips bake to ember
+ * orange. ONE merged vertex-tinted geometry. */
 function teepeeGeometry(): THREE.BufferGeometry {
   const parts: THREE.BufferGeometry[] = []
   const LOGS = [
-    { az: 0.4, lean: 0.92, len: 0.8, r: 0.062, roll: 0.2 },
-    { az: 1.75, lean: 0.85, len: 0.74, r: 0.07, roll: 1.1 },
-    { az: 3.0, lean: 0.96, len: 0.82, r: 0.058, roll: 2.3 },
-    { az: 4.25, lean: 0.88, len: 0.72, r: 0.072, roll: 0.7 },
-    { az: 5.45, lean: 0.93, len: 0.78, r: 0.065, roll: 1.8 },
+    { az: 0.4, lean: 0.62, len: 0.72, base: 0.44, r: 0.062, roll: 0.2 },
+    { az: 1.75, lean: 0.68, len: 0.68, base: 0.42, r: 0.07, roll: 1.1 },
+    { az: 3.0, lean: 0.6, len: 0.76, base: 0.46, r: 0.058, roll: 2.3 },
+    { az: 4.25, lean: 0.66, len: 0.66, base: 0.41, r: 0.072, roll: 0.7 },
+    { az: 5.45, lean: 0.63, len: 0.7, base: 0.43, r: 0.065, roll: 1.8 },
   ]
   for (const l of LOGS) {
     const dir = new THREE.Vector3(Math.cos(l.az), 0, Math.sin(l.az))
+    // +lean tilts the log's TOP toward the center (−dir): base out,
+    // tip in. Base sits at dir·base on the ground; the tip lands just
+    // short of the axis so the five cross over the heart.
     const tilt = new THREE.Quaternion()
-      .setFromAxisAngle(new THREE.Vector3(-dir.z, 0, dir.x), -l.lean)
+      .setFromAxisAngle(new THREE.Vector3(-dir.z, 0, dir.x), l.lean)
       .multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), l.roll))
     const m = new THREE.Matrix4().compose(
-      dir.clone().multiplyScalar(0.3).setY(l.len * 0.5 * Math.cos(l.lean) + 0.03),
+      dir
+        .clone()
+        .multiplyScalar(l.base - Math.sin(l.lean) * l.len * 0.5)
+        .setY(l.len * 0.5 * Math.cos(l.lean) + 0.03),
       tilt,
       new THREE.Vector3(1, 1, 1),
     )
