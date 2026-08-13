@@ -61,16 +61,16 @@ test('photo gallery: 3 pages, boundary-crossing viewer, Esc to the right page, c
   await expect(shell).toBeVisible({ timeout: 2000 })
 
   // Page through all three pages with the arrows; the counter tracks.
-  await expect(page.getByText('1–6 of 13')).toBeVisible()
+  await expect(page.getByText('1–6 of 17')).toBeVisible()
   await page.getByRole('button', { name: 'Next page' }).click()
-  await expect(page.getByText('7–12 of 13')).toBeVisible()
+  await expect(page.getByText('7–12 of 17')).toBeVisible()
   await page.getByRole('button', { name: 'Next page' }).click()
-  await expect(page.getByText('13 of 13')).toBeVisible()
+  await expect(page.getByText('13–17 of 17')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Next page' })).toBeDisabled()
 
   // Keyboard pages too (grid mode ← →).
   await page.keyboard.press('ArrowLeft')
-  await expect(page.getByText('7–12 of 13')).toBeVisible()
+  await expect(page.getByText('7–12 of 17')).toBeVisible()
 
   // Open the last photo of page 2 (index 11) and arrow ACROSS the page
   // boundary — navigation is continuous over all photos, wrapping at
@@ -78,19 +78,20 @@ test('photo gallery: 3 pages, boundary-crossing viewer, Esc to the right page, c
   await page.locator('[data-photo-idx="11"]').click()
   const viewer = page.getByRole('dialog', { name: /^Photo:/ })
   await expect(viewer).toBeVisible()
-  await expect(viewer.getByText('12 of 13')).toBeVisible()
-  await page.keyboard.press('ArrowRight')
-  await expect(viewer.getByText('13 of 13')).toBeVisible()
-  await page.keyboard.press('ArrowRight') // wraps to the first photo
-  await expect(viewer.getByText('1 of 13')).toBeVisible()
-  await page.keyboard.press('ArrowLeft') // back to the last
-  await expect(viewer.getByText('13 of 13')).toBeVisible()
+  await expect(viewer.getByText('12 of 17')).toBeVisible()
+  await page.keyboard.press('ArrowRight') // crosses the page-2/3 boundary
+  await expect(viewer.getByText('13 of 17')).toBeVisible()
+  await page.keyboard.press('ArrowLeft')
+  await page.keyboard.press('ArrowLeft') // back across it
+  await expect(viewer.getByText('11 of 17')).toBeVisible()
+  for (let i = 0; i < 11; i++) await page.keyboard.press('ArrowLeft')
+  await expect(viewer.getByText('17 of 17')).toBeVisible() // wrapped past the start
 
   // Esc exits the VIEWER only, and the grid followed to page 3.
   await page.keyboard.press('Escape')
   await expect(viewer).toBeHidden()
   await expect(shell).toBeVisible()
-  await expect(page.getByText('13 of 13')).toBeVisible()
+  await expect(page.getByText('13–17 of 17')).toBeVisible()
 
   // Esc again closes the modal; the world's controls come back.
   await page.keyboard.press('Escape')

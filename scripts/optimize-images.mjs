@@ -74,7 +74,10 @@ for (const file of files) {
   const thumb = await encode(THUMB_EDGE, 0.75)
   const thumbBuf = Buffer.from(thumb.out, 'base64')
 
-  const slug = basename(file, extname(file)).toLowerCase().replace(/[^a-z0-9-]+/g, '-')
+  const slug = basename(file, extname(file))
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
   writeFileSync(join(OUT, `${slug}.webp`), webBuf)
   writeFileSync(join(OUT, `${slug}.thumb.webp`), thumbBuf)
   console.log(
