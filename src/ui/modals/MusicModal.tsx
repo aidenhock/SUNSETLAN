@@ -1,7 +1,19 @@
 import { music } from '../../content/music'
+import { EmptyState } from './EmptyState'
 import { ModalShell } from './ModalShell'
 
 export function MusicModal() {
+  if (music.length === 0) {
+    return (
+      <ModalShell title="Music">
+        <EmptyState
+          icon="🎶"
+          headline="The ukulele is still warming up"
+          sub="Recordings are on their way — for now, Koa on the dock has the stage."
+        />
+      </ModalShell>
+    )
+  }
   return (
     <ModalShell title="Music">
       <ul className="space-y-4">

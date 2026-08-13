@@ -1,6 +1,9 @@
 import { lazy, StrictMode, Suspense } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
+import { initAnalytics } from './lib/analytics'
+
+initAnalytics()
 
 // Test hook: `?e2e` exposes the store and the controls runtime so the e2e
 // suites can drive state and set walk headings deterministically.

@@ -1,7 +1,19 @@
 import { projects } from '../../content/projects'
+import { EmptyState } from './EmptyState'
 import { ModalShell } from './ModalShell'
 
 export function ProjectsModal() {
+  if (projects.length === 0) {
+    return (
+      <ModalShell title="Projects" wide>
+        <EmptyState
+          icon="🛠️"
+          headline="Projects are being written up"
+          sub="Case studies land here soon — pipelines, apps, and the making of this island."
+        />
+      </ModalShell>
+    )
+  }
   return (
     <ModalShell title="Projects" wide>
       <ul className="space-y-4">

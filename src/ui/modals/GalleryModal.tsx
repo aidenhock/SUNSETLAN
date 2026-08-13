@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { photos } from '../../content/photos'
+import { EmptyState } from './EmptyState'
 import { ModalShell } from './ModalShell'
 
 /** Responsive grid + lightbox with arrow-key nav and lazy images. */
@@ -45,6 +46,17 @@ export function GalleryModal() {
 
   const current = lightbox !== null ? photos[lightbox] : null
 
+  if (photos.length === 0) {
+    return (
+      <ModalShell title="Photos" wide>
+        <EmptyState
+          icon="📷"
+          headline="The tripod is set up, the film is loading"
+          sub="Photos from beyond the island are on their way — check back soon."
+        />
+      </ModalShell>
+    )
+  }
   return (
     <ModalShell title="Photos" wide>
       {current ? (

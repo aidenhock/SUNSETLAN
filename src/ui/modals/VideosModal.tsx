@@ -1,11 +1,23 @@
 import { useState } from 'react'
 import { videos } from '../../content/videos'
+import { EmptyState } from './EmptyState'
 import { ModalShell } from './ModalShell'
 
 /** Lite-embed: thumbnail first; the iframe is injected only on click. */
 export function VideosModal() {
   const [playing, setPlaying] = useState<string | null>(null)
 
+  if (videos.length === 0) {
+    return (
+      <ModalShell title="Videos" wide>
+        <EmptyState
+          icon="📺"
+          headline="The CRT is between broadcasts"
+          sub="Videos arrive here soon — the static is part of the charm."
+        />
+      </ModalShell>
+    )
+  }
   return (
     <ModalShell title="Videos" wide>
       <ul className="grid gap-4 sm:grid-cols-2">
