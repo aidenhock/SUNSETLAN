@@ -1,20 +1,26 @@
 // Photo pipeline (Phase 4): drop originals (jpg/png/webp/avif, any
 // size) into staging/photos/, run `node scripts/optimize-images.mjs`,
-// and collect resized WebP in src/assets/photos/ plus a paste-ready
-// snippet for src/content/photos.ts.
+// and collect per photo in src/assets/photos/:
+//   <slug>.webp        — web size, longest edge <= 1800 px, q0.80
+//                        (retry q0.65 if over ~300 KB)
+//   <slug>.thumb.webp  — grid thumbnail, longest edge 480 px, q0.75
+// plus a paste-ready snippet for src/content/photos.ts including the
+// web image's intrinsic dimensions (layout never guesses ratios).
+// Originals never ship; staging/ is gitignored.
 //
-// No new dependencies: images are decoded/resized/encoded by a canvas
-// inside headless Chromium via Playwright (already a devDependency).
-// Rules: long edge ≤ 1600 px, WebP q0.80; if a file still lands over
-// ~250 KB it retries at q0.65. Originals are never modified.
+// No new dependencies: decode/resize/encode happens in a canvas inside
+// headless Chromium via Playwright (already a devDependency). WebP-only
+// output is deliberate: every supported browser decodes WebP, so a JPEG
+// fallback would double the asset set for zero users.
 import { chromium } from '@playwright/test'
 import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { basename, extname, join, resolve } from 'node:path'
 
 const STAGING = resolve('staging/photos')
 const OUT = resolve('src/assets/photos')
-const LONG_EDGE = 1600
-const TARGET_BYTES = 250 * 1024
+const WEB_EDGE = 1800
+const THUMB_EDGE = 480
+const WEB_TARGET_BYTES = 300 * 1024
 
 const exts = new Set(['.jpg', '.jpeg', '.png', '.webp', '.avif', '.gif'])
 let files = []
@@ -32,12 +38,12 @@ mkdirSync(OUT, { recursive: true })
 
 const browser = await chromium.launch({ channel: 'chrome', headless: true })
 const page = await browser.newPage()
-const snippets = []
+const entries = []
 for (const file of files) {
   const src = join(STAGING, file)
   const inBytes = statSync(src).size
   const dataUrl = `data:image/${extname(file).slice(1)};base64,${readFileSync(src).toString('base64')}`
-  const encode = async (quality) =>
+  const encode = async (longEdge, quality) =>
     page.evaluate(
       async ({ dataUrl, longEdge, quality }) => {
         const img = new Image()
@@ -57,26 +63,35 @@ for (const file of files) {
         ctx.drawImage(img, 0, 0, w, h)
         return { out: canvas.toDataURL('image/webp', quality).split(',')[1], w, h }
       },
-      { dataUrl, longEdge: LONG_EDGE, quality },
+      { dataUrl, longEdge, quality },
     )
-  let result = await encode(0.8)
-  let buf = Buffer.from(result.out, 'base64')
-  if (buf.length > TARGET_BYTES) {
-    result = await encode(0.65)
-    buf = Buffer.from(result.out, 'base64')
+  let web = await encode(WEB_EDGE, 0.8)
+  let webBuf = Buffer.from(web.out, 'base64')
+  if (webBuf.length > WEB_TARGET_BYTES) {
+    web = await encode(WEB_EDGE, 0.65)
+    webBuf = Buffer.from(web.out, 'base64')
   }
-  const name = `${basename(file, extname(file)).toLowerCase().replace(/[^a-z0-9-]+/g, '-')}.webp`
-  writeFileSync(join(OUT, name), buf)
+  const thumb = await encode(THUMB_EDGE, 0.75)
+  const thumbBuf = Buffer.from(thumb.out, 'base64')
+
+  const slug = basename(file, extname(file)).toLowerCase().replace(/[^a-z0-9-]+/g, '-')
+  writeFileSync(join(OUT, `${slug}.webp`), webBuf)
+  writeFileSync(join(OUT, `${slug}.thumb.webp`), thumbBuf)
   console.log(
-    `${file} (${(inBytes / 1024).toFixed(0)} KB) -> ${name} ${result.w}x${result.h} (${(buf.length / 1024).toFixed(0)} KB)${buf.length > TARGET_BYTES ? '  ⚠ still over 250 KB — consider cropping' : ''}`,
+    `${file} (${(inBytes / 1024).toFixed(0)} KB) -> ${slug}.webp ${web.w}x${web.h} (${(webBuf.length / 1024).toFixed(0)} KB) + thumb ${thumb.w}x${thumb.h} (${(thumbBuf.length / 1024).toFixed(0)} KB)${webBuf.length > WEB_TARGET_BYTES ? '  ⚠ web still over 300 KB — consider cropping' : ''}`,
   )
-  const varName = name.replace(/\.webp$/, '').replace(/-(\w)/g, (_, c) => c.toUpperCase())
-  snippets.push({ varName, name })
+  entries.push({ slug, w: web.w, h: web.h })
 }
 await browser.close()
 
+const varName = (slug) => slug.replace(/-(\w)/g, (_, c) => c.toUpperCase())
 console.log('\nPaste-ready for src/content/photos.ts:\n')
-for (const s of snippets) console.log(`import ${s.varName} from '../assets/photos/${s.name}'`)
+for (const e of entries) {
+  console.log(`import ${varName(e.slug)}Full from '../assets/photos/${e.slug}.webp'`)
+  console.log(`import ${varName(e.slug)}Thumb from '../assets/photos/${e.slug}.thumb.webp'`)
+}
 console.log('')
-for (const s of snippets)
-  console.log(`  { src: ${s.varName}, alt: 'TODO describe ${s.name}', caption: 'TODO', location: 'TODO' },`)
+for (const e of entries)
+  console.log(
+    `  { id: '${e.slug}', full: ${varName(e.slug)}Full, thumb: ${varName(e.slug)}Thumb, width: ${e.w}, height: ${e.h}, alt: 'TODO', title: 'TODO' },`,
+  )

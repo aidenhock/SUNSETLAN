@@ -34,68 +34,55 @@ find it by walking up and pressing E:
 
 ```ts
 export interface Photo {
-  src: string
-  alt: string
-  caption?: string
-  location?: string
+  id: string      // stable slug, e.g. 'anza-sunset'
+  full: string    // imported web-size WebP (longest edge ~1800 px)
+  thumb: string   // imported ~480 px WebP (the grid cover-crops it)
+  width: number   // intrinsic px of `full` — layout never guesses
+  height: number
+  alt: string     // real description for screen readers
+  title: string   // shown under the full-screen photo
+  caption?: string // optional second line under the title
 }
 ```
 
-- **`src`** (required, `string`) — the image itself. In the real pipeline
-  this is an *imported* WebP file (see "Assets" below), not a literal path
-  string.
-- **`alt`** (required, `string`) — alt text on both the grid thumbnail and
-  the lightbox `<img>`. Also the lightbox caption's fallback: if `caption`
-  is omitted, the lightbox shows `alt` instead. Write it as a real
-  description, not decoration.
-- **`caption?`** (optional, `string`) — shown under the photo in the
-  lightbox only (never in the grid). Falls back to `alt` if omitted.
-- **`location?`** (optional, `string`) — appended to the caption line in
-  the lightbox as `" — {location}"`. Omitted entirely (no dash, no gap) if
-  not set.
+**Where it renders**: `src/ui/modals/GalleryModal.tsx` — a paginated
+grid (6 per page, 3×2 desktop / 2×3 mobile, "7–12 of 13" counter,
+arrows/dots/keyboard/swipe) and a full-screen viewer (image FIT, never
+cropped; ← → moves through ALL photos continuously; the grid follows).
+Thumbs lazy-load; nothing downloads until the tripod modal opens. The
+`/classic` page reuses the same array.
 
-**Where it renders**: `src/ui/modals/GalleryModal.tsx` — a responsive grid
-(click a thumbnail → lightbox with Previous/Next/Back-to-grid buttons and
-arrow-key navigation).
+**The pipeline** (two sizes per photo, dimensions recorded):
 
-**Empty state**: if `photos` is an empty array, the modal shows "The
-tripod is set up, the film is loading — Photos from beyond the island are
-on their way — check back soon." instead of a blank grid.
-
-**Assets — the staging + optimize flow**:
-1. Drop originals (any format: jpg/png/webp/avif/gif, any size) into
-   `staging/photos/` (create the folder if it doesn't exist yet — it
-   isn't in the repo today).
-2. Run `node scripts/optimize-images.mjs`. It resizes to a **1600 px long
-   edge**, encodes **WebP at quality 0.80** (retrying at 0.65 if a file is
-   still over **~250 KB**), writes the results to `src/assets/photos/`
-   (also new — doesn't exist yet), and prints a paste-ready import +
-   entry snippet for each photo.
-3. Paste the printed `import ... from '../assets/photos/...'` lines above
-   `photos.ts`'s array, and the printed `{ src: ..., alt: 'TODO', ... }`
-   entries into the array itself, then fill in the real `alt`/`caption`/
-   `location` (the script leaves `TODO` placeholders for those).
-
-Gallery images are lazy-loaded (`loading="lazy"` in the grid, and the
-lightbox only renders on click), so they don't count against the 8 MB
-first-load budget — keep them lean anyway.
+1. Drop originals (PNG/JPG/WebP, any size) into `staging/photos/` —
+   name each file the slug you want, e.g. `anza-sunset.png`
+   (`staging/` is gitignored; originals never ship).
+2. `node scripts/optimize-images.mjs` → writes
+   `src/assets/photos/<slug>.webp` (≤ 1800 px, ~≤ 300 KB) and
+   `<slug>.thumb.webp` (480 px), and prints a paste-ready import +
+   entry block including width/height.
+3. Paste into `src/content/photos.ts`, fill `alt`/`title`/`caption`.
+   **Drafted copy for the 13 attached photos already sits in a comment
+   block at the top of `photos.ts`** — pair each staged file with its
+   slug there and the titles/alt text are ready to edit.
 
 **Example entry**:
 
 ```ts
-import dockSunset from '../assets/photos/dock-sunset.webp'
+import anzaSunsetFull from '../assets/photos/anza-sunset.webp'
+import anzaSunsetThumb from '../assets/photos/anza-sunset.thumb.webp'
 
-export const photos: Photo[] = [
-  {
-    src: dockSunset,
-    alt: 'View down a wooden dock toward the setting sun, water glittering orange',
-    caption: 'Evenings on the dock',
-    location: 'Lake Tahoe, CA',
-  },
-]
+{
+  id: 'anza-sunset',
+  full: anzaSunsetFull,
+  thumb: anzaSunsetThumb,
+  width: 1800,
+  height: 1350,
+  alt: 'Fiery orange clouds streaking over dark desert mountains, boulders and brush in the foreground',
+  title: 'Anza sunset',
+  caption: 'Borrego overlook, last light',
+},
 ```
-
----
 
 ## Projects — `src/content/projects.ts`
 

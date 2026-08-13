@@ -74,15 +74,15 @@ export default function ClassicPage() {
             Photos
           </h2>
           <ul className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {photos.map((photo, i) => (
-              <li key={i}>
+            {photos.map((photo) => (
+              <li key={photo.id}>
                 <img
-                  src={photo.src}
+                  src={photo.thumb}
                   alt={photo.alt}
                   loading="lazy"
                   className="aspect-[4/3] w-full rounded-lg object-cover"
                 />
-                {photo.caption && <p className="mt-1 text-xs text-ink/70">{photo.caption}</p>}
+                <p className="mt-1 text-xs text-ink/70">{photo.caption ?? photo.title}</p>
               </li>
             ))}
           </ul>
