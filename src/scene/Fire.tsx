@@ -227,22 +227,22 @@ export function Fire() {
     return { tongueGeo: g, tongueMat: m }
   }, [])
 
-  const base = useMemo(
-    () => ({
-      teepee: teepeeGeometry(),
-      stones: stoneRingGeometry(),
-      // The wood's emissive is the live "catching the firelight" part —
-      // intensity follows the tongues' flicker in useFrame below.
-      woodMat: new THREE.MeshLambertMaterial({
+  const base = useMemo(() => {
+    // ONE mesh for teepee + stone ring (draw-call budget: spawn sat AT
+    // the 50-call line): the stones share the wood's flickering warm
+    // emissive — a firepit's stones pulsing faintly with the flame
+    // reads right, and the bake keeps their outer faces cool.
+    const geo = mergeParts([teepeeGeometry(), stoneRingGeometry()])
+    return {
+      geo,
+      mat: new THREE.MeshLambertMaterial({
         vertexColors: true,
         flatShading: true,
         emissive: new THREE.Color('#8a4a18'),
         emissiveIntensity: 0.15,
       }),
-      stoneMat: new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }),
-    }),
-    [],
-  )
+    }
+  }, [])
 
   const pools = useMemo(() => {
     const mk = (count: number, size: number) => {
@@ -309,9 +309,10 @@ export function Fire() {
       // Flicker amplitude synced to the tongues' combined amplitude.
       light.current.intensity = (1.4 + (combined - 1) * 6) * (0.35 + 0.65 * skyRuntime.nightMix)
     }
-    // The teepee wood GLOWS with the same flicker (night-weighted) —
-    // baked tint gives the warm side, this gives it life.
-    base.woodMat.emissiveIntensity =
+    // The base (teepee wood + pit stones) GLOWS with the same flicker
+    // (night-weighted) — baked tint gives the warm side, this gives it
+    // life.
+    base.mat.emissiveIntensity =
       (0.12 + Math.max(0, combined - 1) * 0.5) * (0.35 + 0.65 * skyRuntime.nightMix)
 
     // ---- particles: two pooled clouds, one wind ----------------------
@@ -379,8 +380,7 @@ export function Fire() {
     <SurfaceGroup lat={MAP.campfire.lat} long={MAP.campfire.long}>
       {/* The lit base — world-scale (outside the flame's 1.4× group),
           opaque, normal render order: terrain rules apply. */}
-      <mesh geometry={base.teepee} material={base.woodMat} />
-      <mesh geometry={base.stones} material={base.stoneMat} />
+      <mesh geometry={base.geo} material={base.mat} />
       <group scale={1.4}>
         {/* renderOrder 2: AFTER the water (renderOrder 1) — no depth
             write, so the transparent sea would otherwise stamp its
