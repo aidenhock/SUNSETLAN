@@ -1,0 +1,357 @@
+{
+  "chapters": [
+    {
+      "id": "fixed-pole",
+      "title": "The world that turns beneath you",
+      "hook": "You never actually move — the whole planet rotates under your feet.",
+      "plain": "The character stands frozen at the top of the globe, and walking spins the entire world the other way, like log-rolling. It's the same trick Mario Galaxy uses. Doing it this way means the camera and character never wander off anywhere numerically messy — the world comes to you.",
+      "technical": "Input builds a rotation quaternion each frame: `rotationStep` turns a camera-relative move direction into a small world rotation about a horizontal axis (negative angle — the ground must flow backward under the avatar), and `applyStep` premultiplies it onto the planet group's quaternion. Everything that needs to know \"where am I standing\" pulls the world pole back through the inverse rotation (`poleInPlanetSpace`) to get a planet-local direction, which maps to lat/long. Blockers, interactable triggers, and the island-edge clamp are all angular-distance tests against that direction — distance in meters is just angle × radius.",
+      "files": [
+        {
+          "path": "src/controls/planetMath.ts",
+          "symbols": [
+            "rotationStep",
+            "applyStep",
+            "poleInPlanetSpace",
+            "latLongToUnit"
+          ]
+        },
+        {
+          "path": "src/controls/usePlanetController.ts",
+          "symbols": [
+            "controlsRuntime"
+          ],
+          "note": "the frame loop, blocker slide-along"
+        }
+      ],
+      "decisions": [
+        "A moving avatar on a static planet was rejected up front: the camera",
+        "Slide-along blockers decompose a blocked diagonal step into its",
+        "Sitting (the campfire logs) is a quaternion TWEEN to put the seat"
+      ]
+    },
+    {
+      "id": "analytic-ground",
+      "title": "Ground you can trust without physics",
+      "hook": "There is no physics engine — the island's shape is a formula.",
+      "plain": "Instead of simulating collisions, the ground height at any point is computed from a single mathematical profile: grass plateau, beach ramp, underwater slope. Feet, props, and the water all ask the same formula, so nothing can ever float or sink by accident — and it costs almost nothing to run.",
+      "technical": "`terrainProfile(polar)` defines altitude as chained smoothsteps over the angle from the pole; `groundAltitudeAt(lat, long)` adds the dock's walkable strip (`onDockStrip` tests cross-track meters against the dock meridian) and `groundHeightAt` turns the avatar's planet-local direction into a world height every frame, allocation-free. Placement rule 1 derives every prop's altitude from the same function minus a 0.1 m sink; the terrain MESH is displaced by the same profile, so visuals and walkable height are one source of truth.",
+      "files": [
+        {
+          "path": "src/scene/planetConfig.ts",
+          "symbols": [
+            "terrainProfile",
+            "TERRAIN",
+            "DOCK",
+            "surfaceUnderfoot"
+          ]
+        },
+        {
+          "path": "src/controls/terrain.ts",
+          "symbols": [
+            "groundAltitudeAt",
+            "groundHeightAt",
+            "onDockStrip"
+          ]
+        },
+        {
+          "path": "src/scene/SurfaceGroup.tsx",
+          "symbols": [],
+          "note": "placement on the analytic ground"
+        }
+      ],
+      "decisions": [
+        "A physics engine was rejected in the spec: determinism, bundle size,",
+        "Raycasting the terrain mesh was rejected too — it's slower and lets",
+        "The hard-won corollary (Koa's floating seat): anything ON a built"
+      ]
+    },
+    {
+      "id": "one-terrain",
+      "title": "One continuous terrain surface",
+      "hook": "The beach isn't a second object lying on the island — it's the same skin.",
+      "plain": "Grass, sand, and the underwater slope are one continuous mesh whose radius follows the ground formula, painted by latitude bands. Early versions stacked separate shells for grass and sand, and the seams showed at exactly the places players stare at — the waterline. One surface means there is no seam to show.",
+      "technical": "A sphere-cap geometry runs from the pole past the waterline to an apron that tucks under the opaque ocean-floor sphere; `facetTerrain` displaces each vertex by `terrainProfile`, splits faces for the flat-shaded look, and paints per-face two-tone vertex colors by polar band with seeded jitter that fades near band transitions. Wading depth is just walking down the real slope — the controller and the mesh share the profile, so there is no step at the waterline.",
+      "files": [
+        {
+          "path": "src/scene/Island.tsx",
+          "symbols": [],
+          "note": "the cap build, band painting"
+        },
+        {
+          "path": "src/scene/geometryUtils.ts",
+          "symbols": [
+            "facetTerrain",
+            "bakeWarmTintToward"
+          ]
+        },
+        {
+          "path": "src/scene/planetConfig.ts",
+          "symbols": [
+            "terrainProfile",
+            "TERRAIN.apronEndDeg"
+          ]
+        }
+      ],
+      "decisions": [
+        "Three stacked shells (grass cap, sand ring, underwater apron) were",
+        "A separate painted foam ring mesh was rejected with them — foam now"
+      ]
+    },
+    {
+      "id": "two-skies",
+      "title": "Two skies on one planet",
+      "hook": "Walk one way and the sun rises; walk the other and you get the moon — permanently.",
+      "plain": "The sun, moon, stars, and sky colors are children of the rotating planet, not the fixed camera. That single choice is what makes the island's two moods permanent places instead of a day/night timer: sunset lives on one side of the world, night on the other, and walking between them crossfades everything.",
+      "technical": "`useSkyState` computes `nightMix` from the pole's sunward projection each frame and drives one dome `ShaderMaterial` (elevation-based blues, a sunset layer shaped by angular distance from the sun's azimuth, a silver moon layer), the fog and clear color, and the hemisphere/directional light rig. Sky materials set `fog: false`, `depthWrite: false`, and — critically — `toneMapped: false`: the sky renders unmapped so its palette tokens are WYSIWYG.",
+      "files": [
+        {
+          "path": "src/scene/useSkyState.ts",
+          "symbols": [
+            "nightMix",
+            "skyRuntime"
+          ],
+          "note": "the per-frame lerp rig"
+        },
+        {
+          "path": "src/scene/CelestialDome.tsx",
+          "symbols": [],
+          "note": "the dome shader, discs, stars"
+        },
+        {
+          "path": "src/scene/SkyRig.tsx",
+          "symbols": [],
+          "note": "lights driven by the sky state"
+        }
+      ],
+      "decisions": [
+        "A banded, quantized sky gradient was tried and DELETED: shallow",
+        "The great white-out hunt: the ACES tone mapper was silently",
+        "Warm sunset colors mixed into blue in plain RGB pass through gray —"
+      ]
+    },
+    {
+      "id": "celestial-arc",
+      "title": "The sun actually sets",
+      "hook": "Stand inland and the sun rides high; walk to the water and it sinks into the sea.",
+      "plain": "The sun and moon aren't painted at fixed heights — their elevation follows where you stand, easing from overhead on the plateau down to a true ocean set at the waterline, where the water physically hides the bottom of the disc. A guard makes sure the disc never fully drowns while you're looking at it from the beach.",
+      "technical": "Disc elevation is a smooth function of the player's polar angle, easing to a waterline endpoint where the disc sits ~40% submerged below the sea horizon — the ocean geometry occludes it, no masking. The set FLOOR is enforced in screen terms: each frame the ocean limb's angular direction is computed analytically from the camera, and if the solved disc would show less than ~55% above the limb, a few-step bisection corrects the disc's polar angle before smoothing. `e2e/setcheck.mjs` samples rendered frames and asserts the visible fraction.",
+      "files": [
+        {
+          "path": "src/scene/useSkyState.ts",
+          "symbols": [],
+          "note": "the elevation solve, limb math, set floor"
+        },
+        {
+          "path": "src/scene/planetConfig.ts",
+          "symbols": [
+            "CELESTIAL_ELEVATION_INLAND_DEG",
+            "CELESTIAL_ELEVATION_WATERLINE_DEG"
+          ]
+        },
+        {
+          "path": "e2e/setcheck.mjs",
+          "symbols": [],
+          "note": "the acceptance with teeth"
+        }
+      ],
+      "decisions": [
+        "An input-dial elevation floor was rejected: it couldn't guarantee",
+        "The floor applies only within ±35° of the body's meridian, so the"
+      ]
+    },
+    {
+      "id": "glitter",
+      "title": "A glitter path that belongs to you",
+      "hook": "The sparkle lane on the water always points at you — not at the camera.",
+      "plain": "On real water, the glitter path runs from the sun to your eyes. Here it runs from the sun to the CHARACTER, so orbiting the camera changes your view of the lane without moving it. It's a deliberate stylization for a third-person game: the light belongs to the person on the beach, and it walks with you.",
+      "technical": "The water's vertex shader displaces 2–3 summed sines; the fragment side perturbs the normal analytically from the same sine sum (plus normal-only micro-ripples), then computes a Blinn specular term per light body — with the VIEWER term being the avatar's fixed world eye position passed as a uniform, never `cameraPosition`. A great-circle corridor from the disc base through the character clamps the footprint (meters-wide, monotonically widening toward shore, edges wobbled by time noise), and the whole thing fades into the foam band by water depth.",
+      "files": [
+        {
+          "path": "src/scene/Water.tsx",
+          "symbols": [
+            "onBeforeCompile"
+          ],
+          "note": "shader, the corridor stencil"
+        },
+        {
+          "path": "src/scene/planetConfig.ts",
+          "symbols": [
+            "GLITTER"
+          ]
+        },
+        {
+          "path": "e2e/setcheck.mjs",
+          "symbols": [],
+          "note": "lane-present and living-edge assertions"
+        }
+      ],
+      "decisions": [
+        "A fixed-azimuth painted band was the first version — rejected, it",
+        "Camera-eye specular was rejected: orbiting swung the entire lane,",
+        "An azimuth-cone corridor from the eye was rejected because it"
+      ]
+    },
+    {
+      "id": "character-rig",
+      "title": "A villager built from spheres and math",
+      "hook": "Nobody modeled this character — it's assembled from primitive shapes and animated by arithmetic.",
+      "plain": "The avatar is stacked spheres, capsules, and boxes in Animal-Crossing proportions: a huge head, a teardrop body, stubby limbs. There's no skeleton and no animation files — walking, running, jumping, strumming, and sitting are all math driving the joints every frame. The whole cast (the player, Koa the ukulele player, future NPCs) shares one parameterized rig.",
+      "technical": "`buildNodes(config)` constructs merged vertex-colored geometry per body part from a `CharacterConfig` (hair style, glasses, outfit, dozens of proportion dials); limbs hang from pivot groups with nested elbow pivots. `STATES` holds per-locomotion animation params (bob, swing, lean) crossfaded by lerp; foot plants fire from swing phase crossings — never timers — which is what drives surface-switched footsteps. NPC specifics (Koa's strum, the avatar's seated pose) compose through a `poseHook` that runs after the shared animation.",
+      "files": [
+        {
+          "path": "src/scene/BlockyCharacter.tsx",
+          "symbols": [
+            "buildNodes",
+            "STATES",
+            "AIR_POSE",
+            "poseHook"
+          ],
+          "note": "the contract"
+        },
+        {
+          "path": "src/content/characters.ts",
+          "symbols": [
+            "AIDEN",
+            "KOA"
+          ],
+          "note": "the config dials"
+        },
+        {
+          "path": "src/scene/UkulelePlayer.tsx",
+          "symbols": [],
+          "note": "torso-mounted instrument, numerically solved arms"
+        }
+      ],
+      "decisions": [
+        "An imported CC0 glTF avatar (plus Draco decoding) shipped briefly",
+        "Skeletons and `AnimationMixer` were rejected: pivot groups plus",
+        "The first blocky rig was rebuilt ROUNDED (v3.15): flattened-sphere",
+        "Koa's uke taught two rules the hard way: held props mount in TORSO"
+      ]
+    },
+    {
+      "id": "audio",
+      "title": "Sound that starts from silence",
+      "hook": "Every wave, gull, footstep, and strum is either Aiden's own recording or synthesized on the spot — and none of it exists until you touch the page.",
+      "plain": "The audio system is fully lazy: nothing loads or even constructs an audio context before your first click or keypress. From there, each sound category draws from a pool of the owner's recorded cuts with a shuffle that never repeats back-to-back; categories with no recordings yet fall back to sounds generated by code. Footsteps know what you're walking on; the campfire is loud only when you're near it.",
+      "technical": "`nextBuffer(category)` resolves from `import.meta.glob` pools (drop a file in — zero code changes) through a depth-2 `ShuffleBag`, decode-once cached, mono-downmixed for positional use. Foot plants come from the animation and route through `surfaceUnderfoot`; jumps are WebAudio-scheduled double-taps. The hard-won parts are defensive: `syncPanner` (three.js only updates panners for nodes it started itself — custom-source nodes silently sit at the planet's center), and the tab-return protection — hidden tabs suspend the context, `onAudioResume` resets every scheduler baseline, stall guards skip forward rather than replaying backlogs, and `registerVoice` caps concurrent voices per pool.",
+      "files": [
+        {
+          "path": "src/audio/core.ts",
+          "symbols": [
+            "nextBuffer",
+            "playDoubleTap",
+            "syncPanner",
+            "registerVoice",
+            "onAudioResume"
+          ]
+        },
+        {
+          "path": "src/audio/bag.ts",
+          "symbols": [
+            "ShuffleBag"
+          ]
+        },
+        {
+          "path": "src/audio/footsteps.ts",
+          "symbols": [
+            "stepSound",
+            "jumpTaps"
+          ]
+        },
+        {
+          "path": "src/audio/loops.ts",
+          "symbols": [
+            "CrossfadeLoop"
+          ]
+        },
+        {
+          "path": "src/scene/AudioEmitters.tsx",
+          "symbols": [
+            "musicTarget",
+            "crackleTarget",
+            "cryGain"
+          ]
+        }
+      ],
+      "decisions": [
+        "Howler and Tone were rejected — three.js's own audio nodes cover it,",
+        "The silent-uke bug: strums scheduled onto a PositionalAudio's panner",
+        "The gulls went through a \"one distance authority\" reform: a designed",
+        "The tab-return blast: catch-up scheduling replayed every missed"
+      ]
+    },
+    {
+      "id": "budgets",
+      "title": "Why draw calls beat triangles",
+      "hook": "The island runs at 60 fps on a phone not by having less stuff — but by asking the GPU fewer times.",
+      "plain": "The performance budget is counted in draw calls — how many separate \"please draw this\" requests hit the GPU per frame — because on this kind of scene each request costs more than the triangles inside it. Repeated props render as single instanced batches; merged props fuse into one object per material; the whole world stays under 50 requests on mobile.",
+      "technical": "`e2e/measure.mjs` records fps, `renderer.info.render.calls`, and triangles at spawn, mid-dock, and the night beach against the preview build — the budget gates every feature commit. Repeats (palms, rocks, dock planks, campfire stones) go through instancing or `mergeByMaterial`; the fire's six animated tongues are ONE InstancedMesh; vertex-tinted merges collapse multi-material props to a single call. `PerformanceMonitor` drops a `qualityTier` that thins particles and stars on sustained decline — but never to zero (the empty-sky lesson).",
+      "files": [
+        {
+          "path": "e2e/measure.mjs",
+          "symbols": [],
+          "note": "the budget instrument"
+        },
+        {
+          "path": "src/scene/props.ts",
+          "symbols": [
+            "mergeByMaterial",
+            "paletteMaterial"
+          ]
+        },
+        {
+          "path": "src/scene/instancing.tsx",
+          "symbols": [
+            "StaticInstances",
+            "InstancedProp",
+            "surfacePartMatrix"
+          ]
+        }
+      ],
+      "decisions": [
+        "Triangle-first optimization was explicitly rejected in the spec:",
+        "The budget has teeth in practice: the music prop merged from three",
+        "A blanket quality-tier gate on the fire's particles was replaced"
+      ]
+    },
+    {
+      "id": "content-pipeline",
+      "title": "Content without touching the scene",
+      "hook": "Every photo, project, and song on the island can change without anyone opening the 3D code.",
+      "plain": "All portfolio content lives in a handful of plain data files — the scene reads them, never the other way around. Photos drop into a staging folder and a script resizes and compresses them into web and thumbnail sizes; audio recordings drop into category folders and join the sound pools automatically; every category shows a friendly empty state until it's filled, so a half-finished site never looks broken.",
+      "technical": "`src/content/*.ts` exports typed arrays consumed by the modals and the `/classic` fallback page. `scripts/optimize-images.mjs` runs originals through a headless-Chromium canvas (no image deps) into 1800 px WebP plus 480 px thumbs with recorded intrinsic dimensions — the gallery never guesses aspect ratios. `scripts/ingest-audio.mjs` normalizes and verifies the owner's cuts into pools resolved by `import.meta.glob`. `CONTENT.md` documents every field against the actual interfaces; `CREDITS.md` tracks provenance — only license-clean sources ship.",
+      "files": [
+        {
+          "path": "src/content/photos.ts",
+          "symbols": [
+            "Photo"
+          ],
+          "note": "the interface, curated order"
+        },
+        {
+          "path": "scripts/optimize-images.mjs",
+          "symbols": [],
+          "note": "staging → web + thumb WebP"
+        },
+        {
+          "path": "scripts/ingest-audio.mjs",
+          "symbols": [],
+          "note": "the audio library ingest"
+        },
+        {
+          "path": "src/ui/modals/EmptyState.tsx",
+          "symbols": [],
+          "note": "never-look-broken"
+        }
+      ],
+      "decisions": [
+        "A CMS or MDX layer was never on the table — six typed arrays are",
+        "`sharp` (the standard image library) was rejected under the",
+        "WebP-only output, no JPEG fallback: every supported browser decodes",
+        "The photos taught a provenance rule now written into the spec: only"
+      ]
+    }
+  ]
+}
