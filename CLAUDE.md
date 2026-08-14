@@ -24,6 +24,7 @@ Owner: Aiden — data analyst / developer (Python, SQL, ETL, Flask, some React).
 ## Tech stack (locked — do not swap without asking)
 
 Vite · React 19 · TypeScript strict · three.js via `@react-three/fiber` · `@react-three/drei` · `zustand` · Tailwind (overlays only) · vitest · GitHub → Vercel.
+Contact form: submissions go through **Formspree** (free tier, 50/month) via plain `fetch` — no backend, no SDK. Endpoint in `VITE_FORMSPREE_ENDPOINT` (committed `.env`; public value). Hidden `_gotcha` honeypot guards spam client- AND server-side. The form path never involves the email address (it posts to the Formspree endpoint) — but note the mailto FALLBACK links do render `contact.email` into the DOM, so the address is not hidden from scrapers; dropping the fallback would be the tradeoff if that ever matters.
 Audio: three.js `AudioListener` / `PositionalAudio` / `Audio` (no Howler, no Tone unless asked). Water waves: one small custom `ShaderMaterial` or `onBeforeCompile` — no postprocessing stack. No physics engine. Ask before any new dependency.
 
 ## Planet mechanics (unchanged core + retunes)
@@ -88,7 +89,9 @@ The sun, moon, stars, and sky gradient are **children of the rotating planet gro
 | Ukulele player (Koa) | NPC | 18 | 359.05 | Seat ON the dock's west edge (cross-track ~0.87 m < the 1 m half-width), legs over water; 0.7 m blocker |
 | Seagulls ×2–3 | critter | — | ~0 | Tilted orbit loops over sunset-side water |
 | Palapa + desk | Projects | 40 | 40 | Day-leaning side |
-| Big tree + rings | About | 50 | 300 | Dusk boundary west |
+| Hedge stone | About | 50 | 300 | Dusk boundary west — REPLACES the big tree + rings (planned swap: the tree still renders in code until the stone ships; About's interactable moves onto the stone) |
+| Cemetery / memorial garden | planned | 47 | 107 | Just past the terminator, night-leaning side |
+| Matrix glitch portal | planned | 32 | 97 | Just past the terminator, night-leaning side; renders `docs/build-log.md` chapters in-world |
 | Campfire | prop | 22 | 180 | Night beach; Fire 2.0 flame + flicker light + crackle; 1.2 m blocker |
 | Log circle ×3 | prop/seat | 23.4–25.3 | 176.7–183.3 | Landward arc ~3.2 m from the fire at bearings 0/±65°, opening toward the sea; ends clearly separated (walkable gaps, full lap fits between log and fire blockers); center log perpendicular to the fire→sea axis, flanks just inside tangent; free-position sitting (E — Sit); 0.9 m blockers |
 | Stereo on the log | Music | 22 | 173 | Aiden's music portal, by the fire — chunky lagoon boombox (speakers, tape deck, handle, antenna) on a driftwood log; replaced the resting uke (read as a lump from above), which replaced the placeholder cube. Interactable nearby-highlight rule: emissive = the part's OWN color (self-brighten, night-scaled) — a flat teal tint turned shaded wood grey-green |
@@ -179,7 +182,7 @@ Ukulele NPC + note sprites + positional loop (avatar + run animation shipped wit
 Real photos/projects/music/videos/contact (fill per `CONTENT.md`; images through `scripts/optimize-images.mjs`), custom domain into meta/sitemap, analytics vendor decision (stub ships off by default), final OG re-capture if the look changes (`scripts/capture-og.mjs`).
 
 **Backlog (do not build yet)**
-Roaming NPCs of family & friends — Animal-Crossing-style wander/waypoints + optional recorded voice notes with captions; ship only with each person's explicit okay (public site). Treasure ship offshore with secrets. Footprints in sand. Fireflies on the night side. Day/night slider.
+Bulletin board with resume + papers (near the mailbox at the dock entrance). 2D minimap HUD with explored-area tracking. Roaming NPCs of family & friends — Animal-Crossing-style wander/waypoints + optional recorded voice notes with captions; ship only with each person's explicit okay (public site). Treasure ship offshore with secrets. Footprints in sand. Fireflies on the night side. Day/night slider.
 
 ## Working conventions
 Unchanged (strict TS, no `any`; content only via content files; commit per working feature; `main` deployable; ask before deps or art-direction changes; test mobile viewport after control/UI changes) plus: quaternion/sky/audio math stays in hooks under `controls/` or `scene/` with comments; new analytic bands get vitest cases; e2e suites live in `e2e/` from 3A onward.
