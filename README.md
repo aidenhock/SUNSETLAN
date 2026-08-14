@@ -30,6 +30,16 @@ raycasts down for terrain height. No physics engine.
 Vite · React 19 · TypeScript (strict) · three.js via @react-three/fiber ·
 zustand · Tailwind CSS · vitest. No physics engine (removed with the planet pivot).
 
+## Contact form
+
+The mailbox's contact form POSTs JSON to [Formspree](https://formspree.io).
+The endpoint comes from `VITE_FORMSPREE_ENDPOINT` (see `.env` — the value
+is public by design, like any form ID in client HTML; `.env.example`
+documents the variable for forks). With the variable unset, the form
+renders disabled with an explanation and the direct email links take
+over. A hidden honeypot field drops bot submissions client-side, and
+Formspree's `_gotcha` convention drops them server-side too.
+
 ## Deploy
 
 Pushed to GitHub, auto-deployed on Vercel from `main`. `/classic` is a

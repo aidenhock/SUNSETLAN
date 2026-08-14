@@ -121,3 +121,9 @@ Build and test tooling (`devDependencies`):
 No other runtime dependencies are used — no physics engine, no
 postprocessing stack, no audio library (three.js's own `AudioListener` /
 `PositionalAudio` cover the audio system).
+
+## Services
+
+| Service | Used for | Notes |
+|---|---|---|
+| [Formspree](https://formspree.io) | Contact-form submissions (the mailbox) | Endpoint configured via `VITE_FORMSPREE_ENDPOINT`; no SDK — plain `fetch` |
