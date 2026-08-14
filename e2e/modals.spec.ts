@@ -107,3 +107,81 @@ test('photo gallery: 3 pages, boundary-crossing viewer, Esc to the right page, c
 
   expect(realErrors(errors)).toEqual([])
 })
+
+test('contact form: stubbed Formspree — success, failure, honeypot, validation', async ({
+  page,
+}) => {
+  const errors = collectErrors(page)
+  // Count every request that would reach Formspree; answer per-test.
+  let hits = 0
+  let respond: 'ok' | 'fail' = 'ok'
+  await page.route('**/formspree.io/**', async (route) => {
+    hits++
+    await route.fulfill({
+      status: respond === 'ok' ? 200 : 500,
+      contentType: 'application/json',
+      body: respond === 'ok' ? '{"ok":true}' : '{"error":"boom"}',
+    })
+  })
+  await gotoWorld(page)
+  await page.waitForTimeout(400)
+
+  // Opening the modal must fire nothing.
+  await page.evaluate(() => window.__store!.getState().openModal('contact'))
+  const dialog = page.getByRole('dialog', { name: 'Contact' })
+  await expect(dialog).toBeVisible({ timeout: 2000 })
+  await page.waitForTimeout(300)
+  expect(hits).toBe(0)
+
+  // Validation gates the button: bad email keeps it disabled and blurs
+  // announce role=alert errors.
+  const send = page.getByRole('button', { name: 'Send' })
+  await expect(send).toBeDisabled()
+  await page.getByLabel('Name').fill('Test Visitor')
+  await page.getByLabel('Email').fill('not-an-email')
+  await page.getByLabel('Message', { exact: true }).fill('Hello from the island!')
+  await page.getByLabel('Email').blur()
+  await expect(page.getByRole('alert')).toContainText('does not look right')
+  await expect(send).toBeDisabled()
+  await page.getByLabel('Email').fill('visitor@example.com')
+  await expect(send).toBeEnabled()
+
+  // Success path.
+  await send.click()
+  await expect(page.getByText("Message sent — I'll get back to you.")).toBeVisible()
+  expect(hits).toBe(1)
+
+  // Failure path (fresh mount resets state).
+  await page.evaluate(() => window.__store!.getState().closeModal())
+  await expect(dialog).toBeHidden()
+  respond = 'fail'
+  await page.evaluate(() => window.__store!.getState().openModal('contact'))
+  await page.getByLabel('Name').fill('Test Visitor')
+  await page.getByLabel('Email').fill('visitor@example.com')
+  await page.getByLabel('Message', { exact: true }).fill('Second try')
+  await page.getByRole('button', { name: 'Send' }).click()
+  await expect(page.getByText("That didn't send", { exact: false })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'aiden.hock@gmail.com' })).toBeVisible()
+  expect(hits).toBe(2)
+
+  // Honeypot: filled hidden field -> NO request, fake success.
+  await page.evaluate(() => window.__store!.getState().closeModal())
+  await page.evaluate(() => window.__store!.getState().openModal('contact'))
+  await page.getByLabel('Name').fill('Bot Botson')
+  await page.getByLabel('Email').fill('bot@example.com')
+  await page.getByLabel('Message', { exact: true }).fill('Buy my thing')
+  await page.evaluate(() => {
+    const el = document.querySelector<HTMLInputElement>('input[name="_gotcha"]')!
+    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!
+    setter.call(el, 'https://spam.example')
+    el.dispatchEvent(new Event('input', { bubbles: true }))
+  })
+  await page.getByRole('button', { name: 'Send' }).click()
+  await expect(page.getByText("Message sent — I'll get back to you.")).toBeVisible()
+  expect(hits).toBe(2) // unchanged — the bot's submission never left the page
+
+  await page.evaluate(() => window.__store!.getState().closeModal())
+  // The browser logs a resource error for OUR stubbed 500 — that one is
+  // the test's own failure injection, not an app error.
+  expect(realErrors(errors).filter((e) => !e.includes('status of 500'))).toEqual([])
+})

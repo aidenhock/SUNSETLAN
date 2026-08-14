@@ -94,3 +94,27 @@ test('mobile: photo gallery pages by tap and swipe; viewer opens and closes', as
   await expect(shell).toBeHidden()
   expect(realErrors(errors)).toEqual([])
 })
+
+test('mobile: contact form fields and Send stay reachable', async ({ page }) => {
+  const errors = collectErrors(page)
+  await page.route('**/formspree.io/**', (route) =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: '{"ok":true}' }),
+  )
+  await gotoWorld(page)
+  await page.waitForTimeout(400)
+  await page.evaluate(() => window.__store!.getState().openModal('contact'))
+  const dialog = page.getByRole('dialog', { name: 'Contact' })
+  await expect(dialog).toBeVisible({ timeout: 2000 })
+  await page.getByLabel('Name').fill('Phone Visitor')
+  await page.getByLabel('Email').fill('phone@example.com')
+  await page.getByLabel('Message', { exact: true }).fill('Sent from a small screen')
+  // The Send button scrolls into the modal's viewport and works.
+  const send = page.getByRole('button', { name: 'Send' })
+  await send.scrollIntoViewIfNeeded()
+  await expect(send).toBeInViewport()
+  await send.click()
+  await expect(page.getByText("Message sent — I'll get back to you.")).toBeVisible()
+  await page.evaluate(() => window.__store!.getState().closeModal())
+  await expect(dialog).toBeHidden()
+  expect(realErrors(errors)).toEqual([])
+})
