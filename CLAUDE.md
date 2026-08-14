@@ -187,6 +187,8 @@ Bulletin board with resume + papers (near the mailbox at the dock entrance). 2D 
 ## Working conventions
 Unchanged (strict TS, no `any`; content only via content files; commit per working feature; `main` deployable; ask before deps or art-direction changes; test mobile viewport after control/UI changes) plus: quaternion/sky/audio math stays in hooks under `controls/` or `scene/` with comments; new analytic bands get vitest cases; e2e suites live in `e2e/` from 3A onward.
 
+**DOCUMENTATION STEP (standing)**: every feature session ends by adding or updating its chapter in `docs/build-log.md` — then running `node scripts/export-build-log.mjs` (strict parse + regenerates `docs/build-log.json`) — before the final commit. A feature isn't done until its chapter exists. This file is the Matrix room's in-game content source: write entries for VISITORS first (hook + plain sections carry the room), developers second (technical + files + decisions); `Files:` lines must name real paths and symbols because the room renders actual code excerpts. Failed experiments go in `Decisions:` — they're the most interesting content.
+
 ## Model routing (cost tiers — agents in `.claude/agents/`)
 
 - **worker** (Sonnet): delegate routine, fully specified implementation — map-table placements, content files, new tests, constant retunes. It escalates design questions instead of deciding them.
