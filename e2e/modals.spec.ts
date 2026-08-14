@@ -161,7 +161,7 @@ test('contact form: stubbed Formspree — success, failure, honeypot, validation
   await page.getByLabel('Message', { exact: true }).fill('Second try')
   await page.getByRole('button', { name: 'Send' }).click()
   await expect(page.getByText("That didn't send", { exact: false })).toBeVisible()
-  await expect(page.getByRole('link', { name: 'aiden.hock@gmail.com' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'aidinihock@gmail.com' })).toBeVisible()
   expect(hits).toBe(2)
 
   // Honeypot: filled hidden field -> NO request, fake success.

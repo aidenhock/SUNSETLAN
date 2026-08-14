@@ -4,6 +4,6 @@ export interface Contact {
 }
 
 export const contact: Contact = {
-  email: 'aiden.hock@gmail.com',
+  email: 'aidinihock@gmail.com',
   links: [{ label: 'GitHub', url: 'https://github.com/aidenhock' }],
 }
