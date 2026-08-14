@@ -4,7 +4,7 @@ import { AIDEN } from '../content/characters'
 import { buildNodes } from './BlockyCharacter'
 import {
   buildBigTree,
-  buildMusicUke,
+  buildMusicStereo,
   buildCrate,
   buildLogBench,
   buildMailbox,
@@ -26,7 +26,7 @@ import {
 const BUILDERS: Record<string, () => PropPart[]> = {
   palm: buildPalm,
   rock: buildRock,
-  musicUke: buildMusicUke,
+  musicStereo: buildMusicStereo,
   logBench: buildLogBench,
   crate: buildCrate,
   rowboat: buildRowboat,

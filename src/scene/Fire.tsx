@@ -118,12 +118,13 @@ function bakeFirelight(geo: THREE.BufferGeometry, base: string, warm: string, am
  * orange. ONE merged vertex-tinted geometry. */
 function teepeeGeometry(): THREE.BufferGeometry {
   const parts: THREE.BufferGeometry[] = []
+  // Thicker per Aiden: r ~0.085–0.10 (the 0.06 sticks read twiggy).
   const LOGS = [
-    { az: 0.4, lean: 0.62, len: 0.72, base: 0.44, r: 0.062, roll: 0.2 },
-    { az: 1.75, lean: 0.68, len: 0.68, base: 0.42, r: 0.07, roll: 1.1 },
-    { az: 3.0, lean: 0.6, len: 0.76, base: 0.46, r: 0.058, roll: 2.3 },
-    { az: 4.25, lean: 0.66, len: 0.66, base: 0.41, r: 0.072, roll: 0.7 },
-    { az: 5.45, lean: 0.63, len: 0.7, base: 0.43, r: 0.065, roll: 1.8 },
+    { az: 0.4, lean: 0.62, len: 0.72, base: 0.44, r: 0.088, roll: 0.2 },
+    { az: 1.75, lean: 0.68, len: 0.68, base: 0.42, r: 0.098, roll: 1.1 },
+    { az: 3.0, lean: 0.6, len: 0.76, base: 0.46, r: 0.082, roll: 2.3 },
+    { az: 4.25, lean: 0.66, len: 0.66, base: 0.41, r: 0.1, roll: 0.7 },
+    { az: 5.45, lean: 0.63, len: 0.7, base: 0.43, r: 0.09, roll: 1.8 },
   ]
   for (const l of LOGS) {
     const dir = new THREE.Vector3(Math.cos(l.az), 0, Math.sin(l.az))
@@ -180,9 +181,8 @@ function stoneRingGeometry(): THREE.BufferGeometry {
   const COUNT = 10
   for (let i = 0; i < COUNT; i++) {
     const a = (i / COUNT) * Math.PI * 2 + ((i * 29) % 7) * 0.03 - 0.09
-    // Chunky: r 0.10–0.16 — the old 0.085 pebbles read as scattered
-    // chips instead of a built pit.
-    const r = 0.1 + ((i * 37) % 5) * 0.015
+    // Chunky, thickened per Aiden: r 0.13–0.20.
+    const r = 0.13 + ((i * 37) % 5) * 0.017
     const squash = 0.7 + ((i * 23) % 4) * 0.09
     const g = new THREE.DodecahedronGeometry(r, 0)
     const m = new THREE.Matrix4().compose(
@@ -304,7 +304,9 @@ export function Fire() {
         )
         scratch.q.setFromEuler(scratch.e)
         scratch.s.set(tg.w * (1 + 0.05 * Math.sin(t * 9 + tg.phase)), tg.h * flicker, tg.w)
-        scratch.p.set(tg.x, 0.16, tg.z)
+        // Base at 0.05 (was 0.16): ×1.4 group scale had the tongues
+        // hovering ~0.12 m over the sand — the levitating-fire report.
+        scratch.p.set(tg.x, 0.05, tg.z)
         scratch.m.compose(scratch.p, scratch.q, scratch.s)
         inst.setMatrixAt(i, scratch.m)
       }
@@ -398,7 +400,7 @@ export function Fire() {
           frustumCulled={false}
         />
         {/* Bright heart: small near-white core low in the flame. */}
-        <mesh position={[0, 0.17, 0]} renderOrder={2}>
+        <mesh position={[0, 0.12, 0]} renderOrder={2}>
           <coneGeometry args={[0.11, 0.34, 5]} />
           <meshBasicMaterial color="#fff8e0" toneMapped={false} transparent opacity={0.96} depthWrite={false} />
         </mesh>

@@ -91,7 +91,7 @@ The sun, moon, stars, and sky gradient are **children of the rotating planet gro
 | Big tree + rings | About | 50 | 300 | Dusk boundary west |
 | Campfire | prop | 22 | 180 | Night beach; Fire 2.0 flame + flicker light + crackle; 1.2 m blocker |
 | Log circle ×3 | prop/seat | 23.4–25.3 | 176.7–183.3 | Landward arc ~3.2 m from the fire at bearings 0/±65°, opening toward the sea; ends clearly separated (walkable gaps, full lap fits between log and fire blockers); center log perpendicular to the fire→sea axis, flanks just inside tangent; free-position sitting (E — Sit); 0.9 m blockers |
-| Ukulele on the log | Music | 22 | 173 | Aiden's music portal, by the fire — chunky uke resting ON a driftwood log (replaced the last night-side placeholder cube). Interactable nearby-highlight rule: emissive = the part's OWN color (self-brighten, night-scaled) — a flat teal tint turned shaded wood grey-green |
+| Stereo on the log | Music | 22 | 173 | Aiden's music portal, by the fire — chunky lagoon boombox (speakers, tape deck, handle, antenna) on a driftwood log; replaced the resting uke (read as a lump from above), which replaced the placeholder cube. Interactable nearby-highlight rule: emissive = the part's OWN color (self-brighten, night-scaled) — a flat teal tint turned shaded wood grey-green |
 | CRT TV on crate | Videos | 21 | 150 | Screen glow reads at night |
 | Rowboat | prop | 18 | 210 | Beached |
 | Crabs ×3–4 | critter | 16–23 | any | Wander the sand ring, both sides |

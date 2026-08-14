@@ -167,12 +167,11 @@ export function buildRock(): PropPart[] {
 // its wood catches the firelight with baked warm vertex tints and a
 // flickering emissive, which a shared static palette prop can't do.
 
-/** Music portal (Phase 4 kickoff): the chunky ukulele resting on a
- * short driftwood log — replaces the last placeholder cube on the
- * night side. ONE vertex-tinted merged mesh (draw-call budget: three
- * palette materials would cost three draws right at the 50-call
- * mobile line). */
-export function buildMusicUke(): PropPart[] {
+/** Music portal: a chunky boombox STEREO sitting on a short driftwood
+ * log (Aiden's call — the resting ukulele read as a lump from above).
+ * ONE vertex-tinted merged mesh (draw-call budget: separate palette
+ * materials would cost a draw each right at the 50-call mobile line). */
+export function buildMusicStereo(): PropPart[] {
   const tinted = (g: THREE.BufferGeometry, color: string, pos: [number, number, number], rot: [number, number, number] = [0, 0, 0], scale: [number, number, number] = [1, 1, 1]) => {
     const n = tintGeometry(normalizeForMerge(g), color)
     g.dispose()
@@ -185,17 +184,25 @@ export function buildMusicUke(): PropPart[] {
     )
     return n
   }
-  const rest: [number, number, number] = [-0.12, 0.2, 0.08]
+  const tilt: [number, number, number] = [0, 0.25, 0.06]
   const parts = [
     // Driftwood log lying along x, slightly rolled, lighter end cut.
     tinted(new THREE.CylinderGeometry(0.16, 0.16, 1.1, 7), PROP_COLORS.woodDark, [0, 0.16, 0], [0.1, 0, Math.PI / 2]),
     tinted(new THREE.CylinderGeometry(0.165, 0.165, 0.03, 7), PROP_COLORS.woodLight, [0.56, 0.16, 0], [0.1, 0, Math.PI / 2]),
-    // The uke ON TOP ("ukulele on the log"), soundboard up, neck rising
-    // gently past the log's end — readable from every orbit angle.
-    tinted(new THREE.SphereGeometry(0.19, 12, 8), '#b5773f', [0.18, 0.36, 0], rest, [1.15, 0.5, 1]),
-    tinted(new THREE.CylinderGeometry(0.058, 0.058, 0.025, 10), '#5a4632', [0.14, 0.45, 0.01], rest),
-    tinted(new THREE.BoxGeometry(0.36, 0.045, 0.08), '#5a4632', [-0.12, 0.41, -0.05], [-0.12, 0.2, 0.12]),
-    tinted(new THREE.BoxGeometry(0.1, 0.055, 0.1), '#5a4632', [-0.29, 0.44, -0.09], [-0.12, 0.2, 0.12]),
+    // The boombox perched on the log, slight jaunty yaw: lagoon body,
+    // cream speaker rims, dark grills, a tape deck and a handle.
+    tinted(new THREE.BoxGeometry(0.5, 0.28, 0.18), PROP_COLORS.lagoon, [0.02, 0.46, 0], tilt),
+    tinted(new THREE.CylinderGeometry(0.095, 0.095, 0.03, 10), PROP_COLORS.cream, [-0.13, 0.45, 0.085], [Math.PI / 2 + 0.06, 0.25, 0]),
+    tinted(new THREE.CylinderGeometry(0.095, 0.095, 0.03, 10), PROP_COLORS.cream, [0.17, 0.45, 0.048], [Math.PI / 2 + 0.06, 0.25, 0]),
+    tinted(new THREE.CylinderGeometry(0.062, 0.062, 0.035, 10), PROP_COLORS.slate, [-0.13, 0.45, 0.09], [Math.PI / 2 + 0.06, 0.25, 0]),
+    tinted(new THREE.CylinderGeometry(0.062, 0.062, 0.035, 10), PROP_COLORS.slate, [0.17, 0.45, 0.053], [Math.PI / 2 + 0.06, 0.25, 0]),
+    tinted(new THREE.BoxGeometry(0.11, 0.07, 0.03), PROP_COLORS.slate, [0.02, 0.5, 0.078], tilt),
+    // Carry handle arched over the top.
+    tinted(new THREE.BoxGeometry(0.26, 0.035, 0.05), PROP_COLORS.slate, [0.02, 0.64, 0], tilt),
+    tinted(new THREE.BoxGeometry(0.035, 0.06, 0.05), PROP_COLORS.slate, [-0.1, 0.61, -0.03], tilt),
+    tinted(new THREE.BoxGeometry(0.035, 0.06, 0.05), PROP_COLORS.slate, [0.14, 0.61, 0.03], tilt),
+    // Stubby antenna, angled back.
+    tinted(new THREE.CylinderGeometry(0.012, 0.012, 0.3, 5), PROP_COLORS.cream, [0.22, 0.72, -0.06], [-0.4, 0, -0.5]),
   ]
   const merged = mergeGeometries(parts)
   for (const p of parts) p.dispose()

@@ -11,7 +11,7 @@ export type ModalKind =
   | 'card'
 
 /** Chunky primitive prop bodies built in scene/props.ts. */
-export type PropKind = 'tripod' | 'mailbox' | 'uke'
+export type PropKind = 'tripod' | 'mailbox' | 'stereo'
 
 export interface InteractableDef {
   id: string
@@ -37,8 +37,8 @@ export const interactables: InteractableDef[] = [
   {
     id: 'music',
     label: 'Music',
-    prompt: 'Pick up the ukulele',
-    prop: 'uke',
+    prompt: 'Turn on the stereo',
+    prop: 'stereo',
     blockRadius: 0.8,
     position: place(MAP.musicUkulele.lat, MAP.musicUkulele.long),
     rotation: [0, Math.PI / 6, 0],
