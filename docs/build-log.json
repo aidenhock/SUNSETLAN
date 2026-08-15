@@ -352,6 +352,39 @@
         "WebP-only output, no JPEG fallback: every supported browser decodes",
         "The photos taught a provenance rule now written into the spec: only"
       ]
+    },
+    {
+      "id": "hedge-stone",
+      "title": "The hedge stone",
+      "hook": "The About page is a carved stone standing in a hedge clearing at the edge of dusk.",
+      "plain": "Where a big tree used to hold the About portal, there's now a waist-high standing stone ringed by a low hedge that opens toward the path — walk in, press E, and read who built the island. The stone replaced the tree because a marker you READ says \"about\" better than a tree you grab rings from.",
+      "technical": "`buildHedgeStone` follows the vertex-tinted-merge pattern: a 4-segment tapered cylinder gives the slab a square-footprint standing-stone read, a squashed sphere domes the top, icosahedron chips carry the weathering, and nine rounded hedge blocks in two greens ring it with a ~100° gap aimed at local +z — which `meridianYaw` turns toward the walking approach from the island interior. The whole ensemble is ONE merged mesh with baked vertex colors (one draw call), and unlike the old tree-plus-cube pair, the stone IS the interactable: its `PropBody` renders it, and one 1.8 m slide-along blocker covers stone and hedge together.",
+      "files": [
+        {
+          "path": "src/scene/props.ts",
+          "symbols": [
+            "buildHedgeStone"
+          ]
+        },
+        {
+          "path": "src/content/interactables.ts",
+          "symbols": [
+            "prop: 'hedgestone'",
+            "blockRadius"
+          ],
+          "note": "the About def ()"
+        },
+        {
+          "path": "src/scene/Interactable.tsx",
+          "symbols": [
+            "PROP_BUILDERS"
+          ]
+        }
+      ],
+      "decisions": [
+        "The big tree + rings (and its separate placeholder cube beside the",
+        "\"Hedge stone\" was read as a standing stone in a hedge clearing; a"
+      ]
     }
   ]
 }

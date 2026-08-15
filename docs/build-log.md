@@ -377,3 +377,39 @@ sources ship.
 - The photos taught a provenance rule now written into the spec: only
   what the owner deliberately stages ships — an agent must never
   source content from personal folders or exports, even helpfully.
+
+## 11 · The hedge stone {#hedge-stone}
+
+**Hook:** The About page is a carved stone standing in a hedge clearing at the edge of dusk.
+
+**Plain:** Where a big tree used to hold the About portal, there's now
+a waist-high standing stone ringed by a low hedge that opens toward
+the path — walk in, press E, and read who built the island. The stone
+replaced the tree because a marker you READ says "about" better than
+a tree you grab rings from.
+
+**Technical:** `buildHedgeStone` follows the vertex-tinted-merge
+pattern: a 4-segment tapered cylinder gives the slab a square-footprint
+standing-stone read, a squashed sphere domes the top, icosahedron
+chips carry the weathering, and nine rounded hedge blocks in two
+greens ring it with a ~100° gap aimed at local +z — which
+`meridianYaw` turns toward the walking approach from the island
+interior. The whole ensemble is ONE merged mesh with baked vertex
+colors (one draw call), and unlike the old tree-plus-cube pair, the
+stone IS the interactable: its `PropBody` renders it, and one 1.8 m
+slide-along blocker covers stone and hedge together.
+
+**Files:**
+- `src/scene/props.ts` — `buildHedgeStone`
+- `src/content/interactables.ts` — the About def (`prop: 'hedgestone'`, `blockRadius`)
+- `src/scene/Interactable.tsx` — `PROP_BUILDERS`
+
+**Decisions:**
+- The big tree + rings (and its separate placeholder cube beside the
+  trunk) were removed outright rather than kept as scenery — two
+  objects meaning one thing confused the read, and the tree's
+  1.6 m landmark blocker plus the cube's own blocker double-guarded
+  the same spot.
+- "Hedge stone" was read as a standing stone in a hedge clearing; a
+  plain headstone with no hedge is a one-line trim of the ring loop
+  if that was the intent.
