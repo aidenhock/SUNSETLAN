@@ -355,10 +355,10 @@
     },
     {
       "id": "hedge-stone",
-      "title": "The moai in the hedge",
-      "hook": "The About page is a giant Easter Island head standing in a hedge clearing at the edge of dusk.",
-      "plain": "Where a big tree used to hold the About portal, a\r three-meter moai now gazes over the plateau, ringed by a low hedge\r that opens toward the path — walk in through the gap, press E, and\r read who built the island. It started life as a modest waist-high\r carved stone; the owner's verdict came back with Easter Island\r reference photos, so the stone grew a face.",
-      "technical": "`buildHedgeStone` assembles the moai from rounded\r boxes per the style bible: an elongated tilted-back head, one heavy\r brow ridge proud of the face, darker recess boxes for the eye\r hollows, a long nose shaft ending in a wide base, two thin bars with\r a shadow seam for the pursed lips, long side ears, and a small torso\r with arm slabs meeting in chip-colored hands — all vertex-tinted and\r merged into ONE draw call. The hedge ring (eleven two-green rounded\r blocks, r ≈ 2.2 m) keeps a ~95° opening aimed at local +z, which\r `meridianYaw` turns toward the walking approach. Blocking is split:\r the statue base takes the interactable's own 1.2 m radius, and three\r 1.6 m landmark arc-guards fence the ring's flanks and rear — players\r funnel through the opening, where the 2.5 m interact trigger fires\r before they reach the statue's wall.",
+      "title": "The moai",
+      "hook": "The About page is a giant Easter Island head gazing over the plateau at the edge of dusk.",
+      "plain": "Where a big tree used to hold the About portal, a\r three-meter moai now watches the dusk boundary — walk up from any\r side, press E, and read who built the island. It went through three\r forms in a day: a modest carved stone, then the moai in a hedge\r ring, then the moai alone — the owner cut the hedge, and with it the\r invisible fencing that made walking near it feel like snagging on\r nothing.",
+      "technical": "`buildHedgeStone` (the id is historical) assembles the\r moai from rounded boxes per the style bible: an elongated tilted-back\r head, one heavy brow ridge proud of the face, darker recess boxes for\r the eye hollows, a long nose shaft ending in a wide base, two thin\r bars with a shadow seam for the pursed lips, long side ears, and a\r small torso with arm slabs meeting in chip-colored hands — all\r vertex-tinted and merged into ONE draw call, facing the northern\r approach via `meridianYaw`. Collision is a single snug 1.1 m\r slide-along blocker on the statue (arms reach ±0.83 m): impossible to\r walk through, free to circle, with the 2.5 m interact trigger firing\r on every side.",
       "files": [
         {
           "path": "src/scene/props.ts",
@@ -375,17 +375,16 @@
           "note": "the About def ()"
         },
         {
-          "path": "src/scene/planetConfig.ts",
+          "path": "src/scene/Interactable.tsx",
           "symbols": [
-            "landmarkBlockers"
-          ],
-          "note": "the hedge-ring arc guards in"
+            "PROP_BUILDERS"
+          ]
         }
       ],
       "decisions": [
         "The big tree + rings (and the placeholder cube beside the trunk)",
-        "v1 was a waist-high tapered slab in a small ring; the owner asked",
-        "One big circular blocker was rejected at this scale: sized to the"
+        "v1 was a waist-high slab in a small hedge ring; the owner asked for",
+        "The hedge ring and its three invisible arc-guard blockers were CUT:"
       ]
     }
   ]

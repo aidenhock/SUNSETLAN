@@ -308,16 +308,16 @@ export function buildPalapa(): PropPart[] {
 }
 
 /** Big tree (About): chunky trunk, icosahedron canopy, branch with rings. */
-/** Hedge stone v2 (Aiden's call, with moai references): a ~2.9 m
- * Easter-Island-style statue — elongated head with a heavy brow, long
- * wide-based nose, shadowed eye hollows, pursed lips, long ears, a
- * small torso with arms folded to the belly — facing local +z (north =
- * the walking approach after meridianYaw), inside a bigger two-green
- * hedge ring (r ~2.2 m) whose opening faces the same way. Weathered
- * grey-green with lighter chips, darker recesses. ONE vertex-tinted
- * merged mesh. Blockers: the statue base takes the interactable's own
- * radius; three landmark arc-guards cover the ring's flanks and rear
- * so players enter through the opening instead of over the hedge. */
+/** The moai (About portal; "hedge stone" is its historical id): a
+ * ~2.9 m Easter-Island-style statue — elongated head with a heavy
+ * brow, long wide-based nose, shadowed eye hollows, pursed lips, long
+ * ears, a small torso with arms folded to the belly — facing local +z
+ * (north = the walking approach after meridianYaw), with a few stones
+ * scattered at the base. Weathered grey-green with lighter chips,
+ * darker recesses. ONE vertex-tinted merged mesh. The hedge ring was
+ * removed (Aiden's call — and its invisible arc-guards read as
+ * getting stuck on nothing): ONE snug blocker on the statue itself,
+ * walk-around free. */
 export function buildHedgeStone(): PropPart[] {
   const tinted = (g: THREE.BufferGeometry, color: string, pos: [number, number, number], rot: [number, number, number] = [0, 0, 0], scale: [number, number, number] = [1, 1, 1]) => {
     const n = tintGeometry(normalizeForMerge(g), color)
@@ -334,8 +334,6 @@ export function buildHedgeStone(): PropPart[] {
   const STONE = '#8a9484'
   const CHIP = '#aab5a2'
   const SHADOW = '#69736a'
-  const HEDGE_A = '#55a05f'
-  const HEDGE_B = '#3f8a4b'
   const parts: THREE.BufferGeometry[] = [
     // Torso: rounded slab, arms as side slabs, hands meeting on the belly.
     tinted(new RoundedBoxGeometry(1.35, 1.25, 0.9, 2, 0.16), STONE, [0, 0.62, 0]),
@@ -365,23 +363,6 @@ export function buildHedgeStone(): PropPart[] {
     tinted(new THREE.IcosahedronGeometry(0.09, 0), CHIP, [-0.4, 1.15, 0.3], [0.2, 1.1, 0.4]),
     tinted(new THREE.IcosahedronGeometry(0.08, 0), CHIP, [0.5, 0.35, -0.3], [1.3, 0.3, 0.8]),
   ]
-  // Hedge ring, radius ~2.2 m, opening toward +z (the approach):
-  // chunky rounded blocks alternating two greens, slight size jitter.
-  const BLOCKS = 11
-  for (let i = 0; i < BLOCKS; i++) {
-    // Span the circle EXCEPT a ~95° opening centered on +z.
-    const a = Math.PI / 2 + 0.83 + (i / (BLOCKS - 1)) * (Math.PI * 2 - 1.66)
-    const w = 0.85 + ((i * 23) % 3) * 0.1
-    const h = 0.48 + ((i * 31) % 3) * 0.08
-    parts.push(
-      tinted(
-        new RoundedBoxGeometry(w, h, 0.55, 2, 0.12),
-        i % 2 === 0 ? HEDGE_A : HEDGE_B,
-        [Math.sin(a) * 2.2, h / 2 - 0.05, Math.cos(a) * 2.2],
-        [0, -a + ((i * 13) % 5) * 0.04, 0],
-      ),
-    )
-  }
   // Scattered stones at the base.
   for (let i = 0; i < 5; i++) {
     const a = 0.7 + i * 1.25

@@ -80,12 +80,12 @@ export const interactables: InteractableDef[] = [
     id: 'about',
     label: 'About',
     prompt: 'Read the stone',
-    // The moai IS the interactable; its blocker covers the statue base
-    // only — three landmark arc-guards (planetConfig) fence the hedge
-    // ring's flanks and rear so entry is through the northern opening,
-    // where the prompt fires inside the 2.5 m trigger arc.
+    // The moai IS the interactable. ONE snug blocker on the statue
+    // itself (arms reach ±0.83 m) — no ring guards: the hedge is gone,
+    // and invisible walls read as getting stuck on nothing. Walk
+    // around it freely; the prompt fires from 2.5 m on any side.
     prop: 'hedgestone',
-    blockRadius: 1.2,
+    blockRadius: 1.1,
     position: place(MAP.hedgeStone.lat, MAP.hedgeStone.long),
     rotation: [0, 0, 0],
     modal: 'card',

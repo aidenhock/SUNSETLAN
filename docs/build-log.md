@@ -378,45 +378,47 @@ sources ship.
   what the owner deliberately stages ships — an agent must never
   source content from personal folders or exports, even helpfully.
 
-## 11 · The moai in the hedge {#hedge-stone}
+## 11 · The moai {#hedge-stone}
 
-**Hook:** The About page is a giant Easter Island head standing in a hedge clearing at the edge of dusk.
+**Hook:** The About page is a giant Easter Island head gazing over the plateau at the edge of dusk.
 
 **Plain:** Where a big tree used to hold the About portal, a
-three-meter moai now gazes over the plateau, ringed by a low hedge
-that opens toward the path — walk in through the gap, press E, and
-read who built the island. It started life as a modest waist-high
-carved stone; the owner's verdict came back with Easter Island
-reference photos, so the stone grew a face.
+three-meter moai now watches the dusk boundary — walk up from any
+side, press E, and read who built the island. It went through three
+forms in a day: a modest carved stone, then the moai in a hedge
+ring, then the moai alone — the owner cut the hedge, and with it the
+invisible fencing that made walking near it feel like snagging on
+nothing.
 
-**Technical:** `buildHedgeStone` assembles the moai from rounded
-boxes per the style bible: an elongated tilted-back head, one heavy
-brow ridge proud of the face, darker recess boxes for the eye
-hollows, a long nose shaft ending in a wide base, two thin bars with
-a shadow seam for the pursed lips, long side ears, and a small torso
-with arm slabs meeting in chip-colored hands — all vertex-tinted and
-merged into ONE draw call. The hedge ring (eleven two-green rounded
-blocks, r ≈ 2.2 m) keeps a ~95° opening aimed at local +z, which
-`meridianYaw` turns toward the walking approach. Blocking is split:
-the statue base takes the interactable's own 1.2 m radius, and three
-1.6 m landmark arc-guards fence the ring's flanks and rear — players
-funnel through the opening, where the 2.5 m interact trigger fires
-before they reach the statue's wall.
+**Technical:** `buildHedgeStone` (the id is historical) assembles the
+moai from rounded boxes per the style bible: an elongated tilted-back
+head, one heavy brow ridge proud of the face, darker recess boxes for
+the eye hollows, a long nose shaft ending in a wide base, two thin
+bars with a shadow seam for the pursed lips, long side ears, and a
+small torso with arm slabs meeting in chip-colored hands — all
+vertex-tinted and merged into ONE draw call, facing the northern
+approach via `meridianYaw`. Collision is a single snug 1.1 m
+slide-along blocker on the statue (arms reach ±0.83 m): impossible to
+walk through, free to circle, with the 2.5 m interact trigger firing
+on every side.
 
 **Files:**
 - `src/scene/props.ts` — `buildHedgeStone`
 - `src/content/interactables.ts` — the About def (`prop: 'hedgestone'`, `blockRadius`)
-- `src/scene/planetConfig.ts` — the hedge-ring arc guards in `landmarkBlockers`
+- `src/scene/Interactable.tsx` — `PROP_BUILDERS`
 
 **Decisions:**
 - The big tree + rings (and the placeholder cube beside the trunk)
   were removed outright rather than kept as scenery — two objects
   meaning one thing confused the read.
-- v1 was a waist-high tapered slab in a small ring; the owner asked
-  for the moai. Kept from v1: the vertex-tinted single-merge pattern,
-  the grey-green palette, and the opening-toward-approach rule.
-- One big circular blocker was rejected at this scale: sized to the
-  ring it would have blocked the opening AND pushed the player
-  outside the 2.5 m interact trigger — the prompt could never fire.
-  Splitting into a statue blocker plus ring arc-guards preserves both
-  the entrance and the interaction.
+- v1 was a waist-high slab in a small hedge ring; the owner asked for
+  the moai (Easter Island references). Kept across versions: the
+  vertex-tinted single-merge pattern, the grey-green palette, the
+  face-the-approach rule.
+- The hedge ring and its three invisible arc-guard blockers were CUT:
+  circular blockers approximating a ring left seams and outer reaches
+  that stopped players on empty grass — "I get stuck on nothing" is a
+  worse bug than any hedge is worth. The lesson generalizes: colliders
+  must trace something the player can SEE. Verified by walking full
+  laps in both directions (zero stuck steps) and four-sided walk-ins
+  stopping only at the visible statue.
