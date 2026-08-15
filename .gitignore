@@ -21,3 +21,4 @@ staging/
 
 # Local env overrides never ship
 .env*.local
+*.docx

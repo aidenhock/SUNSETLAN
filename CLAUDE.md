@@ -86,6 +86,7 @@ The sun, moon, stars, and sky gradient are **children of the rotating planet gro
 | Dock | prop | 24→13 | 0 | Segmented; walkable deck (analytic strip) |
 | Camera tripod | Photos | 14 | 0 | On the dock end, over water, facing the sun |
 | Mailbox | Contact | 24 | 6 | Dock entrance |
+| Bulletin board | Papers | 45 | 343 | Grass, sunset side, inland from the mailbox — chunky corkboard on two posts (little roof, pinned paper quads with colored pins, curled corners), angled slightly toward the walking approach; "E — Read the board" opens the Papers modal (resume + documents from `content/papers.ts`; view-in-browser + download); blocker sized to the posts (0.9 m) |
 | Ukulele player (Koa) | NPC | 18 | 359.05 | Seat ON the dock's west edge (cross-track ~0.87 m < the 1 m half-width), legs over water; 0.7 m blocker |
 | Seagulls ×2–3 | critter | — | ~0 | Tilted orbit loops over sunset-side water |
 | Palapa + desk | Projects | 40 | 40 | Day-leaning side |
@@ -184,7 +185,7 @@ Ukulele NPC + note sprites + positional loop (avatar + run animation shipped wit
 Real photos/projects/music/videos/contact (fill per `CONTENT.md`; images through `scripts/optimize-images.mjs`), custom domain into meta/sitemap, analytics vendor decision (stub ships off by default), final OG re-capture if the look changes (`scripts/capture-og.mjs`).
 
 **Backlog (do not build yet)**
-Bulletin board with resume + papers (near the mailbox at the dock entrance). 2D minimap HUD with explored-area tracking. Roaming NPCs of family & friends — Animal-Crossing-style wander/waypoints + optional recorded voice notes with captions; ship only with each person's explicit okay (public site). Treasure ship offshore with secrets. Footprints in sand. Fireflies on the night side. Day/night slider.
+2D minimap HUD with explored-area tracking. Roaming NPCs of family & friends — Animal-Crossing-style wander/waypoints + optional recorded voice notes with captions; ship only with each person's explicit okay (public site). Treasure ship offshore with secrets. Footprints in sand. Fireflies on the night side. Day/night slider.
 
 ## Working conventions
 Unchanged (strict TS, no `any`; content only via content files; commit per working feature; `main` deployable; ask before deps or art-direction changes; test mobile viewport after control/UI changes) plus: quaternion/sky/audio math stays in hooks under `controls/` or `scene/` with comments; new analytic bands get vitest cases; e2e suites live in `e2e/` from 3A onward.
