@@ -4,13 +4,14 @@ import * as THREE from 'three'
 import { meridianYaw, surfaceQuaternion } from '../controls/planetMath'
 import type { InteractableDef, PropKind } from '../content/interactables'
 import { useStore } from '../store/useStore'
-import { buildMailbox, buildMusicStereo, buildTripod, type PropPart } from './props'
+import { buildHedgeStone, buildMailbox, buildMusicStereo, buildTripod, type PropPart } from './props'
 import { skyRuntime } from './useSkyState'
 
 const PROP_BUILDERS: Record<PropKind, () => PropPart[]> = {
   tripod: buildTripod,
   mailbox: buildMailbox,
   stereo: buildMusicStereo,
+  hedgestone: buildHedgeStone,
 }
 
 /**

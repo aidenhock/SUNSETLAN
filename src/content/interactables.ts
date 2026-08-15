@@ -11,7 +11,7 @@ export type ModalKind =
   | 'card'
 
 /** Chunky primitive prop bodies built in scene/props.ts. */
-export type PropKind = 'tripod' | 'mailbox' | 'stereo'
+export type PropKind = 'tripod' | 'mailbox' | 'stereo' | 'hedgestone'
 
 export interface InteractableDef {
   id: string
@@ -79,9 +79,12 @@ export const interactables: InteractableDef[] = [
   {
     id: 'about',
     label: 'About',
-    prompt: 'Grab the rings',
-    // Beside the trunk, under the rings' branch — not inside the tree.
-    position: place(MAP.tree.lat, MAP.tree.long - 2.5),
+    prompt: 'Read the stone',
+    // The hedge stone IS the interactable (replaced the tree + rings);
+    // one blocker covers stone + hedge ring, slide-along.
+    prop: 'hedgestone',
+    blockRadius: 1.8,
+    position: place(MAP.hedgeStone.lat, MAP.hedgeStone.long),
     rotation: [0, 0, 0],
     modal: 'card',
     contentKey: 'about',

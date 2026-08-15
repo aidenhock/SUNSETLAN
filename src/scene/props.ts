@@ -308,26 +308,73 @@ export function buildPalapa(): PropPart[] {
 }
 
 /** Big tree (About): chunky trunk, icosahedron canopy, branch with rings. */
-export function buildBigTree(): PropPart[] {
-  const wood = paletteMaterial(PROP_COLORS.woodDark)
-  const leaf = paletteMaterial(PROP_COLORS.frond)
-  const stone = paletteMaterial(PROP_COLORS.stone)
-  const pieces: Piece[] = [
-    at(new THREE.CylinderGeometry(0.35, 0.5, 3.4, 7), wood, [0, 1.7, 0]),
-    at(new THREE.IcosahedronGeometry(2.2, 0), leaf, [0, 4.1, 0]),
-    at(new THREE.CylinderGeometry(0.12, 0.12, 2.1, 5), wood, [-1.5, 2.9, 0], [0, 0, 0.8]),
-  ]
-  // Gym rings HANG from the branch on straps (placement rule: nothing floats).
-  // Branch line: y = 2.9 + 0.697 · (x + 1.5) / −0.717 for x along the branch.
-  const strap = paletteMaterial(PROP_COLORS.cream)
-  const ringGeo = new THREE.TorusGeometry(0.16, 0.035, 6, 12)
-  for (const [x, branchY] of [
-    [-1.7, 3.09],
-    [-2.0, 3.39],
-  ] as const) {
-    const ringTop = 2.5 + 0.2
-    pieces.push(at(new THREE.BoxGeometry(0.04, branchY - ringTop + 0.08, 0.04), strap, [x, (branchY + ringTop) / 2, 0]))
-    pieces.push(at(ringGeo, stone, [x, 2.5, 0]))
+/** Hedge stone (About portal — replaced the big tree + rings): a
+ * standing carved stone, waist-to-chest height — tapered 4-sided slab
+ * with a slightly domed top, weathered grey-green with lighter faceted
+ * chips — set in a low ring of chunky hedge blocks in two greens,
+ * OPENING toward local +z (north = the walking approach after
+ * meridianYaw), with a few small stones scattered at the base.
+ * ONE vertex-tinted merged mesh (draw-call budget).
+ * (Assumption per spec: "hedge stone" = standing stone in a hedge
+ * clearing; a plain headstone with no hedge is a one-line trim.) */
+export function buildHedgeStone(): PropPart[] {
+  const tinted = (g: THREE.BufferGeometry, color: string, pos: [number, number, number], rot: [number, number, number] = [0, 0, 0], scale: [number, number, number] = [1, 1, 1]) => {
+    const n = tintGeometry(normalizeForMerge(g), color)
+    g.dispose()
+    n.applyMatrix4(
+      new THREE.Matrix4().compose(
+        new THREE.Vector3(...pos),
+        new THREE.Quaternion().setFromEuler(new THREE.Euler(...rot)),
+        new THREE.Vector3(...scale),
+      ),
+    )
+    return n
   }
-  return mergeByMaterial(pieces)
+  const STONE = '#8a9484'
+  const CHIP = '#aab5a2'
+  const HEDGE_A = '#55a05f'
+  const HEDGE_B = '#3f8a4b'
+  const parts: THREE.BufferGeometry[] = [
+    // The slab: 4-sided tapered cylinder = a square-footprint standing
+    // stone, slightly yawed for a hand-set read; domed cap on top.
+    tinted(new THREE.CylinderGeometry(0.26, 0.36, 1.1, 4), STONE, [0, 0.55, 0], [0, Math.PI / 4 + 0.06, 0.03], [1, 1, 0.55]),
+    tinted(new THREE.SphereGeometry(0.26, 6, 4), STONE, [0, 1.08, 0], [0, 0.4, 0], [1.05, 0.45, 0.58]),
+    // Lighter weathered chips embedded at the face and shoulder.
+    tinted(new THREE.IcosahedronGeometry(0.09, 0), CHIP, [0.14, 0.82, 0.12], [0.5, 0.2, 0]),
+    tinted(new THREE.IcosahedronGeometry(0.07, 0), CHIP, [-0.16, 0.5, 0.1], [0.2, 1.1, 0.4]),
+    tinted(new THREE.IcosahedronGeometry(0.06, 0), CHIP, [0.05, 0.28, -0.14], [1.3, 0.3, 0.8]),
+  ]
+  // Low hedge ring, radius ~1.35 m, opening toward +z (the approach):
+  // chunky rounded blocks alternating two greens, slight size jitter.
+  const BLOCKS = 9
+  for (let i = 0; i < BLOCKS; i++) {
+    // Span the circle EXCEPT a ~100° opening centered on +z.
+    const a = Math.PI / 2 + 0.95 + (i / (BLOCKS - 1)) * (Math.PI * 2 - 1.9)
+    const w = 0.52 + ((i * 23) % 3) * 0.07
+    const h = 0.34 + ((i * 31) % 3) * 0.06
+    parts.push(
+      tinted(
+        new RoundedBoxGeometry(w, h, 0.4, 2, 0.09),
+        i % 2 === 0 ? HEDGE_A : HEDGE_B,
+        [Math.sin(a) * 1.35, h / 2 - 0.04, Math.cos(a) * 1.35],
+        [0, -a + ((i * 13) % 5) * 0.04, 0],
+      ),
+    )
+  }
+  // Scattered small stones at the base.
+  for (let i = 0; i < 4; i++) {
+    const a = 0.7 + i * 1.55
+    parts.push(
+      tinted(
+        new THREE.DodecahedronGeometry(0.07 + (i % 2) * 0.03, 0),
+        i % 2 === 0 ? STONE : CHIP,
+        [Math.sin(a) * 0.55, 0.05, Math.cos(a) * 0.55],
+        [i * 0.9, a, i * 1.2],
+        [1.1, 0.7, 1],
+      ),
+    )
+  }
+  const merged = mergeGeometries(parts)
+  for (const p of parts) p.dispose()
+  return [{ geometry: merged, material: new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }) }]
 }

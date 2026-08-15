@@ -3,7 +3,7 @@ import * as THREE from 'three'
 import { AIDEN } from '../content/characters'
 import { buildNodes } from './BlockyCharacter'
 import {
-  buildBigTree,
+  buildHedgeStone,
   buildMusicStereo,
   buildCrate,
   buildLogBench,
@@ -33,7 +33,7 @@ const BUILDERS: Record<string, () => PropPart[]> = {
   tripod: buildTripod,
   mailbox: buildMailbox,
   palapa: buildPalapa,
-  bigTree: buildBigTree,
+  hedgeStone: buildHedgeStone,
 }
 
 describe('prop builders merge cleanly', () => {

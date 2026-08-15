@@ -15,7 +15,6 @@ import {
 } from './planetConfig'
 import { IDENTITY_Q, InstancedProp, StaticInstances, surfacePartMatrix } from './instancing'
 import {
-  buildBigTree,
   buildCrate,
   buildPalapa,
   buildPalm,
@@ -76,7 +75,6 @@ export function Island() {
       crate: buildCrate(),
       rowboat: buildRowboat(),
       palapa: buildPalapa(),
-      tree: buildBigTree(),
     }),
     [],
   )
@@ -171,7 +169,6 @@ export function Island() {
       crate: [placement(MAP.tv.lat, MAP.tv.long + 0.8)],
       rowboat: [placement(MAP.rowboat.lat, MAP.rowboat.long, 0.9)],
       palapa: [placement(MAP.palapa.lat, MAP.palapa.long)],
-      tree: [placement(MAP.tree.lat, MAP.tree.long)],
     }),
     [],
   )
@@ -203,9 +200,9 @@ export function Island() {
       <InstancedProp parts={props.crate} placements={single.crate} />
       <InstancedProp parts={props.rowboat} placements={single.rowboat} />
 
-      {/* Landmarks: palapa (Projects) and the big tree (About). */}
+      {/* Landmark: the palapa (Projects). The About hedge stone renders
+          as its interactable's own prop body. */}
       <InstancedProp parts={props.palapa} placements={single.palapa} />
-      <InstancedProp parts={props.tree} placements={single.tree} />
     </>
   )
 }
