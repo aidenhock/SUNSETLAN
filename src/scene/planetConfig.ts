@@ -131,7 +131,7 @@ export const MAP = {
   // 358.7 hovered his center 0.19 m PAST the edge — the floating bug.
   ukulelePlayer: { lat: 18, long: 359.05 },
   palapa: { lat: 40, long: 40 }, // Projects — day-leaning side
-  hedgeStone: { lat: 50, long: 300 }, // About — standing stone in a hedge clearing, dusk boundary west
+  hedgeStone: { lat: 50, long: 300 }, // About — the moai in its hedge clearing, dusk boundary west
   campfire: { lat: 22, long: 180 }, // night beach
   // Log circle: three sittable logs ~3.2 m from the fire on the landward
   // arc, opening toward the sea (campfire polish 3: pushed out from
@@ -332,6 +332,13 @@ const landmarkBlockers: { lat: number; long: number; radius: number }[] = [
   { lat: MAP.ukulelePlayer.lat, long: MAP.ukulelePlayer.long, radius: 0.7 },
   // The three fire logs (sit entry bypasses the target log's blocker).
   ...MAP.logs.map((l) => ({ lat: l.lat, long: l.long, radius: 0.9 })),
+  // Hedge-ring arc guards (the About moai): fence the ring's flanks
+  // and rear so players enter through the NORTHERN opening — the
+  // statue itself takes the interactable's own 1.2 m blocker. Offsets
+  // ≈ 2 m at lat 50 (1° lat ≈ 0.96 m; 1° long ≈ 0.62 m there).
+  { lat: MAP.hedgeStone.lat, long: MAP.hedgeStone.long - 3.24, radius: 1.6 },
+  { lat: MAP.hedgeStone.lat, long: MAP.hedgeStone.long + 3.24, radius: 1.6 },
+  { lat: MAP.hedgeStone.lat - 2.08, long: MAP.hedgeStone.long, radius: 1.6 },
   { lat: MAP.palapa.lat, long: MAP.palapa.long - 2, radius: 1.2 }, // desk
   { lat: MAP.tv.lat, long: MAP.tv.long + 0.8, radius: 0.9 }, // crate
   { lat: MAP.mailbox.lat, long: MAP.mailbox.long, radius: 0.5 },

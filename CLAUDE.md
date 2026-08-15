@@ -89,7 +89,7 @@ The sun, moon, stars, and sky gradient are **children of the rotating planet gro
 | Ukulele player (Koa) | NPC | 18 | 359.05 | Seat ON the dock's west edge (cross-track ~0.87 m < the 1 m half-width), legs over water; 0.7 m blocker |
 | Seagulls ×2–3 | critter | — | ~0 | Tilted orbit loops over sunset-side water |
 | Palapa + desk | Projects | 40 | 40 | Day-leaning side |
-| Hedge stone | About | 50 | 300 | Dusk boundary west — a standing carved stone (tapered slab, domed top, weathered grey-green with lighter chips) in a low two-green hedge ring opening toward the northern approach, scattered stones at the base; REPLACED the big tree + rings (tree prop + blocker removed). The interactable IS the stone (prompt "Read the stone"); one 1.8 m slide-along blocker covers stone + ring |
+| Hedge stone (the moai) | About | 50 | 300 | Dusk boundary west — a ~2.9 m Easter-Island moai (Aiden's references: heavy brow, long wide-based nose, shadowed eye hollows, pursed lips, long ears, arms folded to the belly), weathered grey-green with lighter chips, in a two-green hedge ring (r ~2.2 m) opening toward the northern approach; REPLACED the big tree + rings. The interactable IS the statue (prompt "Read the stone"); blockers = 1.2 m on the statue base + three 1.6 m arc-guards fencing the ring's flanks/rear so entry is through the opening (where the 2.5 m trigger fires) |
 | Cemetery / memorial garden | planned | 47 | 107 | Just past the terminator, night-leaning side |
 | Matrix glitch portal | planned | 32 | 97 | Just past the terminator, night-leaning side; renders `docs/build-log.md` chapters in-world |
 | Campfire | prop | 22 | 180 | Night beach; Fire 2.0 flame + flicker light + crackle; 1.2 m blocker |

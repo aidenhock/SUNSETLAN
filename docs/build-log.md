@@ -378,38 +378,45 @@ sources ship.
   what the owner deliberately stages ships — an agent must never
   source content from personal folders or exports, even helpfully.
 
-## 11 · The hedge stone {#hedge-stone}
+## 11 · The moai in the hedge {#hedge-stone}
 
-**Hook:** The About page is a carved stone standing in a hedge clearing at the edge of dusk.
+**Hook:** The About page is a giant Easter Island head standing in a hedge clearing at the edge of dusk.
 
-**Plain:** Where a big tree used to hold the About portal, there's now
-a waist-high standing stone ringed by a low hedge that opens toward
-the path — walk in, press E, and read who built the island. The stone
-replaced the tree because a marker you READ says "about" better than
-a tree you grab rings from.
+**Plain:** Where a big tree used to hold the About portal, a
+three-meter moai now gazes over the plateau, ringed by a low hedge
+that opens toward the path — walk in through the gap, press E, and
+read who built the island. It started life as a modest waist-high
+carved stone; the owner's verdict came back with Easter Island
+reference photos, so the stone grew a face.
 
-**Technical:** `buildHedgeStone` follows the vertex-tinted-merge
-pattern: a 4-segment tapered cylinder gives the slab a square-footprint
-standing-stone read, a squashed sphere domes the top, icosahedron
-chips carry the weathering, and nine rounded hedge blocks in two
-greens ring it with a ~100° gap aimed at local +z — which
-`meridianYaw` turns toward the walking approach from the island
-interior. The whole ensemble is ONE merged mesh with baked vertex
-colors (one draw call), and unlike the old tree-plus-cube pair, the
-stone IS the interactable: its `PropBody` renders it, and one 1.8 m
-slide-along blocker covers stone and hedge together.
+**Technical:** `buildHedgeStone` assembles the moai from rounded
+boxes per the style bible: an elongated tilted-back head, one heavy
+brow ridge proud of the face, darker recess boxes for the eye
+hollows, a long nose shaft ending in a wide base, two thin bars with
+a shadow seam for the pursed lips, long side ears, and a small torso
+with arm slabs meeting in chip-colored hands — all vertex-tinted and
+merged into ONE draw call. The hedge ring (eleven two-green rounded
+blocks, r ≈ 2.2 m) keeps a ~95° opening aimed at local +z, which
+`meridianYaw` turns toward the walking approach. Blocking is split:
+the statue base takes the interactable's own 1.2 m radius, and three
+1.6 m landmark arc-guards fence the ring's flanks and rear — players
+funnel through the opening, where the 2.5 m interact trigger fires
+before they reach the statue's wall.
 
 **Files:**
 - `src/scene/props.ts` — `buildHedgeStone`
 - `src/content/interactables.ts` — the About def (`prop: 'hedgestone'`, `blockRadius`)
-- `src/scene/Interactable.tsx` — `PROP_BUILDERS`
+- `src/scene/planetConfig.ts` — the hedge-ring arc guards in `landmarkBlockers`
 
 **Decisions:**
-- The big tree + rings (and its separate placeholder cube beside the
-  trunk) were removed outright rather than kept as scenery — two
-  objects meaning one thing confused the read, and the tree's
-  1.6 m landmark blocker plus the cube's own blocker double-guarded
-  the same spot.
-- "Hedge stone" was read as a standing stone in a hedge clearing; a
-  plain headstone with no hedge is a one-line trim of the ring loop
-  if that was the intent.
+- The big tree + rings (and the placeholder cube beside the trunk)
+  were removed outright rather than kept as scenery — two objects
+  meaning one thing confused the read.
+- v1 was a waist-high tapered slab in a small ring; the owner asked
+  for the moai. Kept from v1: the vertex-tinted single-merge pattern,
+  the grey-green palette, and the opening-toward-approach rule.
+- One big circular blocker was rejected at this scale: sized to the
+  ring it would have blocked the opening AND pushed the player
+  outside the 2.5 m interact trigger — the prompt could never fire.
+  Splitting into a statue blocker plus ring arc-guards preserves both
+  the entrance and the interaction.

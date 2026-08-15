@@ -308,15 +308,16 @@ export function buildPalapa(): PropPart[] {
 }
 
 /** Big tree (About): chunky trunk, icosahedron canopy, branch with rings. */
-/** Hedge stone (About portal — replaced the big tree + rings): a
- * standing carved stone, waist-to-chest height — tapered 4-sided slab
- * with a slightly domed top, weathered grey-green with lighter faceted
- * chips — set in a low ring of chunky hedge blocks in two greens,
- * OPENING toward local +z (north = the walking approach after
- * meridianYaw), with a few small stones scattered at the base.
- * ONE vertex-tinted merged mesh (draw-call budget).
- * (Assumption per spec: "hedge stone" = standing stone in a hedge
- * clearing; a plain headstone with no hedge is a one-line trim.) */
+/** Hedge stone v2 (Aiden's call, with moai references): a ~2.9 m
+ * Easter-Island-style statue — elongated head with a heavy brow, long
+ * wide-based nose, shadowed eye hollows, pursed lips, long ears, a
+ * small torso with arms folded to the belly — facing local +z (north =
+ * the walking approach after meridianYaw), inside a bigger two-green
+ * hedge ring (r ~2.2 m) whose opening faces the same way. Weathered
+ * grey-green with lighter chips, darker recesses. ONE vertex-tinted
+ * merged mesh. Blockers: the statue base takes the interactable's own
+ * radius; three landmark arc-guards cover the ring's flanks and rear
+ * so players enter through the opening instead of over the hedge. */
 export function buildHedgeStone(): PropPart[] {
   const tinted = (g: THREE.BufferGeometry, color: string, pos: [number, number, number], rot: [number, number, number] = [0, 0, 0], scale: [number, number, number] = [1, 1, 1]) => {
     const n = tintGeometry(normalizeForMerge(g), color)
@@ -332,43 +333,63 @@ export function buildHedgeStone(): PropPart[] {
   }
   const STONE = '#8a9484'
   const CHIP = '#aab5a2'
+  const SHADOW = '#69736a'
   const HEDGE_A = '#55a05f'
   const HEDGE_B = '#3f8a4b'
   const parts: THREE.BufferGeometry[] = [
-    // The slab: 4-sided tapered cylinder = a square-footprint standing
-    // stone, slightly yawed for a hand-set read; domed cap on top.
-    tinted(new THREE.CylinderGeometry(0.26, 0.36, 1.1, 4), STONE, [0, 0.55, 0], [0, Math.PI / 4 + 0.06, 0.03], [1, 1, 0.55]),
-    tinted(new THREE.SphereGeometry(0.26, 6, 4), STONE, [0, 1.08, 0], [0, 0.4, 0], [1.05, 0.45, 0.58]),
-    // Lighter weathered chips embedded at the face and shoulder.
-    tinted(new THREE.IcosahedronGeometry(0.09, 0), CHIP, [0.14, 0.82, 0.12], [0.5, 0.2, 0]),
-    tinted(new THREE.IcosahedronGeometry(0.07, 0), CHIP, [-0.16, 0.5, 0.1], [0.2, 1.1, 0.4]),
-    tinted(new THREE.IcosahedronGeometry(0.06, 0), CHIP, [0.05, 0.28, -0.14], [1.3, 0.3, 0.8]),
+    // Torso: rounded slab, arms as side slabs, hands meeting on the belly.
+    tinted(new RoundedBoxGeometry(1.35, 1.25, 0.9, 2, 0.16), STONE, [0, 0.62, 0]),
+    tinted(new RoundedBoxGeometry(0.22, 1.0, 0.5, 2, 0.08), STONE, [-0.72, 0.6, 0.05], [0, 0, 0.08]),
+    tinted(new RoundedBoxGeometry(0.22, 1.0, 0.5, 2, 0.08), STONE, [0.72, 0.6, 0.05], [0, 0, -0.08]),
+    tinted(new RoundedBoxGeometry(0.34, 0.16, 0.14, 2, 0.05), CHIP, [-0.22, 0.42, 0.47]),
+    tinted(new RoundedBoxGeometry(0.34, 0.16, 0.14, 2, 0.05), CHIP, [0.22, 0.42, 0.47]),
+    // Head: the elongated moai block, tilted back a touch (they gaze up).
+    tinted(new RoundedBoxGeometry(1.1, 1.75, 1.0, 2, 0.18), STONE, [0, 2.0, -0.02], [-0.06, 0, 0]),
+    // Brow: one heavy ridge across the face, proud of the surface.
+    tinted(new RoundedBoxGeometry(1.0, 0.2, 0.22, 2, 0.06), STONE, [0, 2.62, 0.46], [-0.12, 0, 0]),
+    // Eye hollows: darker recesses tucked under the brow.
+    tinted(new THREE.BoxGeometry(0.34, 0.18, 0.1), SHADOW, [-0.26, 2.48, 0.48]),
+    tinted(new THREE.BoxGeometry(0.34, 0.18, 0.1), SHADOW, [0.26, 2.48, 0.48]),
+    // Nose: long shaft from the brow down to a wide base.
+    tinted(new RoundedBoxGeometry(0.3, 0.95, 0.3, 2, 0.08), STONE, [0, 2.2, 0.52], [-0.1, 0, 0]),
+    tinted(new RoundedBoxGeometry(0.5, 0.22, 0.3, 2, 0.08), STONE, [0, 1.82, 0.55]),
+    // Lips: pursed — two thin wide bars with a shadow seam between.
+    tinted(new RoundedBoxGeometry(0.66, 0.11, 0.16, 2, 0.04), STONE, [0, 1.56, 0.55]),
+    tinted(new THREE.BoxGeometry(0.6, 0.03, 0.14), SHADOW, [0, 1.49, 0.55]),
+    tinted(new RoundedBoxGeometry(0.66, 0.11, 0.16, 2, 0.04), STONE, [0, 1.42, 0.54]),
+    // Long ears hugging the head sides.
+    tinted(new RoundedBoxGeometry(0.14, 0.7, 0.3, 2, 0.05), STONE, [-0.6, 2.15, 0.1]),
+    tinted(new RoundedBoxGeometry(0.14, 0.7, 0.3, 2, 0.05), STONE, [0.6, 2.15, 0.1]),
+    // Weathered chips at the crown and shoulder.
+    tinted(new THREE.IcosahedronGeometry(0.12, 0), CHIP, [0.3, 2.85, 0.2], [0.5, 0.2, 0]),
+    tinted(new THREE.IcosahedronGeometry(0.09, 0), CHIP, [-0.4, 1.15, 0.3], [0.2, 1.1, 0.4]),
+    tinted(new THREE.IcosahedronGeometry(0.08, 0), CHIP, [0.5, 0.35, -0.3], [1.3, 0.3, 0.8]),
   ]
-  // Low hedge ring, radius ~1.35 m, opening toward +z (the approach):
+  // Hedge ring, radius ~2.2 m, opening toward +z (the approach):
   // chunky rounded blocks alternating two greens, slight size jitter.
-  const BLOCKS = 9
+  const BLOCKS = 11
   for (let i = 0; i < BLOCKS; i++) {
-    // Span the circle EXCEPT a ~100° opening centered on +z.
-    const a = Math.PI / 2 + 0.95 + (i / (BLOCKS - 1)) * (Math.PI * 2 - 1.9)
-    const w = 0.52 + ((i * 23) % 3) * 0.07
-    const h = 0.34 + ((i * 31) % 3) * 0.06
+    // Span the circle EXCEPT a ~95° opening centered on +z.
+    const a = Math.PI / 2 + 0.83 + (i / (BLOCKS - 1)) * (Math.PI * 2 - 1.66)
+    const w = 0.85 + ((i * 23) % 3) * 0.1
+    const h = 0.48 + ((i * 31) % 3) * 0.08
     parts.push(
       tinted(
-        new RoundedBoxGeometry(w, h, 0.4, 2, 0.09),
+        new RoundedBoxGeometry(w, h, 0.55, 2, 0.12),
         i % 2 === 0 ? HEDGE_A : HEDGE_B,
-        [Math.sin(a) * 1.35, h / 2 - 0.04, Math.cos(a) * 1.35],
+        [Math.sin(a) * 2.2, h / 2 - 0.05, Math.cos(a) * 2.2],
         [0, -a + ((i * 13) % 5) * 0.04, 0],
       ),
     )
   }
-  // Scattered small stones at the base.
-  for (let i = 0; i < 4; i++) {
-    const a = 0.7 + i * 1.55
+  // Scattered stones at the base.
+  for (let i = 0; i < 5; i++) {
+    const a = 0.7 + i * 1.25
     parts.push(
       tinted(
-        new THREE.DodecahedronGeometry(0.07 + (i % 2) * 0.03, 0),
+        new THREE.DodecahedronGeometry(0.1 + (i % 2) * 0.05, 0),
         i % 2 === 0 ? STONE : CHIP,
-        [Math.sin(a) * 0.55, 0.05, Math.cos(a) * 0.55],
+        [Math.sin(a) * 1.0, 0.07, Math.cos(a) * 1.0],
         [i * 0.9, a, i * 1.2],
         [1.1, 0.7, 1],
       ),

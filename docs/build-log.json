@@ -4,8 +4,8 @@
       "id": "fixed-pole",
       "title": "The world that turns beneath you",
       "hook": "You never actually move — the whole planet rotates under your feet.",
-      "plain": "The character stands frozen at the top of the globe, and walking spins the entire world the other way, like log-rolling. It's the same trick Mario Galaxy uses. Doing it this way means the camera and character never wander off anywhere numerically messy — the world comes to you.",
-      "technical": "Input builds a rotation quaternion each frame: `rotationStep` turns a camera-relative move direction into a small world rotation about a horizontal axis (negative angle — the ground must flow backward under the avatar), and `applyStep` premultiplies it onto the planet group's quaternion. Everything that needs to know \"where am I standing\" pulls the world pole back through the inverse rotation (`poleInPlanetSpace`) to get a planet-local direction, which maps to lat/long. Blockers, interactable triggers, and the island-edge clamp are all angular-distance tests against that direction — distance in meters is just angle × radius.",
+      "plain": "The character stands frozen at the top of the globe, and\r walking spins the entire world the other way, like log-rolling. It's\r the same trick Mario Galaxy uses. Doing it this way means the camera\r and character never wander off anywhere numerically messy — the world\r comes to you.",
+      "technical": "Input builds a rotation quaternion each frame:\r `rotationStep` turns a camera-relative move direction into a small\r world rotation about a horizontal axis (negative angle — the ground\r must flow backward under the avatar), and `applyStep` premultiplies it\r onto the planet group's quaternion. Everything that needs to know\r \"where am I standing\" pulls the world pole back through the inverse\r rotation (`poleInPlanetSpace`) to get a planet-local direction, which\r maps to lat/long. Blockers, interactable triggers, and the island-edge\r clamp are all angular-distance tests against that direction —\r distance in meters is just angle × radius.",
       "files": [
         {
           "path": "src/controls/planetMath.ts",
@@ -34,8 +34,8 @@
       "id": "analytic-ground",
       "title": "Ground you can trust without physics",
       "hook": "There is no physics engine — the island's shape is a formula.",
-      "plain": "Instead of simulating collisions, the ground height at any point is computed from a single mathematical profile: grass plateau, beach ramp, underwater slope. Feet, props, and the water all ask the same formula, so nothing can ever float or sink by accident — and it costs almost nothing to run.",
-      "technical": "`terrainProfile(polar)` defines altitude as chained smoothsteps over the angle from the pole; `groundAltitudeAt(lat, long)` adds the dock's walkable strip (`onDockStrip` tests cross-track meters against the dock meridian) and `groundHeightAt` turns the avatar's planet-local direction into a world height every frame, allocation-free. Placement rule 1 derives every prop's altitude from the same function minus a 0.1 m sink; the terrain MESH is displaced by the same profile, so visuals and walkable height are one source of truth.",
+      "plain": "Instead of simulating collisions, the ground height at any\r point is computed from a single mathematical profile: grass plateau,\r beach ramp, underwater slope. Feet, props, and the water all ask the\r same formula, so nothing can ever float or sink by accident — and it\r costs almost nothing to run.",
+      "technical": "`terrainProfile(polar)` defines altitude as chained\r smoothsteps over the angle from the pole; `groundAltitudeAt(lat, long)`\r adds the dock's walkable strip (`onDockStrip` tests cross-track meters\r against the dock meridian) and `groundHeightAt` turns the avatar's\r planet-local direction into a world height every frame, allocation-free.\r Placement rule 1 derives every prop's altitude from the same function\r minus a 0.1 m sink; the terrain MESH is displaced by the same profile,\r so visuals and walkable height are one source of truth.",
       "files": [
         {
           "path": "src/scene/planetConfig.ts",
@@ -70,8 +70,8 @@
       "id": "one-terrain",
       "title": "One continuous terrain surface",
       "hook": "The beach isn't a second object lying on the island — it's the same skin.",
-      "plain": "Grass, sand, and the underwater slope are one continuous mesh whose radius follows the ground formula, painted by latitude bands. Early versions stacked separate shells for grass and sand, and the seams showed at exactly the places players stare at — the waterline. One surface means there is no seam to show.",
-      "technical": "A sphere-cap geometry runs from the pole past the waterline to an apron that tucks under the opaque ocean-floor sphere; `facetTerrain` displaces each vertex by `terrainProfile`, splits faces for the flat-shaded look, and paints per-face two-tone vertex colors by polar band with seeded jitter that fades near band transitions. Wading depth is just walking down the real slope — the controller and the mesh share the profile, so there is no step at the waterline.",
+      "plain": "Grass, sand, and the underwater slope are one continuous\r mesh whose radius follows the ground formula, painted by latitude\r bands. Early versions stacked separate shells for grass and sand, and\r the seams showed at exactly the places players stare at — the\r waterline. One surface means there is no seam to show.",
+      "technical": "A sphere-cap geometry runs from the pole past the\r waterline to an apron that tucks under the opaque ocean-floor sphere;\r `facetTerrain` displaces each vertex by `terrainProfile`, splits\r faces for the flat-shaded look, and paints per-face two-tone vertex\r colors by polar band with seeded jitter that fades near band\r transitions. Wading depth is just walking down the real slope — the\r controller and the mesh share the profile, so there is no step at the\r waterline.",
       "files": [
         {
           "path": "src/scene/Island.tsx",
@@ -102,8 +102,8 @@
       "id": "two-skies",
       "title": "Two skies on one planet",
       "hook": "Walk one way and the sun rises; walk the other and you get the moon — permanently.",
-      "plain": "The sun, moon, stars, and sky colors are children of the rotating planet, not the fixed camera. That single choice is what makes the island's two moods permanent places instead of a day/night timer: sunset lives on one side of the world, night on the other, and walking between them crossfades everything.",
-      "technical": "`useSkyState` computes `nightMix` from the pole's sunward projection each frame and drives one dome `ShaderMaterial` (elevation-based blues, a sunset layer shaped by angular distance from the sun's azimuth, a silver moon layer), the fog and clear color, and the hemisphere/directional light rig. Sky materials set `fog: false`, `depthWrite: false`, and — critically — `toneMapped: false`: the sky renders unmapped so its palette tokens are WYSIWYG.",
+      "plain": "The sun, moon, stars, and sky colors are children of the\r rotating planet, not the fixed camera. That single choice is what\r makes the island's two moods permanent places instead of a day/night\r timer: sunset lives on one side of the world, night on the other, and\r walking between them crossfades everything.",
+      "technical": "`useSkyState` computes `nightMix` from the pole's\r sunward projection each frame and drives one dome `ShaderMaterial`\r (elevation-based blues, a sunset layer shaped by angular distance from\r the sun's azimuth, a silver moon layer), the fog and clear color, and\r the hemisphere/directional light rig. Sky materials set `fog: false`,\r `depthWrite: false`, and — critically — `toneMapped: false`: the sky\r renders unmapped so its palette tokens are WYSIWYG.",
       "files": [
         {
           "path": "src/scene/useSkyState.ts",
@@ -134,8 +134,8 @@
       "id": "celestial-arc",
       "title": "The sun actually sets",
       "hook": "Stand inland and the sun rides high; walk to the water and it sinks into the sea.",
-      "plain": "The sun and moon aren't painted at fixed heights — their elevation follows where you stand, easing from overhead on the plateau down to a true ocean set at the waterline, where the water physically hides the bottom of the disc. A guard makes sure the disc never fully drowns while you're looking at it from the beach.",
-      "technical": "Disc elevation is a smooth function of the player's polar angle, easing to a waterline endpoint where the disc sits ~40% submerged below the sea horizon — the ocean geometry occludes it, no masking. The set FLOOR is enforced in screen terms: each frame the ocean limb's angular direction is computed analytically from the camera, and if the solved disc would show less than ~55% above the limb, a few-step bisection corrects the disc's polar angle before smoothing. `e2e/setcheck.mjs` samples rendered frames and asserts the visible fraction.",
+      "plain": "The sun and moon aren't painted at fixed heights — their\r elevation follows where you stand, easing from overhead on the plateau\r down to a true ocean set at the waterline, where the water physically\r hides the bottom of the disc. A guard makes sure the disc never fully\r drowns while you're looking at it from the beach.",
+      "technical": "Disc elevation is a smooth function of the player's\r polar angle, easing to a waterline endpoint where the disc sits ~40%\r submerged below the sea horizon — the ocean geometry occludes it, no\r masking. The set FLOOR is enforced in screen terms: each frame the\r ocean limb's angular direction is computed analytically from the\r camera, and if the solved disc would show less than ~55% above the\r limb, a few-step bisection corrects the disc's polar angle before\r smoothing. `e2e/setcheck.mjs` samples rendered frames and asserts the\r visible fraction.",
       "files": [
         {
           "path": "src/scene/useSkyState.ts",
@@ -164,8 +164,8 @@
       "id": "glitter",
       "title": "A glitter path that belongs to you",
       "hook": "The sparkle lane on the water always points at you — not at the camera.",
-      "plain": "On real water, the glitter path runs from the sun to your eyes. Here it runs from the sun to the CHARACTER, so orbiting the camera changes your view of the lane without moving it. It's a deliberate stylization for a third-person game: the light belongs to the person on the beach, and it walks with you.",
-      "technical": "The water's vertex shader displaces 2–3 summed sines; the fragment side perturbs the normal analytically from the same sine sum (plus normal-only micro-ripples), then computes a Blinn specular term per light body — with the VIEWER term being the avatar's fixed world eye position passed as a uniform, never `cameraPosition`. A great-circle corridor from the disc base through the character clamps the footprint (meters-wide, monotonically widening toward shore, edges wobbled by time noise), and the whole thing fades into the foam band by water depth.",
+      "plain": "On real water, the glitter path runs from the sun to your\r eyes. Here it runs from the sun to the CHARACTER, so orbiting the\r camera changes your view of the lane without moving it. It's a\r deliberate stylization for a third-person game: the light belongs to\r the person on the beach, and it walks with you.",
+      "technical": "The water's vertex shader displaces 2–3 summed sines;\r the fragment side perturbs the normal analytically from the same sine\r sum (plus normal-only micro-ripples), then computes a Blinn specular\r term per light body — with the VIEWER term being the avatar's fixed\r world eye position passed as a uniform, never `cameraPosition`. A\r great-circle corridor from the disc base through the character clamps\r the footprint (meters-wide, monotonically widening toward shore, edges\r wobbled by time noise), and the whole thing fades into the foam band\r by water depth.",
       "files": [
         {
           "path": "src/scene/Water.tsx",
@@ -196,8 +196,8 @@
       "id": "character-rig",
       "title": "A villager built from spheres and math",
       "hook": "Nobody modeled this character — it's assembled from primitive shapes and animated by arithmetic.",
-      "plain": "The avatar is stacked spheres, capsules, and boxes in Animal-Crossing proportions: a huge head, a teardrop body, stubby limbs. There's no skeleton and no animation files — walking, running, jumping, strumming, and sitting are all math driving the joints every frame. The whole cast (the player, Koa the ukulele player, future NPCs) shares one parameterized rig.",
-      "technical": "`buildNodes(config)` constructs merged vertex-colored geometry per body part from a `CharacterConfig` (hair style, glasses, outfit, dozens of proportion dials); limbs hang from pivot groups with nested elbow pivots. `STATES` holds per-locomotion animation params (bob, swing, lean) crossfaded by lerp; foot plants fire from swing phase crossings — never timers — which is what drives surface-switched footsteps. NPC specifics (Koa's strum, the avatar's seated pose) compose through a `poseHook` that runs after the shared animation.",
+      "plain": "The avatar is stacked spheres, capsules, and boxes in\r Animal-Crossing proportions: a huge head, a teardrop body, stubby\r limbs. There's no skeleton and no animation files — walking, running,\r jumping, strumming, and sitting are all math driving the joints every\r frame. The whole cast (the player, Koa the ukulele player, future\r NPCs) shares one parameterized rig.",
+      "technical": "`buildNodes(config)` constructs merged vertex-colored\r geometry per body part from a `CharacterConfig` (hair style, glasses,\r outfit, dozens of proportion dials); limbs hang from pivot groups with\r nested elbow pivots. `STATES` holds per-locomotion animation params\r (bob, swing, lean) crossfaded by lerp; foot plants fire from swing\r phase crossings — never timers — which is what drives surface-switched\r footsteps. NPC specifics (Koa's strum, the avatar's seated pose)\r compose through a `poseHook` that runs after the shared animation.",
       "files": [
         {
           "path": "src/scene/BlockyCharacter.tsx",
@@ -234,8 +234,8 @@
       "id": "audio",
       "title": "Sound that starts from silence",
       "hook": "Every wave, gull, footstep, and strum is either Aiden's own recording or synthesized on the spot — and none of it exists until you touch the page.",
-      "plain": "The audio system is fully lazy: nothing loads or even constructs an audio context before your first click or keypress. From there, each sound category draws from a pool of the owner's recorded cuts with a shuffle that never repeats back-to-back; categories with no recordings yet fall back to sounds generated by code. Footsteps know what you're walking on; the campfire is loud only when you're near it.",
-      "technical": "`nextBuffer(category)` resolves from `import.meta.glob` pools (drop a file in — zero code changes) through a depth-2 `ShuffleBag`, decode-once cached, mono-downmixed for positional use. Foot plants come from the animation and route through `surfaceUnderfoot`; jumps are WebAudio-scheduled double-taps. The hard-won parts are defensive: `syncPanner` (three.js only updates panners for nodes it started itself — custom-source nodes silently sit at the planet's center), and the tab-return protection — hidden tabs suspend the context, `onAudioResume` resets every scheduler baseline, stall guards skip forward rather than replaying backlogs, and `registerVoice` caps concurrent voices per pool.",
+      "plain": "The audio system is fully lazy: nothing loads or even\r constructs an audio context before your first click or keypress. From\r there, each sound category draws from a pool of the owner's recorded\r cuts with a shuffle that never repeats back-to-back; categories with\r no recordings yet fall back to sounds generated by code. Footsteps\r know what you're walking on; the campfire is loud only when you're\r near it.",
+      "technical": "`nextBuffer(category)` resolves from `import.meta.glob`\r pools (drop a file in — zero code changes) through a depth-2\r `ShuffleBag`, decode-once cached, mono-downmixed for positional use.\r Foot plants come from the animation and route through\r `surfaceUnderfoot`; jumps are WebAudio-scheduled double-taps. The\r hard-won parts are defensive: `syncPanner` (three.js only updates\r panners for nodes it started itself — custom-source nodes silently sit\r at the planet's center), and the tab-return protection — hidden tabs\r suspend the context, `onAudioResume` resets every scheduler baseline,\r stall guards skip forward rather than replaying backlogs, and\r `registerVoice` caps concurrent voices per pool.",
       "files": [
         {
           "path": "src/audio/core.ts",
@@ -286,8 +286,8 @@
       "id": "budgets",
       "title": "Why draw calls beat triangles",
       "hook": "The island runs at 60 fps on a phone not by having less stuff — but by asking the GPU fewer times.",
-      "plain": "The performance budget is counted in draw calls — how many separate \"please draw this\" requests hit the GPU per frame — because on this kind of scene each request costs more than the triangles inside it. Repeated props render as single instanced batches; merged props fuse into one object per material; the whole world stays under 50 requests on mobile.",
-      "technical": "`e2e/measure.mjs` records fps, `renderer.info.render.calls`, and triangles at spawn, mid-dock, and the night beach against the preview build — the budget gates every feature commit. Repeats (palms, rocks, dock planks, campfire stones) go through instancing or `mergeByMaterial`; the fire's six animated tongues are ONE InstancedMesh; vertex-tinted merges collapse multi-material props to a single call. `PerformanceMonitor` drops a `qualityTier` that thins particles and stars on sustained decline — but never to zero (the empty-sky lesson).",
+      "plain": "The performance budget is counted in draw calls — how many\r separate \"please draw this\" requests hit the GPU per frame — because\r on this kind of scene each request costs more than the triangles\r inside it. Repeated props render as single instanced batches; merged\r props fuse into one object per material; the whole world stays under\r 50 requests on mobile.",
+      "technical": "`e2e/measure.mjs` records fps, `renderer.info.render.calls`,\r and triangles at spawn, mid-dock, and the night beach against the\r preview build — the budget gates every feature commit. Repeats\r (palms, rocks, dock planks, campfire stones) go through instancing or\r `mergeByMaterial`; the fire's six animated tongues are ONE\r InstancedMesh; vertex-tinted merges collapse multi-material props to\r a single call. `PerformanceMonitor` drops a `qualityTier` that thins\r particles and stars on sustained decline — but never to zero (the\r empty-sky lesson).",
       "files": [
         {
           "path": "e2e/measure.mjs",
@@ -320,8 +320,8 @@
       "id": "content-pipeline",
       "title": "Content without touching the scene",
       "hook": "Every photo, project, and song on the island can change without anyone opening the 3D code.",
-      "plain": "All portfolio content lives in a handful of plain data files — the scene reads them, never the other way around. Photos drop into a staging folder and a script resizes and compresses them into web and thumbnail sizes; audio recordings drop into category folders and join the sound pools automatically; every category shows a friendly empty state until it's filled, so a half-finished site never looks broken.",
-      "technical": "`src/content/*.ts` exports typed arrays consumed by the modals and the `/classic` fallback page. `scripts/optimize-images.mjs` runs originals through a headless-Chromium canvas (no image deps) into 1800 px WebP plus 480 px thumbs with recorded intrinsic dimensions — the gallery never guesses aspect ratios. `scripts/ingest-audio.mjs` normalizes and verifies the owner's cuts into pools resolved by `import.meta.glob`. `CONTENT.md` documents every field against the actual interfaces; `CREDITS.md` tracks provenance — only license-clean sources ship.",
+      "plain": "All portfolio content lives in a handful of plain data\r files — the scene reads them, never the other way around. Photos drop\r into a staging folder and a script resizes and compresses them into\r web and thumbnail sizes; audio recordings drop into category folders\r and join the sound pools automatically; every category shows a\r friendly empty state until it's filled, so a half-finished site never\r looks broken.",
+      "technical": "`src/content/*.ts` exports typed arrays consumed by the\r modals and the `/classic` fallback page. `scripts/optimize-images.mjs`\r runs originals through a headless-Chromium canvas (no image deps) into\r 1800 px WebP plus 480 px thumbs with recorded intrinsic dimensions —\r the gallery never guesses aspect ratios. `scripts/ingest-audio.mjs`\r normalizes and verifies the owner's cuts into pools resolved by\r `import.meta.glob`. `CONTENT.md` documents every field against the\r actual interfaces; `CREDITS.md` tracks provenance — only license-clean\r sources ship.",
       "files": [
         {
           "path": "src/content/photos.ts",
@@ -355,10 +355,10 @@
     },
     {
       "id": "hedge-stone",
-      "title": "The hedge stone",
-      "hook": "The About page is a carved stone standing in a hedge clearing at the edge of dusk.",
-      "plain": "Where a big tree used to hold the About portal, there's now a waist-high standing stone ringed by a low hedge that opens toward the path — walk in, press E, and read who built the island. The stone replaced the tree because a marker you READ says \"about\" better than a tree you grab rings from.",
-      "technical": "`buildHedgeStone` follows the vertex-tinted-merge pattern: a 4-segment tapered cylinder gives the slab a square-footprint standing-stone read, a squashed sphere domes the top, icosahedron chips carry the weathering, and nine rounded hedge blocks in two greens ring it with a ~100° gap aimed at local +z — which `meridianYaw` turns toward the walking approach from the island interior. The whole ensemble is ONE merged mesh with baked vertex colors (one draw call), and unlike the old tree-plus-cube pair, the stone IS the interactable: its `PropBody` renders it, and one 1.8 m slide-along blocker covers stone and hedge together.",
+      "title": "The moai in the hedge",
+      "hook": "The About page is a giant Easter Island head standing in a hedge clearing at the edge of dusk.",
+      "plain": "Where a big tree used to hold the About portal, a\r three-meter moai now gazes over the plateau, ringed by a low hedge\r that opens toward the path — walk in through the gap, press E, and\r read who built the island. It started life as a modest waist-high\r carved stone; the owner's verdict came back with Easter Island\r reference photos, so the stone grew a face.",
+      "technical": "`buildHedgeStone` assembles the moai from rounded\r boxes per the style bible: an elongated tilted-back head, one heavy\r brow ridge proud of the face, darker recess boxes for the eye\r hollows, a long nose shaft ending in a wide base, two thin bars with\r a shadow seam for the pursed lips, long side ears, and a small torso\r with arm slabs meeting in chip-colored hands — all vertex-tinted and\r merged into ONE draw call. The hedge ring (eleven two-green rounded\r blocks, r ≈ 2.2 m) keeps a ~95° opening aimed at local +z, which\r `meridianYaw` turns toward the walking approach. Blocking is split:\r the statue base takes the interactable's own 1.2 m radius, and three\r 1.6 m landmark arc-guards fence the ring's flanks and rear — players\r funnel through the opening, where the 2.5 m interact trigger fires\r before they reach the statue's wall.",
       "files": [
         {
           "path": "src/scene/props.ts",
@@ -375,15 +375,17 @@
           "note": "the About def ()"
         },
         {
-          "path": "src/scene/Interactable.tsx",
+          "path": "src/scene/planetConfig.ts",
           "symbols": [
-            "PROP_BUILDERS"
-          ]
+            "landmarkBlockers"
+          ],
+          "note": "the hedge-ring arc guards in"
         }
       ],
       "decisions": [
-        "The big tree + rings (and its separate placeholder cube beside the",
-        "\"Hedge stone\" was read as a standing stone in a hedge clearing; a"
+        "The big tree + rings (and the placeholder cube beside the trunk)",
+        "v1 was a waist-high tapered slab in a small ring; the owner asked",
+        "One big circular blocker was rejected at this scale: sized to the"
       ]
     }
   ]
