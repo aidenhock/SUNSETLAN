@@ -1,4 +1,5 @@
 import { cards } from '../content/about'
+import { ContactForm } from '../ui/ContactForm'
 import { contact } from '../content/contact'
 import { music } from '../content/music'
 import { photos } from '../content/photos'
@@ -28,7 +29,8 @@ export default function ClassicPage() {
         </header>
 
         <section className="mt-12" aria-labelledby="about-h">
-          <h2 id="about-h" className="font-display text-2xl font-bold">
+          <p className="font-display text-sm font-bold tracking-widest text-deepwater uppercase">About</p>
+          <h2 id="about-h" className="mt-1 font-display text-2xl font-bold">
             {about.title}
           </h2>
           <div className="mt-3 space-y-3">
@@ -44,6 +46,7 @@ export default function ClassicPage() {
           <h2 id="projects-h" className="font-display text-2xl font-bold">
             Projects
           </h2>
+          {projects.length === 0 && <p className="mt-3 text-ink/70">Case studies are being written up.</p>}
           <ul className="mt-4 space-y-4">
             {projects.map((project) => (
               <li key={project.title} className="rounded-xl border border-ink/10 bg-white p-4">
@@ -73,16 +76,25 @@ export default function ClassicPage() {
           <h2 id="photos-h" className="font-display text-2xl font-bold">
             Photos
           </h2>
+          {photos.length === 0 && <p className="mt-3 text-ink/70">Photos are on their way.</p>}
           <ul className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
             {photos.map((photo) => (
               <li key={photo.id}>
-                <img
-                  src={photo.thumb}
-                  alt={photo.alt}
-                  loading="lazy"
-                  className="aspect-[4/3] w-full rounded-lg object-cover"
-                />
-                <p className="mt-1 text-xs text-ink/70">{photo.caption ?? photo.title}</p>
+                <a
+                  href={photo.full}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="block overflow-hidden rounded-lg focus-visible:outline-2 focus-visible:outline-deepwater"
+                  aria-label={`Open full size: ${photo.title}`}
+                >
+                  <img
+                    src={photo.thumb}
+                    alt={photo.alt}
+                    loading="lazy"
+                    className="aspect-[4/3] w-full object-cover"
+                  />
+                </a>
+                <p className="mt-1 text-xs text-ink/70">{photo.title}</p>
               </li>
             ))}
           </ul>
@@ -92,6 +104,7 @@ export default function ClassicPage() {
           <h2 id="music-h" className="font-display text-2xl font-bold">
             Music
           </h2>
+          {music.length === 0 && <p className="mt-3 text-ink/70">Recordings are on their way.</p>}
           <ul className="mt-4 space-y-3">
             {music.map((track) => (
               <li key={track.title}>
@@ -112,6 +125,7 @@ export default function ClassicPage() {
           <h2 id="videos-h" className="font-display text-2xl font-bold">
             Videos
           </h2>
+          {videos.length === 0 && <p className="mt-3 text-ink/70">Videos arrive here soon.</p>}
           <ul className="mt-4 grid gap-4 sm:grid-cols-2">
             {videos.map((video) => (
               <li key={video.youtubeId}>
@@ -140,7 +154,10 @@ export default function ClassicPage() {
           <h2 id="contact-h" className="font-display text-2xl font-bold">
             Contact
           </h2>
-          <p className="mt-3">
+          <div className="mt-3 max-w-md">
+            <ContactForm />
+          </div>
+          <p className="mt-5">
             <a
               href={`mailto:${contact.email}`}
               className="inline-block rounded-lg bg-lagoon px-4 py-2 font-display font-semibold text-ink"

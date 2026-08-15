@@ -377,6 +377,11 @@ sources ship.
 - The photos taught a provenance rule now written into the spec: only
   what the owner deliberately stages ships — an agent must never
   source content from personal folders or exports, even helpfully.
+- The mirror rule (the owner's principle): everything in the world is
+  also on /classic — same content files, one is playable. Shared
+  components enforce it where logic is involved: the Formspree contact
+  form is ONE component rendered by both the mailbox modal and the
+  classic page, so the two can never drift.
 
 ## 11 · The moai {#hedge-stone}
 

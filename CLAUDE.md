@@ -145,7 +145,9 @@ The avatar is **Aiden** as a `BlockyCharacter` (component name kept): the v3.15 
 **Blob shadow (v3.4 — grounded)**: shoe soles sit exactly at rig-local y=0 and the avatar plants at `groundHeightAt`. The shadow lives OUTSIDE the jump-animated group: it receives ground height only (never jumpOffset), sits at ground + a small epsilon with a polygon-offset depth trick against the jittered facets, and during a jump stays on the ground shrinking to ~60% / fading to ~50% opacity at apex, recovering on landing. Same rules for future NPCs via the shared rig.
 
 ## Unchanged systems
-Interaction flow, content model, modals, `/classic` (add night-token styling only if trivial), meta/OG in Phase 4.
+Interaction flow, content model, modals, meta/OG in Phase 4.
+
+**MIRROR RULE (standing — Aiden's principle)**: everything shown in the 3D world is also on `/classic` — the two surfaces render the SAME content files and stay in content parity; one is playable, that's the only difference. Adding a content category or capability (e.g. the contact form) means adding it to BOTH, sharing the component where possible (`ui/ContactForm` is the pattern — one component, zero drift), and extending the `/classic` e2e's section checks. Every classic section carries a findable category label (the About card's title alone hid the section).
 
 ## Asset pipeline (v3 style reset: hand-built primitives only)
 

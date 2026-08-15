@@ -13,6 +13,16 @@ test('/classic renders every section without loading any three.js modules', asyn
   for (const heading of ["Hey, I'm Aiden", 'Projects', 'Photos', 'Music', 'Videos', 'Contact']) {
     await expect(page.getByRole('heading', { name: heading, exact: false })).toBeVisible()
   }
+  // Mirror rule: the About section is FINDABLE by its category label,
+  // the contact form renders here too (shared component with the
+  // mailbox modal), and photos link out to their full-size images.
+  await expect(page.getByText('About', { exact: true })).toBeVisible()
+  await expect(page.getByLabel('Name')).toBeVisible()
+  await expect(page.getByLabel('Email')).toBeVisible()
+  await expect(page.getByLabel('Message', { exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Send' })).toBeVisible()
+  const fullLinks = page.locator('a[aria-label^="Open full size:"]')
+  expect(await fullLinks.count()).toBe(17)
   await expect(page.getByRole('link', { name: 'Visit the island' })).toBeVisible()
   expect(await page.locator('canvas').count()).toBe(0)
 
