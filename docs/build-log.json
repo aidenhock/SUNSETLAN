@@ -387,6 +387,37 @@
         "v1 was a waist-high slab in a small hedge ring; the owner asked for",
         "The hedge ring and its three invisible arc-guard blockers were CUT:"
       ]
+    },
+    {
+      "id": "bulletin-board",
+      "title": "The bulletin board",
+      "hook": "A corkboard by the path holds the practical papers — starting with the resume.",
+      "plain": "Inland from the mailbox stands an Animal-Crossing-style\r bulletin board: two posts, a little sloped roof, and a cork face full\r of pinned pages. Read it and a Papers panel lists real documents you\r can view in the browser or download — the professional side of the\r island, pinned where visitors walk.",
+      "technical": "`buildBulletinBoard` is one vertex-tinted merge: posts,\r a weathered green frame, an inset cork face, a seated sloped roof, six\r paper quads at slight rotations with colored pin dots, and two curled\r corner flaps. The `papers` modal renders `content/papers.ts` entries\r as plain View (new tab — the browser's own PDF viewer) and Download\r links, so no PDF bytes move until a click; `/classic` mirrors the\r section per the mirror rule. Files live in `public/`.",
+      "files": [
+        {
+          "path": "src/scene/props.ts",
+          "symbols": [
+            "buildBulletinBoard"
+          ]
+        },
+        {
+          "path": "src/content/papers.ts",
+          "symbols": [
+            "Paper"
+          ],
+          "note": "the interface"
+        },
+        {
+          "path": "src/ui/modals/PapersModal.tsx",
+          "symbols": [],
+          "note": "the modal"
+        }
+      ],
+      "decisions": [
+        "An embedded PDF iframe viewer was rejected: it fetches on modal",
+        "The resume shipped as a marked PLACEHOLDER: the real file's header"
+      ]
     }
   ]
 }

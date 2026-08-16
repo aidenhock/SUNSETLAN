@@ -427,3 +427,35 @@ on every side.
   must trace something the player can SEE. Verified by walking full
   laps in both directions (zero stuck steps) and four-sided walk-ins
   stopping only at the visible statue.
+
+## 12 · The bulletin board {#bulletin-board}
+
+**Hook:** A corkboard by the path holds the practical papers — starting with the resume.
+
+**Plain:** Inland from the mailbox stands an Animal-Crossing-style
+bulletin board: two posts, a little sloped roof, and a cork face full
+of pinned pages. Read it and a Papers panel lists real documents you
+can view in the browser or download — the professional side of the
+island, pinned where visitors walk.
+
+**Technical:** `buildBulletinBoard` is one vertex-tinted merge: posts,
+a weathered green frame, an inset cork face, a seated sloped roof, six
+paper quads at slight rotations with colored pin dots, and two curled
+corner flaps. The `papers` modal renders `content/papers.ts` entries
+as plain View (new tab — the browser's own PDF viewer) and Download
+links, so no PDF bytes move until a click; `/classic` mirrors the
+section per the mirror rule. Files live in `public/`.
+
+**Files:**
+- `src/scene/props.ts` — `buildBulletinBoard`
+- `src/content/papers.ts` — the `Paper` interface
+- `src/ui/modals/PapersModal.tsx` — the modal
+
+**Decisions:**
+- An embedded PDF iframe viewer was rejected: it fetches on modal
+  open, styles inconsistently across browsers, and the browser's own
+  tab viewer is strictly better at its one job.
+- The resume shipped as a marked PLACEHOLDER: the real file's header
+  carries a phone number, and the standing privacy rule says no
+  version with a phone or home address ever ships — the owner strips
+  it and swaps the file, no code change needed.
