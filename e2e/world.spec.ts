@@ -155,3 +155,35 @@ test('desktop: sit system — E sits and stands, movement suppressed while seate
 
   expect(realErrors(errors)).toEqual([])
 })
+
+test('desktop: minimap — visible by default, M toggles, menu toggles, marker canvas draws', async ({
+  page,
+}) => {
+  const errors = collectErrors(page)
+  await gotoWorld(page)
+  await page.waitForTimeout(800)
+  const map = page.locator('[data-minimap]')
+  await expect(map).toBeVisible()
+  // The canvas actually paints (not a blank surface).
+  const painted = await page.evaluate(() => {
+    const c = document.querySelector('[data-minimap]') as HTMLCanvasElement
+    const ctx = c.getContext('2d')!
+    const px = ctx.getImageData(0, 0, c.width, c.height).data
+    let nonZero = 0
+    for (let i = 3; i < px.length; i += 4) if (px[i] > 0) nonZero++
+    return nonZero
+  })
+  expect(painted).toBeGreaterThan(1000)
+  // M hides, M shows.
+  await page.keyboard.press('KeyM')
+  await expect(map).toBeHidden()
+  await page.keyboard.press('KeyM')
+  await expect(map).toBeVisible()
+  // Menu toggle works too.
+  await page.getByRole('button', { name: 'Menu' }).click()
+  await page.getByRole('button', { name: /Minimap: on/ }).click()
+  await expect(map).toBeHidden()
+  await page.getByRole('button', { name: /Minimap: off/ }).click()
+  await expect(map).toBeVisible()
+  expect(realErrors(errors)).toEqual([])
+})

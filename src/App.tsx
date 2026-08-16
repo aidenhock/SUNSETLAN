@@ -5,6 +5,7 @@ import { TouchJoystick } from './controls/TouchJoystick'
 import { PlanetScene } from './scene/Planet'
 import { useStore } from './store/useStore'
 import { Hud } from './ui/Hud'
+import { Minimap } from './ui/Minimap'
 import { LoadingScreen } from './ui/LoadingScreen'
 import { ModalRoot } from './ui/ModalRoot'
 
@@ -134,6 +135,7 @@ export default function App() {
         </Canvas>
         {isTouch && <TouchJoystick />}
         <Hud isTouch={isTouch} />
+        <Minimap isTouch={isTouch} />
       </div>
       <ModalRoot />
     </div>

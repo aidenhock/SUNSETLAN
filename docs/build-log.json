@@ -741,6 +741,76 @@
         "An embedded PDF iframe viewer was rejected: it fetches on modal",
         "The resume shipped as a marked PLACEHOLDER: the real file's header"
       ]
+    },
+    {
+      "id": "minimap",
+      "title": "The minimap",
+      "hook": "A little compass-map in the corner remembers everywhere you've been.",
+      "plain": "The circular minimap keeps the sunset side at the top like a compass, shows the island's grass, beach, and waterline, and starts covered in fog — walking reveals it cell by cell, and the reveal is remembered between visits. Portals appear as labelled dots once you've found their neighborhood. M (or the menu) hides it.",
+      "technical": "A 2D canvas overlay — deliberately not a second three.js scene — redrawn at 10 Hz (5 Hz on low tier) with zero per-frame allocations. `projectPolar` maps lat/long to map pixels (pole at centre, long 0 up); the player's position derives from the live planet quaternion via `poleInPlanetSpace` — the same math the world runs — and the facing cone from the established azimuth↔north mapping. Exploration is an 8×24 cell grid (`cellIndex` / `cellsWithinRange`, 6 m discovery radius, vitest-pinned), eased in over 0.4 s (instant under reduced motion), persisted under a versioned localStorage key with a no-storage fallback, and resettable from the HUD menu.",
+      "files": [
+        {
+          "path": "src/ui/minimapMath.ts",
+          "symbols": [
+            "projectPolar",
+            "cellIndex",
+            "cellsWithinRange",
+            "loadExplored"
+          ],
+          "excerpts": [
+            {
+              "symbol": "projectPolar",
+              "line": 20,
+              "code": "export function projectPolar(lat: number, long: number, radiusPx: number): { x: number; y: number } {\n  const r = (Math.min(90 - lat, 90 - LAT_EDGE) / (90 - LAT_EDGE)) * radiusPx\n  const a = (long * Math.PI) / 180\n  return { x: r * Math.sin(a), y: -r * Math.cos(a) }\n}\n\n/** Map radius (px fraction of the rim) at a given latitude. */\nexport function radiusAtLat(lat: number, radiusPx: number): number {\n  return (Math.min(90 - lat, 90 - LAT_EDGE) / (90 - LAT_EDGE)) * radiusPx\n}\n\nexport function cellIndex(lat: number, long: number): number {\n  const band = Math.min(LAT_BANDS - 1, Math.max(0, Math.floor((90 - lat) / BAND_DEG)))\n  const sector = Math.min(LONG_SECTORS - 1, Math.floor(wrap360(long) / SECTOR_DEG))"
+            },
+            {
+              "symbol": "cellIndex",
+              "line": 31,
+              "code": "export function cellIndex(lat: number, long: number): number {\n  const band = Math.min(LAT_BANDS - 1, Math.max(0, Math.floor((90 - lat) / BAND_DEG)))\n  const sector = Math.min(LONG_SECTORS - 1, Math.floor(wrap360(long) / SECTOR_DEG))\n  return band * LONG_SECTORS + sector\n}\n\nexport function cellCenter(index: number): { lat: number; long: number } {\n  const band = Math.floor(index / LONG_SECTORS)\n  const sector = index % LONG_SECTORS\n  return { lat: 90 - (band + 0.5) * BAND_DEG, long: (sector + 0.5) * SECTOR_DEG }\n}\n\n/** Approximate great-circle meters between two lat/long points. */\nexport function arcMeters(latA: number, longA: number, latB: number, longB: number): number {"
+            },
+            {
+              "symbol": "cellsWithinRange",
+              "line": 54,
+              "code": "export function cellsWithinRange(lat: number, long: number, rangeM: number): number[] {\n  const here = cellIndex(lat, long)\n  const band = Math.floor(here / LONG_SECTORS)\n  const sector = here % LONG_SECTORS\n  const out: number[] = []\n  for (let db = -1; db <= 1; db++) {\n    const b = band + db\n    if (b < 0 || b >= LAT_BANDS) continue\n    for (let ds = -1; ds <= 1; ds++) {\n      const sIdx = (sector + ds + LONG_SECTORS) % LONG_SECTORS\n      const idx = b * LONG_SECTORS + sIdx\n      const c = cellCenter(idx)\n      if (arcMeters(lat, long, c.lat, c.long) <= rangeM) out.push(idx)\n    }"
+            },
+            {
+              "symbol": "loadExplored",
+              "line": 79,
+              "code": "export function loadExplored(storage: Pick<Storage, 'getItem'> | null): Set<number> {\n  try {\n    const raw = storage?.getItem(STORAGE_KEY)\n    if (!raw) return new Set()\n    const arr = JSON.parse(raw) as unknown\n    if (!Array.isArray(arr)) return new Set()\n    return new Set(arr.filter((n) => Number.isInteger(n) && n >= 0 && n < TOTAL_CELLS) as number[])\n  } catch {\n    return new Set()\n  }\n}\n\nexport function saveExplored(storage: Pick<Storage, 'setItem'> | null, explored: Set<number>): void {\n  try {"
+            }
+          ]
+        },
+        {
+          "path": "src/ui/Minimap.tsx",
+          "symbols": [],
+          "excerpts": [],
+          "note": "the canvas overlay"
+        },
+        {
+          "path": "src/store/useStore.ts",
+          "symbols": [
+            "toggleMinimap",
+            "resetExploration"
+          ],
+          "excerpts": [
+            {
+              "symbol": "toggleMinimap",
+              "line": 42,
+              "code": "  toggleMinimap: () => void\r\n  resetExploration: () => void\r\n}\r\n\r\n/** Mute persists across visits (3C); everything else is session state. */\r\nconst persistedMute = (() => {\r\n  try {\r\n    return localStorage.getItem('sl-muted') === '1'\r\n  } catch {\r\n    return false\r\n  }\r\n})()\r\n\r\n/** Minimap starts ON unless the visitor turned it off before. */\r"
+            },
+            {
+              "symbol": "resetExploration",
+              "line": 43,
+              "code": "  resetExploration: () => void\r\n}\r\n\r\n/** Mute persists across visits (3C); everything else is session state. */\r\nconst persistedMute = (() => {\r\n  try {\r\n    return localStorage.getItem('sl-muted') === '1'\r\n  } catch {\r\n    return false\r\n  }\r\n})()\r\n\r\n/** Minimap starts ON unless the visitor turned it off before. */\r\nconst persistedMinimap = (() => {\r"
+            }
+          ]
+        }
+      ],
+      "decisions": [
+        "A second three.js scene for the map was ruled out by the task spec",
+        "10 Hz updates instead of per-frame: a minimap doesn't need 60 fps,",
+        "Fog is per-cell wedges over a fully-drawn map rather than masking"
+      ]
     }
   ]
 }

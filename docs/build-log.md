@@ -459,3 +459,39 @@ section per the mirror rule. Files live in `public/`.
   carries a phone number, and the standing privacy rule says no
   version with a phone or home address ever ships — the owner strips
   it and swaps the file, no code change needed.
+
+## 13 · The minimap {#minimap}
+
+**Hook:** A little compass-map in the corner remembers everywhere you've been.
+
+**Plain:** The circular minimap keeps the sunset side at the top like
+a compass, shows the island's grass, beach, and waterline, and starts
+covered in fog — walking reveals it cell by cell, and the reveal is
+remembered between visits. Portals appear as labelled dots once
+you've found their neighborhood. M (or the menu) hides it.
+
+**Technical:** A 2D canvas overlay — deliberately not a second
+three.js scene — redrawn at 10 Hz (5 Hz on low tier) with zero
+per-frame allocations. `projectPolar` maps lat/long to map pixels
+(pole at centre, long 0 up); the player's position derives from the
+live planet quaternion via `poleInPlanetSpace` — the same math the
+world runs — and the facing cone from the established azimuth↔north
+mapping. Exploration is an 8×24 cell grid (`cellIndex` /
+`cellsWithinRange`, 6 m discovery radius, vitest-pinned), eased in
+over 0.4 s (instant under reduced motion), persisted under a
+versioned localStorage key with a no-storage fallback, and resettable
+from the HUD menu.
+
+**Files:**
+- `src/ui/minimapMath.ts` — `projectPolar`, `cellIndex`, `cellsWithinRange`, `loadExplored`
+- `src/ui/Minimap.tsx` — the canvas overlay
+- `src/store/useStore.ts` — `toggleMinimap`, `resetExploration`
+
+**Decisions:**
+- A second three.js scene for the map was ruled out by the task spec
+  and would have doubled renderer state for a HUD widget; canvas 2D
+  draws the whole thing in one pass.
+- 10 Hz updates instead of per-frame: a minimap doesn't need 60 fps,
+  and the player marker moving at 10 Hz is imperceptible at 130 px.
+- Fog is per-cell wedges over a fully-drawn map rather than masking
+  the draw — simpler, and the eased reveal is just an alpha ramp.

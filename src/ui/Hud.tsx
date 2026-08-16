@@ -58,6 +58,9 @@ export function Hud({ isTouch }: { isTouch: boolean }) {
   const pointerLocked = useStore((s) => s.pointerLocked)
   const cameraMode = useStore((s) => s.settings.cameraMode)
   const setCameraMode = useStore((s) => s.setCameraMode)
+  const minimapVisible = useStore((s) => s.minimapVisible)
+  const toggleMinimap = useStore((s) => s.toggleMinimap)
+  const resetExploration = useStore((s) => s.resetExploration)
   const [menuOpen, setMenuOpen] = useState(false)
 
   // Remember whether the visitor has ever locked, to shorten the hint.
@@ -71,6 +74,10 @@ export function Hud({ isTouch }: { isTouch: boolean }) {
       if (e.repeat) return
       const { nearbyId, nearbyLog, seatedSeat, openModalId, openModal, standUp } =
         useStore.getState()
+      if (e.code === 'KeyM' && !openModalId) {
+        useStore.getState().toggleMinimap()
+        return
+      }
       if (e.code !== 'KeyE' || openModalId) return
       // Priority: stand up if seated; interactables own E otherwise; the
       // sit prompt takes it only when nothing else wants the key.
@@ -134,6 +141,20 @@ export function Hud({ isTouch }: { isTouch: boolean }) {
                 Camera: {cameraMode === 'pointerLock' ? 'mouse look' : 'drag to orbit'}
               </button>
             )}
+            <button
+              type="button"
+              onClick={toggleMinimap}
+              className="touch-manipulation rounded px-2 py-1 text-left hover:bg-sand/10 focus-visible:outline-2 focus-visible:outline-lagoon"
+            >
+              Minimap: {minimapVisible ? 'on' : 'off'} (M)
+            </button>
+            <button
+              type="button"
+              onClick={resetExploration}
+              className="touch-manipulation rounded px-2 py-1 text-left hover:bg-sand/10 focus-visible:outline-2 focus-visible:outline-lagoon"
+            >
+              Reset exploration
+            </button>
             <a
               href="/classic"
               className="rounded px-2 py-1 hover:bg-sand/10 focus-visible:outline-2 focus-visible:outline-lagoon"

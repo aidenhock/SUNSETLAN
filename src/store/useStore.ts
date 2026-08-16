@@ -23,6 +23,10 @@ interface AppState {
   pointerLocked: boolean
   /** Visitor-tunable settings; state only, no localStorage assumptions. */
   settings: { cameraMode: CameraMode }
+  /** Minimap HUD (TASK 2): visibility persists; the reset counter
+   * signals the Minimap component to clear exploration. */
+  minimapVisible: boolean
+  minimapResetCount: number
   setNearby: (id: string | null) => void
   setNearbyLog: (index: number | null) => void
   sitDown: (seat: { log: number; offsetM: number }) => void
@@ -35,6 +39,8 @@ interface AppState {
   finishIntro: () => void
   setPointerLocked: (locked: boolean) => void
   setCameraMode: (mode: CameraMode) => void
+  toggleMinimap: () => void
+  resetExploration: () => void
 }
 
 /** Mute persists across visits (3C); everything else is session state. */
@@ -43,6 +49,15 @@ const persistedMute = (() => {
     return localStorage.getItem('sl-muted') === '1'
   } catch {
     return false
+  }
+})()
+
+/** Minimap starts ON unless the visitor turned it off before. */
+const persistedMinimap = (() => {
+  try {
+    return localStorage.getItem('sl-minimap-on') !== '0'
+  } catch {
+    return true
   }
 })()
 
@@ -57,6 +72,8 @@ export const useStore = create<AppState>((set) => ({
   introDone: false,
   pointerLocked: false,
   settings: { cameraMode: 'pointerLock' },
+  minimapVisible: persistedMinimap,
+  minimapResetCount: 0,
   setNearby: (id) => set({ nearbyId: id }),
   setNearbyLog: (index) => set({ nearbyLog: index }),
   sitDown: (seat) => set({ seatedSeat: seat }),
@@ -76,4 +93,15 @@ export const useStore = create<AppState>((set) => ({
   finishIntro: () => set({ introDone: true }),
   setPointerLocked: (pointerLocked) => set({ pointerLocked }),
   setCameraMode: (cameraMode) => set({ settings: { cameraMode } }),
+  toggleMinimap: () =>
+    set((s) => {
+      const next = !s.minimapVisible
+      try {
+        localStorage.setItem('sl-minimap-on', next ? '1' : '0')
+      } catch {
+        // No-storage environments just lose the preference.
+      }
+      return { minimapVisible: next }
+    }),
+  resetExploration: () => set((s) => ({ minimapResetCount: s.minimapResetCount + 1 })),
 }))
