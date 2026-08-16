@@ -14,12 +14,41 @@
             "applyStep",
             "poleInPlanetSpace",
             "latLongToUnit"
+          ],
+          "excerpts": [
+            {
+              "symbol": "rotationStep",
+              "line": 30,
+              "code": "export function rotationStep(\n  moveDir: THREE.Vector3,\n  angle: number,\n  out: THREE.Quaternion = new THREE.Quaternion(),\n): THREE.Quaternion {\n  _axis.crossVectors(WORLD_UP, moveDir)\n  if (_axis.lengthSq() < 1e-12) return out.identity() // no horizontal input\n  return out.setFromAxisAngle(_axis.normalize(), -angle)\n}\n\n/** Compose one step onto the current planet orientation (world-space rotation). */\nexport function applyStep(\n  current: THREE.Quaternion,\n  step: THREE.Quaternion,"
+            },
+            {
+              "symbol": "applyStep",
+              "line": 41,
+              "code": "export function applyStep(\n  current: THREE.Quaternion,\n  step: THREE.Quaternion,\n  out: THREE.Quaternion = new THREE.Quaternion(),\n): THREE.Quaternion {\n  // p_world = q · p_local, so an extra world rotation premultiplies: q' = step · q.\n  return out.multiplyQuaternions(step, current).normalize()\n}\n\n/**\n * The planet-local direction currently under the avatar's feet, i.e. the\n * world pole pulled back through the planet's rotation.\n */\nexport function poleInPlanetSpace("
+            },
+            {
+              "symbol": "poleInPlanetSpace",
+              "line": 54,
+              "code": "export function poleInPlanetSpace(\n  q: THREE.Quaternion,\n  out: THREE.Vector3 = new THREE.Vector3(),\n): THREE.Vector3 {\n  _inv.copy(q).invert()\n  return out.copy(WORLD_UP).applyQuaternion(_inv)\n}\n\n/**\n * Angular distance (radians) between the avatar's ground-contact point and a\n * planet-local direction. Multiply by the planet radius for meters of arc.\n */\nexport function angularDistanceToPole(q: THREE.Quaternion, localDir: THREE.Vector3): number {\n  return poleInPlanetSpace(q, _pole).angleTo(localDir)"
+            },
+            {
+              "symbol": "latLongToUnit",
+              "line": 84,
+              "code": "export function latLongToUnit(latDeg: number, longDeg: number): THREE.Vector3 {\n  const polar = THREE.MathUtils.degToRad(90 - latDeg)\n  const long = THREE.MathUtils.degToRad(longDeg)\n  return new THREE.Vector3(\n    Math.sin(polar) * Math.sin(long),\n    Math.cos(polar),\n    Math.sin(polar) * Math.cos(long),\n  )\n}\n\n/** Planet-local position tuple for content files. */\nexport function latLongToPosition(\n  latDeg: number,\n  longDeg: number,"
+            }
           ]
         },
         {
           "path": "src/controls/usePlanetController.ts",
           "symbols": [
             "controlsRuntime"
+          ],
+          "excerpts": [
+            {
+              "symbol": "controlsRuntime",
+              "line": 38,
+              "code": "export const controlsRuntime = {\n  joyX: 0,\n  joyY: 0,\n  azimuth: Math.PI,\n  /** Set to snap the camera heading next frame (consumed once) — used by the\n   * e2e suites and, later, the intro swoop. */\n  azimuthOverride: null as number | null,\n  /** Teleport: put this lat/long under the avatar next frame (consumed once). */\n  poseOverride: null as { lat: number; long: number } | null,\n  wadeRippleTime: 0,\n  /** Written every frame for the animated avatar's clip selection. */\n  locomotion: 'idle' as 'idle' | 'walk' | 'run',\n  airborne: false,\n  /** Body world yaw + camera pitch, published for the head look-at (v3.3). */"
+            }
           ],
           "note": "the frame loop, blocker slide-along"
         }
@@ -44,6 +73,28 @@
             "TERRAIN",
             "DOCK",
             "surfaceUnderfoot"
+          ],
+          "excerpts": [
+            {
+              "symbol": "terrainProfile",
+              "line": 54,
+              "code": "export function terrainProfile(polarRad: number): number {\r\n  const p = THREE.MathUtils.radToDeg(polarRad)\r\n  if (p <= TERRAIN.plateauEndDeg) return GRASS_ALTITUDE\r\n  if (p <= TERRAIN.shoulderEndDeg) {\r\n    return THREE.MathUtils.lerp(\r\n      GRASS_ALTITUDE,\r\n      SAND_ALTITUDE,\r\n      THREE.MathUtils.smoothstep(p, TERRAIN.plateauEndDeg, TERRAIN.shoulderEndDeg),\r\n    )\r\n  }\r\n  if (p <= TERRAIN.waterlineDeg) {\r\n    return THREE.MathUtils.lerp(\r\n      SAND_ALTITUDE,\r\n      0,\r"
+            },
+            {
+              "symbol": "TERRAIN",
+              "line": 41,
+              "code": "export const TERRAIN = {\r\n  /** Grass plateau ends (deg from the pole). */\r\n  plateauEndDeg: 63,\r\n  /** Rolling shoulder down to the sand altitude. */\r\n  shoulderEndDeg: 67,\r\n  /** Waterline: profile crosses exactly 0 here (= ISLAND_POLAR_DEG). */\r\n  waterlineDeg: ISLAND_POLAR_DEG,\r\n  /** Submerged apron ends here, below the ocean-floor sphere. */\r\n  apronEndDeg: 81,\r\n  apronAltitude: -0.9,\r\n} as const\r\n\r\n/** Altitude above sea level at a polar angle (radians from the pole). */\r\nexport function terrainProfile(polarRad: number): number {\r"
+            },
+            {
+              "symbol": "DOCK",
+              "line": 86,
+              "code": "export const DOCK = {\r\n  longDeg: 0,\r\n  latMinDeg: 13,\r\n  latMaxDeg: 24,\r\n  halfWidthM: 1,\r\n  deckHeightM: 0.6,\r\n  plankThicknessM: 0.18,\r\n  segmentCount: 5,\r\n}\r\n\r\n/** Footstep tuning (3C): gains, foot-plant phases in the swing cycle,\r\n * and the jump double-tap gap. */\r\nexport const FOOTSTEPS = {\r\n  stepGainWalk: 0.5,\r"
+            },
+            {
+              "symbol": "surfaceUnderfoot",
+              "line": 113,
+              "code": "export function surfaceUnderfoot(polarDeg: number, longDeg: number, wet: boolean): Surface {\r\n  if (wet) return 'wade'\r\n  const lat = 90 - polarDeg\r\n  if (lat >= DOCK.latMinDeg && lat <= DOCK.latMaxDeg) {\r\n    const dLongRad = THREE_DEG * Math.abs(((longDeg - DOCK.longDeg + 540) % 360) - 180)\r\n    const offM = PLANET_RADIUS * Math.sin(polarDeg * THREE_DEG) * Math.sin(dLongRad)\r\n    if (Math.abs(offM) <= DOCK.halfWidthM + 0.2) return 'dock'\r\n  }\r\n  return polarDeg <= TERRAIN.plateauEndDeg + 2 ? 'grass' : 'sand'\r\n}\r\nconst THREE_DEG = Math.PI / 180\r\n\r\n/** World map placements (lat, long) — CLAUDE.md v3 table. */\r\nexport const MAP = {\r"
+            }
           ]
         },
         {
@@ -52,11 +103,29 @@
             "groundAltitudeAt",
             "groundHeightAt",
             "onDockStrip"
+          ],
+          "excerpts": [
+            {
+              "symbol": "groundAltitudeAt",
+              "line": 33,
+              "code": "export function groundAltitudeAt(latDeg: number, longDeg: number): number {\n  const band = bandAltitudeAt(latDeg)\n  if (onDockStrip(latDeg, longDeg)) return band + DOCK.deckHeightM\n  return band\n}\n\n/** World-space ground height under the avatar (avatar y-position).\n *  Called every frame — no object allocation (lat/long computed inline). */\nexport function groundHeightAt(poleLocal: THREE.Vector3): number {\n  const polar = Math.acos(THREE.MathUtils.clamp(poleLocal.y, -1, 1))\n  const lat = 90 - THREE.MathUtils.radToDeg(polar)\n  const long = THREE.MathUtils.radToDeg(Math.atan2(poleLocal.x, poleLocal.z))\n  return PLANET_RADIUS + groundAltitudeAt(lat, long)\n}"
+            },
+            {
+              "symbol": "groundHeightAt",
+              "line": 41,
+              "code": "export function groundHeightAt(poleLocal: THREE.Vector3): number {\n  const polar = Math.acos(THREE.MathUtils.clamp(poleLocal.y, -1, 1))\n  const lat = 90 - THREE.MathUtils.radToDeg(polar)\n  const long = THREE.MathUtils.radToDeg(Math.atan2(poleLocal.x, poleLocal.z))\n  return PLANET_RADIUS + groundAltitudeAt(lat, long)\n}\n"
+            },
+            {
+              "symbol": "onDockStrip",
+              "line": 19,
+              "code": "export function onDockStrip(latDeg: number, longDeg: number): boolean {\n  if (latDeg < DOCK.latMinDeg || latDeg > DOCK.latMaxDeg) return false\n  const polar = THREE.MathUtils.degToRad(90 - latDeg)\n  const dLong = ((longDeg - DOCK.longDeg + 540) % 360) - 180\n  const crossTrackM =\n    Math.abs(THREE.MathUtils.degToRad(dLong)) * Math.sin(polar) * PLANET_RADIUS\n  return crossTrackM <= DOCK.halfWidthM\n}\n\n/**\n * Ground altitude above sea level at (lat, long). The dock deck rides\n * deckHeightM above its local band (surface-snapped segments), so the same\n * function drives the deck visuals and the walkable height.\n */"
+            }
           ]
         },
         {
           "path": "src/scene/SurfaceGroup.tsx",
           "symbols": [],
+          "excerpts": [],
           "note": "placement on the analytic ground"
         }
       ],
@@ -76,6 +145,7 @@
         {
           "path": "src/scene/Island.tsx",
           "symbols": [],
+          "excerpts": [],
           "note": "the cap build, band painting"
         },
         {
@@ -83,6 +153,18 @@
           "symbols": [
             "facetTerrain",
             "bakeWarmTintToward"
+          ],
+          "excerpts": [
+            {
+              "symbol": "facetTerrain",
+              "line": 201,
+              "code": "export function facetTerrain(\n  geometry: THREE.BufferGeometry,\n  options: FacetTerrainOptions,\n): THREE.BufferGeometry {\n  const {\n    amplitude = 0.12,\n    colorA = '#ffffff',\n    colorB = '#ffffff',\n    patchSize = 7,\n    checker = 0.5,\n    bias = 0.5,\n    speckle = 0.06,\n    poleFadeRad = 0,\n    seed = 1,"
+            },
+            {
+              "symbol": "bakeWarmTintToward",
+              "line": 52,
+              "code": "export function bakeWarmTintToward(\n  geometry: THREE.BufferGeometry,\n  target: THREE.Vector3,\n  base: string,\n  warm: string,\n  opts: { ambient?: number; nearM?: number; farM?: number; facingMin?: number; facingMax?: number } = {},\n): THREE.BufferGeometry {\n  const { ambient = 0.15, nearM = 0.15, farM = 1.57, facingMin = 0.35, facingMax = 0.9 } = opts\n  const g = geometry.index ? geometry.toNonIndexed() : geometry.clone()\n  g.computeVertexNormals()\n  const pos = g.attributes.position as THREE.BufferAttribute\n  const nor = g.attributes.normal as THREE.BufferAttribute\n  const colors = new Float32Array(pos.count * 3)\n  const cBase = new THREE.Color(base)"
+            }
           ]
         },
         {
@@ -90,6 +172,18 @@
           "symbols": [
             "terrainProfile",
             "TERRAIN.apronEndDeg"
+          ],
+          "excerpts": [
+            {
+              "symbol": "terrainProfile",
+              "line": 54,
+              "code": "export function terrainProfile(polarRad: number): number {\r\n  const p = THREE.MathUtils.radToDeg(polarRad)\r\n  if (p <= TERRAIN.plateauEndDeg) return GRASS_ALTITUDE\r\n  if (p <= TERRAIN.shoulderEndDeg) {\r\n    return THREE.MathUtils.lerp(\r\n      GRASS_ALTITUDE,\r\n      SAND_ALTITUDE,\r\n      THREE.MathUtils.smoothstep(p, TERRAIN.plateauEndDeg, TERRAIN.shoulderEndDeg),\r\n    )\r\n  }\r\n  if (p <= TERRAIN.waterlineDeg) {\r\n    return THREE.MathUtils.lerp(\r\n      SAND_ALTITUDE,\r\n      0,\r"
+            },
+            {
+              "symbol": "TERRAIN.apronEndDeg",
+              "line": 71,
+              "code": "  if (p <= TERRAIN.apronEndDeg) {\r\n    return THREE.MathUtils.lerp(\r\n      0,\r\n      TERRAIN.apronAltitude,\r\n      THREE.MathUtils.smoothstep(p, TERRAIN.waterlineDeg, TERRAIN.apronEndDeg),\r\n    )\r\n  }\r\n  return TERRAIN.apronAltitude\r\n}\r\n\r\n/**\r\n * The dock: longitude 0, entrance on sand, last segments over open water.\r\n * Deck top sits deckHeightM above the LOCAL ground band (surface-snapped\r\n * segments), consumed by both the visuals and groundAltitudeAt.\r"
+            }
           ]
         }
       ],
@@ -111,16 +205,30 @@
             "nightMix",
             "skyRuntime"
           ],
+          "excerpts": [
+            {
+              "symbol": "nightMix",
+              "line": 144,
+              "code": "  nightMix: 0,\n  sunLocal: SUN_HOME_LOCAL.clone(),\n  moonLocal: MOON_HOME_LOCAL.clone(),\n  sunWorld: SUN_HOME_LOCAL.clone(),\n  moonWorld: MOON_HOME_LOCAL.clone(),\n  /** Apparent elevation of each disc ABOVE the ocean limb (deg), from the\n   * live camera — eases the glitter intensity. Inherits the arc smoothing\n   * via the smoothed disc solve. */\n  sunElevAboveLimbDeg: 45,\n  moonElevAboveLimbDeg: 45,\n  /** Visible fraction of each disc above the limb (0..1) — the glitter's\n   * submergence gate (v3.12). */\n  sunVisibleFrac: 1,\n  moonVisibleFrac: 1,"
+            },
+            {
+              "symbol": "skyRuntime",
+              "line": 143,
+              "code": "export const skyRuntime = {\n  nightMix: 0,\n  sunLocal: SUN_HOME_LOCAL.clone(),\n  moonLocal: MOON_HOME_LOCAL.clone(),\n  sunWorld: SUN_HOME_LOCAL.clone(),\n  moonWorld: MOON_HOME_LOCAL.clone(),\n  /** Apparent elevation of each disc ABOVE the ocean limb (deg), from the\n   * live camera — eases the glitter intensity. Inherits the arc smoothing\n   * via the smoothed disc solve. */\n  sunElevAboveLimbDeg: 45,\n  moonElevAboveLimbDeg: 45,\n  /** Visible fraction of each disc above the limb (0..1) — the glitter's\n   * submergence gate (v3.12). */\n  sunVisibleFrac: 1,"
+            }
+          ],
           "note": "the per-frame lerp rig"
         },
         {
           "path": "src/scene/CelestialDome.tsx",
           "symbols": [],
+          "excerpts": [],
           "note": "the dome shader, discs, stars"
         },
         {
           "path": "src/scene/SkyRig.tsx",
           "symbols": [],
+          "excerpts": [],
           "note": "lights driven by the sky state"
         }
       ],
@@ -140,6 +248,7 @@
         {
           "path": "src/scene/useSkyState.ts",
           "symbols": [],
+          "excerpts": [],
           "note": "the elevation solve, limb math, set floor"
         },
         {
@@ -147,11 +256,24 @@
           "symbols": [
             "CELESTIAL_ELEVATION_INLAND_DEG",
             "CELESTIAL_ELEVATION_WATERLINE_DEG"
+          ],
+          "excerpts": [
+            {
+              "symbol": "CELESTIAL_ELEVATION_INLAND_DEG",
+              "line": 182,
+              "code": "export const CELESTIAL_ELEVATION_INLAND_DEG = 45\r\n/** v3.8 TRUE SET: elevations are horizontal-relative; the sea horizon sits\r\n * at ≈ −16.6° from eye height. −15.8° puts the disc center 0.75° above the\r\n * sea line → ~40% of the sun disc (3.7° radius) submerged at the waterline;\r\n * the ocean geometry physically occludes the rest. */\r\nexport const CELESTIAL_ELEVATION_WATERLINE_DEG = -15.8\r\n/** v3.9 set floor: wading sinks it only slightly more, clamped so NEITHER\r\n * disc ever exceeds ~45% submerged (sun ρ 3.7° → 44%; moon ρ 2.74° → 43%)\r\n * — the disc and its glitter lane stay clearly visible at full set. */\r\nexport const CELESTIAL_ELEVATION_WADING_MIN_DEG = -16.2\r\nexport const CELESTIAL = { sunLongDeg: 0, moonLongDeg: 180 } as const\r\n\r\n/** Glitter corridor tuning (v3.14): the corridor centerline is the great\r\n * circle from the disc's base through the character; half-widths are\r"
+            },
+            {
+              "symbol": "CELESTIAL_ELEVATION_WATERLINE_DEG",
+              "line": 187,
+              "code": "export const CELESTIAL_ELEVATION_WATERLINE_DEG = -15.8\r\n/** v3.9 set floor: wading sinks it only slightly more, clamped so NEITHER\r\n * disc ever exceeds ~45% submerged (sun ρ 3.7° → 44%; moon ρ 2.74° → 43%)\r\n * — the disc and its glitter lane stay clearly visible at full set. */\r\nexport const CELESTIAL_ELEVATION_WADING_MIN_DEG = -16.2\r\nexport const CELESTIAL = { sunLongDeg: 0, moonLongDeg: 180 } as const\r\n\r\n/** Glitter corridor tuning (v3.14): the corridor centerline is the great\r\n * circle from the disc's base through the character; half-widths are\r\n * perpendicular arc METERS (an azimuth cone pinches to a point at the\r\n * viewer's nadir — banned). Endpoint widths derive from the disc's\r\n * apparent width at reference distances: the limb distance (far) and\r\n * `nearRefM` (near, held at the shore). Rising scales both endpoints up\r\n * and eases opacity down to a floor; submergence is the only kill. */\r"
+            }
           ]
         },
         {
           "path": "e2e/setcheck.mjs",
           "symbols": [],
+          "excerpts": [],
           "note": "the acceptance with teeth"
         }
       ],
@@ -172,17 +294,32 @@
           "symbols": [
             "onBeforeCompile"
           ],
+          "excerpts": [
+            {
+              "symbol": "onBeforeCompile",
+              "line": 29,
+              "code": " * system, all in one Lambert onBeforeCompile:\n * - 2–3 summed sines displace along the normal in object space (planet-local\n *   — waves rotate with the world), plus a slow shore-weighted surf cycle\n *   (SURF in planetConfig, also read by the wade ripple) that advances and\n *   recedes the waterline up the sand.\n * - The vertex shader evaluates terrainProfile (same control points, ported\n *   to GLSL) and passes water depth; the fragment paints a white foam band\n *   where the LIVE displaced surface meets the beach, with a noise-broken\n *   leading edge. Computed from the displaced surface, foam can never\n *   detach or gap — the old separate foam ring mesh is gone.\n */\nexport function Water() {\n  const waterMaterial = useMemo(() => {\n    const mat = new THREE.MeshLambertMaterial({"
+            }
+          ],
           "note": "shader, the corridor stencil"
         },
         {
           "path": "src/scene/planetConfig.ts",
           "symbols": [
             "GLITTER"
+          ],
+          "excerpts": [
+            {
+              "symbol": "GLITTER",
+              "line": 201,
+              "code": "export const GLITTER = {\r\n  /** Corridor width at the disc base, in apparent disc widths. */\r\n  farWidthDisc: 0.65,\r\n  /** Corridor width held at the shoreline, in apparent disc widths… */\r\n  nearWidthDisc: 3.75,\r\n  /** …as seen from this reference distance (m) — the near width is a\r\n   * stable physical width, not a per-frame shore solve. */\r\n  nearRefM: 3,\r\n  /** Both endpoint widths scale up to this at inland-high. */\r\n  highWidthScale: 1.8,\r\n  /** Lane opacity at set (the vivid column)… */\r\n  opacityLow: 0.95,\r\n  /** …easing down to this floor at inland-high — never invisible. */\r\n  opacityFloor: 0.45,\r"
+            }
           ]
         },
         {
           "path": "e2e/setcheck.mjs",
           "symbols": [],
+          "excerpts": [],
           "note": "lane-present and living-edge assertions"
         }
       ],
@@ -207,6 +344,28 @@
             "AIR_POSE",
             "poseHook"
           ],
+          "excerpts": [
+            {
+              "symbol": "buildNodes",
+              "line": 89,
+              "code": "export function buildNodes(config: CharacterConfig) {\n  const { height: H, headsTall, build, colors } = config\n  const headH = H / headsTall\n  const legLen = H * 0.14\n  const torsoH = H - headH - legLen\n  const headR = headH * 0.51\n  const headW = headR * 2\n  // Teardrop proportions (v3.16): shoulders ≈0.55× head width sloping out\n  // to hips ≈0.78× — the widest point sits near the BASE, never the top.\n  const shoulderR = headW * (config.shoulderFrac ?? 0.2275) * build\n  const hipR = headW * (config.hipFrac ?? 0.365) * build\n  // Torso depth squash — the side-profile slimness dial.\n  const depth = config.torsoDepth ?? 0.78\n  const armLen = torsoH * (config.armLenFrac ?? 0.87)"
+            },
+            {
+              "symbol": "STATES",
+              "line": 55,
+              "code": "const STATES: Record<'idle' | 'walk' | 'run' | 'air', Params> = {\n  idle: { bobAmp: 0.026, bobFreq: 2, swingAmp: 0, swingFreq: 0, armRatio: 0, lean: 0, sway: 0.07, air: 0 },\n  walk: { bobAmp: 0.034, bobFreq: 18, swingAmp: 0.58, swingFreq: 9, armRatio: 0.6, lean: 0.035, sway: 0, air: 0 },\n  run: { bobAmp: 0.055, bobFreq: 25, swingAmp: 0.92, swingFreq: 12.5, armRatio: 0.75, lean: 0.16, sway: 0, air: 0 },\n  air: { bobAmp: 0, bobFreq: 0, swingAmp: 0, swingFreq: 0, armRatio: 0, lean: 0.05, sway: 0, air: 1 },\n}\n\n/** Airborne pose angles (rad) — asymmetric so the jump reads dynamic. */\nconst AIR_POSE = { legL: -0.45, legR: 0.25, armL: -0.65, armR: -0.5, splay: 0.22 }\n/** Head look-at (v3.4): clamps from body forward, blend time constant, the\n * subtle glance allowance while moving, and the frontal-cone handoff — eye\n * contact inside ~±70°, the camera's aim point beyond it. */\nconst HEAD_YAW_MAX = THREE.MathUtils.degToRad(60)\nconst HEAD_PITCH_MAX = THREE.MathUtils.degToRad(25)"
+            },
+            {
+              "symbol": "AIR_POSE",
+              "line": 63,
+              "code": "const AIR_POSE = { legL: -0.45, legR: 0.25, armL: -0.65, armR: -0.5, splay: 0.22 }\n/** Head look-at (v3.4): clamps from body forward, blend time constant, the\n * subtle glance allowance while moving, and the frontal-cone handoff — eye\n * contact inside ~±70°, the camera's aim point beyond it. */\nconst HEAD_YAW_MAX = THREE.MathUtils.degToRad(60)\nconst HEAD_PITCH_MAX = THREE.MathUtils.degToRad(25)\nconst HEAD_GLANCE_MAX = THREE.MathUtils.degToRad(10)\nconst HEAD_CONE_IN = THREE.MathUtils.degToRad(55)\nconst HEAD_CONE_OUT = THREE.MathUtils.degToRad(85)\nconst HEAD_TAU = 0.2\n\nconst wrapPi = (a: number) => Math.atan2(Math.sin(a), Math.cos(a))\n/** Squash & stretch scales, roughly volume-preserving (playbook §2). */\nconst STRETCH = { xz: 0.93, y: 1.14 }"
+            },
+            {
+              "symbol": "poseHook",
+              "line": 686,
+              "code": "      poseHook({\n        armL: armL.current,\n        armR: armR.current,\n        foreL: foreL.current,\n        foreR: foreR.current,\n        legL: legL.current,\n        legR: legR.current,\n        head: h,\n        t,\n      })\n    }\n  })\n\n  return ("
+            }
+          ],
           "note": "the contract"
         },
         {
@@ -215,11 +374,24 @@
             "AIDEN",
             "KOA"
           ],
+          "excerpts": [
+            {
+              "symbol": "AIDEN",
+              "line": 96,
+              "code": "export const AIDEN: CharacterConfig = {\n  height: 1.25,\n  headsTall: 2.0,\n  build: 1,\n  colors: {\n    skin: '#f6cf9f',\n    hair: '#e8c36a',\n    top: '#ffd24d',\n    bottom: '#35a7a0',\n    shoes: '#fff3d6',\n    eyes: '#2b1c12',\n  },\n  hair: 'swoop',\n  outfit: 'tee-shorts',"
+            },
+            {
+              "symbol": "KOA",
+              "line": 120,
+              "code": "export const KOA: CharacterConfig = {\n  height: 1.22,\n  headsTall: 2.0,\n  build: 1.02,\n  colors: {\n    skin: '#e8b98a',\n    hair: '#5a4632',\n    top: '#ff8c5a',\n    bottom: '#f5e9d0',\n    shoes: '#8a5a3a',\n    eyes: '#2b1c14',\n  },\n  hair: 'swoop',\n  outfit: 'tee-shorts',"
+            }
+          ],
           "note": "the config dials"
         },
         {
           "path": "src/scene/UkulelePlayer.tsx",
           "symbols": [],
+          "excerpts": [],
           "note": "torso-mounted instrument, numerically solved arms"
         }
       ],
@@ -245,12 +417,46 @@
             "syncPanner",
             "registerVoice",
             "onAudioResume"
+          ],
+          "excerpts": [
+            {
+              "symbol": "nextBuffer",
+              "line": 118,
+              "code": "export async function nextBuffer(category: Category): Promise<AudioBuffer | null> {\n  const ctx = audioRuntime.ctx\n  if (!ctx) return null\n  const urls = poolUrls.get(category)\n  if (urls && urls.length > 0) {\n    const pick = bagFor(category, urls.length).next()\n    return decodeUrl(urls[pick], POSITIONAL.has(category))\n  }\n  const make = fallbacks.get(category)\n  if (!make) return null\n  const key = `proc:${category}`\n  let buf = bufferCache.get(key)\n  if (!buf) {\n    buf = make(ctx)"
+            },
+            {
+              "symbol": "playDoubleTap",
+              "line": 206,
+              "code": "export async function playDoubleTap(\n  category: Category,\n  bus: 'music' | 'world' | 'ui',\n  gain: number,\n  gapMs: number,\n) {\n  const rt = audioRuntime\n  if (!rt.ctx || !rt.buses) return\n  const [a, b] = await Promise.all([nextBuffer(category), nextBuffer(category)])\n  if (!a) return\n  const t0 = rt.ctx.currentTime + 0.02\n  const taps: Array<[AudioBuffer, number]> = [\n    [a, t0],\n    [b ?? a, t0 + gapMs / 1000],"
+            },
+            {
+              "symbol": "syncPanner",
+              "line": 180,
+              "code": "export function syncPanner(node: THREE.PositionalAudio) {\n  node.getWorldPosition(_panPos)\n  const p = node.panner\n  if (p.positionX) {\n    p.positionX.value = _panPos.x\n    p.positionY.value = _panPos.y\n    p.positionZ.value = _panPos.z\n  } else {\n    p.setPosition(_panPos.x, _panPos.y, _panPos.z)\n  }\n}\n\n/** One-shot through an existing PositionalAudio node (world bus). */\nexport async function playAt(category: Category, node: THREE.PositionalAudio, gain = 1) {"
+            },
+            {
+              "symbol": "registerVoice",
+              "line": 160,
+              "code": "  registerVoice(category, src)\n  src.start()\n}\n\n/** Route a three.js Audio/PositionalAudio's output through a bus. */\nexport function routeToBus(audio: THREE.Audio | THREE.PositionalAudio, bus: 'music' | 'world' | 'ui') {\n  const rt = audioRuntime\n  if (!rt.buses || !rt.listener) return\n  audio.gain.disconnect()\n  audio.gain.connect(rt.buses[bus])\n}\n\nconst _panPos = new THREE.Vector3()\n/** three's PositionalAudio only updates its panner while `isPlaying`"
+            },
+            {
+              "symbol": "onAudioResume",
+              "line": 259,
+              "code": "export function onAudioResume(h: (now: number) => void): () => void {\n  resumeHandlers.add(h)\n  return () => resumeHandlers.delete(h)\n}\n\nfunction handleVisibility() {\n  const rt = audioRuntime\n  if (!rt.ctx || !rt.listener) return\n  if (document.hidden) {\n    audioPause.hidden = true\n    // Hard-zero first (suspend() can lag a beat), then freeze the clock.\n    rt.listener.gain.gain.cancelScheduledValues(0)\n    rt.listener.gain.gain.value = 0\n    void rt.ctx.suspend()"
+            }
           ]
         },
         {
           "path": "src/audio/bag.ts",
           "symbols": [
             "ShuffleBag"
+          ],
+          "excerpts": [
+            {
+              "symbol": "ShuffleBag",
+              "line": 7,
+              "code": "export class ShuffleBag {\n  private history: number[] = []\n\n  constructor(\n    private size: number,\n    private rng: () => number = Math.random,\n  ) {}\n\n  /** Update the pool size (files can be hot-added in dev). */\n  resize(size: number) {\n    this.size = size\n    this.history = this.history.filter((i) => i < size)\n  }\n"
+            }
           ]
         },
         {
@@ -258,12 +464,31 @@
           "symbols": [
             "stepSound",
             "jumpTaps"
+          ],
+          "excerpts": [
+            {
+              "symbol": "stepSound",
+              "line": 19,
+              "code": "export function stepSound(surface: Surface, sprint: boolean) {\n  // e2e cadence probe.\n  const w = window as unknown as { __stepLog?: Array<{ t: number; surface: string }> }\n  ;(w.__stepLog ??= []).push({ t: performance.now(), surface })\n  if (w.__stepLog.length > 64) w.__stepLog.shift()\n  void play2d(\n    surfaceToCategory(surface),\n    'world',\n    sprint ? FOOTSTEPS.stepGainSprint : FOOTSTEPS.stepGainWalk,\n  )\n}\n\n/** Takeoff/landing double-tap — two different picks ~90 ms apart;\n * landing slightly louder, never one heavy thud. */"
+            },
+            {
+              "symbol": "jumpTaps",
+              "line": 33,
+              "code": "export function jumpTaps(surface: Surface, landing: boolean) {\n  const base = FOOTSTEPS.stepGainWalk * (landing ? 1.25 : 1.05)\n  void playDoubleTap(surfaceToCategory(surface), 'world', base, FOOTSTEPS.jumpTapGapMs)\n}\n"
+            }
           ]
         },
         {
           "path": "src/audio/loops.ts",
           "symbols": [
             "CrossfadeLoop"
+          ],
+          "excerpts": [
+            {
+              "symbol": "CrossfadeLoop",
+              "line": 10,
+              "code": "export class CrossfadeLoop {\n  private out: GainNode | null = null\n  private endTime = 0\n  private pending = false\n\n  constructor(\n    private category: Category,\n    private fade = 0.5,\n  ) {}\n\n  /** The loop's level node (created lazily, connected to `target`). */\n  level(target: AudioNode): GainNode | null {\n    const ctx = audioRuntime.ctx\n    if (!ctx) return null"
+            }
           ]
         },
         {
@@ -272,6 +497,23 @@
             "musicTarget",
             "crackleTarget",
             "cryGain"
+          ],
+          "excerpts": [
+            {
+              "symbol": "musicTarget",
+              "line": 37,
+              "code": "export function musicTarget(arcUkeM: number, arcFireM: number, modalOpen: boolean): number {\n  const ukeF = THREE.MathUtils.smoothstep(arcUkeM, 8, 20)\n  const fireF = THREE.MathUtils.lerp(0.6, 1, THREE.MathUtils.smoothstep(arcFireM, 4, 10))\n  return 0.35 * ukeF * fireF * (modalOpen ? 0.57 : 1)\n}\n\n/** Campfire crackle level — PURE proximity (audio finishing pass):\n * full at 3 m, silent past 12 m, and deliberately no nightMix term —\n * day/night has nothing to do with what a fire sounds like. */\nexport function crackleTarget(arcFireM: number): number {\n  return 0.875 * (1 - THREE.MathUtils.smoothstep(arcFireM, 3, 12))\n}\n\n/** Gull cry launch gain: a real gradient on top of the panner — full"
+            },
+            {
+              "symbol": "crackleTarget",
+              "line": 46,
+              "code": "export function crackleTarget(arcFireM: number): number {\n  return 0.875 * (1 - THREE.MathUtils.smoothstep(arcFireM, 3, 12))\n}\n\n/** Gull cry launch gain: a real gradient on top of the panner — full\n * voice inside ~10 m (gulls orbit at 10–13.5 m altitude, so \"standing\n * under one\" IS ~12 m), gone past 30 m, so flyovers breathe. */\nexport function cryGain(distM: number): number {\n  return 1.08 * (1 - THREE.MathUtils.smoothstep(distM, 10, 30))\n}\n\nexport function WorldEmitters() {\n  const fireAnchor = useRef<THREE.Group>(null)\n  const st = useRef({"
+            },
+            {
+              "symbol": "cryGain",
+              "line": 53,
+              "code": "export function cryGain(distM: number): number {\n  return 1.08 * (1 - THREE.MathUtils.smoothstep(distM, 10, 30))\n}\n\nexport function WorldEmitters() {\n  const fireAnchor = useRef<THREE.Group>(null)\n  const st = useRef({\n    fire: new CrossfadeLoop('campfire', 0.6),\n    fireNode: null as THREE.PositionalAudio | null,\n    cryNode: null as THREE.PositionalAudio | null,\n    nextCry: 0,\n    fireUnit: latLongToUnit(MAP.campfire.lat, MAP.campfire.long),\n    pole: new THREE.Vector3(),\n  })"
+            }
           ]
         }
       ],
@@ -292,6 +534,7 @@
         {
           "path": "e2e/measure.mjs",
           "symbols": [],
+          "excerpts": [],
           "note": "the budget instrument"
         },
         {
@@ -299,6 +542,18 @@
           "symbols": [
             "mergeByMaterial",
             "paletteMaterial"
+          ],
+          "excerpts": [
+            {
+              "symbol": "mergeByMaterial",
+              "line": 90,
+              "code": "function mergeByMaterial(pieces: Piece[]): PropPart[] {\r\n  const buckets = new Map<THREE.MeshLambertMaterial, THREE.BufferGeometry[]>()\r\n  for (const p of pieces) {\r\n    const geo = normalizeForMerge(p.geometry).applyMatrix4(p.matrix)\r\n    const list = buckets.get(p.material)\r\n    if (list) list.push(geo)\r\n    else buckets.set(p.material, [geo])\r\n  }\r\n  const parts: PropPart[] = []\r\n  for (const [material, geos] of buckets) {\r\n    const merged = geos.length === 1 ? geos[0] : mergeGeometries(geos)\r\n    geos.forEach((g) => g !== merged && g.dispose())\r\n    parts.push({ geometry: merged, material })\r\n  }\r"
+            },
+            {
+              "symbol": "paletteMaterial",
+              "line": 24,
+              "code": "export function paletteMaterial(\r\n  color: string,\r\n  emissive = '#000000',\r\n  emissiveIntensity = 0,\r\n): THREE.MeshLambertMaterial {\r\n  const key = `${color}|${emissive}|${emissiveIntensity}`\r\n  let mat = materialCache.get(key)\r\n  if (!mat) {\r\n    mat = new THREE.MeshLambertMaterial({ color, flatShading: true })\r\n    mat.emissive.set(emissive)\r\n    mat.emissiveIntensity = emissiveIntensity\r\n    materialCache.set(key, mat)\r\n  }\r\n  return mat\r"
+            }
           ]
         },
         {
@@ -307,6 +562,23 @@
             "StaticInstances",
             "InstancedProp",
             "surfacePartMatrix"
+          ],
+          "excerpts": [
+            {
+              "symbol": "StaticInstances",
+              "line": 37,
+              "code": "export function StaticInstances({\n  geometry,\n  material,\n  matrices,\n}: {\n  geometry: THREE.BufferGeometry\n  material: THREE.Material\n  matrices: THREE.Matrix4[]\n}) {\n  const meshRef = useRef<THREE.InstancedMesh>(null)\n  useEffect(() => {\n    const mesh = meshRef.current\n    if (!mesh) return\n    matrices.forEach((m, i) => mesh.setMatrixAt(i, m))"
+            },
+            {
+              "symbol": "InstancedProp",
+              "line": 61,
+              "code": "export function InstancedProp({\n  parts,\n  placements,\n}: {\n  parts: PropPart[]\n  placements: THREE.Matrix4[]\n}) {\n  return (\n    <>\n      {parts.map((p, i) => (\n        <StaticInstances key={i} geometry={p.geometry} material={p.material} matrices={placements} />\n      ))}\n    </>\n  )"
+            },
+            {
+              "symbol": "surfacePartMatrix",
+              "line": 10,
+              "code": "export function surfacePartMatrix(\n  lat: number,\n  long: number,\n  altitude: number,\n  yaw: number,\n  localPos: THREE.Vector3,\n  localQuat: THREE.Quaternion,\n  scale: number,\n): THREE.Matrix4 {\n  const unit = latLongToUnit(lat, long)\n  const q = surfaceQuaternion(unit).multiply(\n    new THREE.Quaternion().setFromAxisAngle(WORLD_UP, meridianYaw(lat, long) + yaw),\n  )\n  const surface = new THREE.Matrix4().compose("
+            }
           ]
         }
       ],
@@ -328,21 +600,31 @@
           "symbols": [
             "Photo"
           ],
+          "excerpts": [
+            {
+              "symbol": "Photo",
+              "line": 1,
+              "code": "export interface Photo {\n  id: string\n  /** Web-sized image (longest edge ~1800 px, WebP via the pipeline). */\n  full: string\n  /** Grid thumbnail (~480 px, cover-cropped by the tile). */\n  thumb: string\n  /** Intrinsic dimensions of `full` — layout never guesses ratios. */\n  width: number\n  height: number\n  alt: string\n  title: string\n  caption?: string\n}\n"
+            }
+          ],
           "note": "the interface, curated order"
         },
         {
           "path": "scripts/optimize-images.mjs",
           "symbols": [],
+          "excerpts": [],
           "note": "staging → web + thumb WebP"
         },
         {
           "path": "scripts/ingest-audio.mjs",
           "symbols": [],
+          "excerpts": [],
           "note": "the audio library ingest"
         },
         {
           "path": "src/ui/modals/EmptyState.tsx",
           "symbols": [],
+          "excerpts": [],
           "note": "never-look-broken"
         }
       ],
@@ -365,6 +647,13 @@
           "path": "src/scene/props.ts",
           "symbols": [
             "buildHedgeStone"
+          ],
+          "excerpts": [
+            {
+              "symbol": "buildHedgeStone",
+              "line": 388,
+              "code": "export function buildHedgeStone(): PropPart[] {\r\n  const tinted = (g: THREE.BufferGeometry, color: string, pos: [number, number, number], rot: [number, number, number] = [0, 0, 0], scale: [number, number, number] = [1, 1, 1]) => {\r\n    const n = tintGeometry(normalizeForMerge(g), color)\r\n    g.dispose()\r\n    n.applyMatrix4(\r\n      new THREE.Matrix4().compose(\r\n        new THREE.Vector3(...pos),\r\n        new THREE.Quaternion().setFromEuler(new THREE.Euler(...rot)),\r\n        new THREE.Vector3(...scale),\r\n      ),\r\n    )\r\n    return n\r\n  }\r\n  const STONE = '#8a9484'\r"
+            }
           ]
         },
         {
@@ -373,12 +662,31 @@
             "prop: 'hedgestone'",
             "blockRadius"
           ],
+          "excerpts": [
+            {
+              "symbol": "prop: 'hedgestone'",
+              "line": 101,
+              "code": "    prop: 'hedgestone',\r\n    blockRadius: 1.1,\r\n    position: place(MAP.hedgeStone.lat, MAP.hedgeStone.long),\r\n    rotation: [0, 0, 0],\r\n    modal: 'card',\r\n    contentKey: 'about',\r\n  },\r\n  {\r\n    id: 'videos',\r\n    label: 'Videos',\r\n    prompt: 'Turn on the TV',\r\n    // \"CRT TV on crate\": the cube sits on the crate top (0.7 + sink back).\r\n    position: place(MAP.tv.lat, MAP.tv.long + 0.8, 0.8),\r\n    rotation: [0, Math.PI / 3, 0],\r"
+            },
+            {
+              "symbol": "blockRadius",
+              "line": 43,
+              "code": "    blockRadius: 0.8,\r\n    position: place(MAP.musicUkulele.lat, MAP.musicUkulele.long),\r\n    rotation: [0, Math.PI / 6, 0],\r\n    modal: 'music',\r\n    contentKey: 'music',\r\n  },\r\n  {\r\n    id: 'photos',\r\n    label: 'Photos',\r\n    prompt: 'Look through the camera',\r\n    prop: 'tripod',\r\n    blockRadius: 0.7,\r\n    position: place(MAP.tripod.lat, MAP.tripod.long),\r\n    rotation: [0, Math.PI, 0], // faces the sun, out over the water\r"
+            }
+          ],
           "note": "the About def ()"
         },
         {
           "path": "src/scene/Interactable.tsx",
           "symbols": [
             "PROP_BUILDERS"
+          ],
+          "excerpts": [
+            {
+              "symbol": "PROP_BUILDERS",
+              "line": 10,
+              "code": "const PROP_BUILDERS: Record<PropKind, () => PropPart[]> = {\r\n  tripod: buildTripod,\r\n  mailbox: buildMailbox,\r\n  stereo: buildMusicStereo,\r\n  hedgestone: buildHedgeStone,\r\n  bulletin: buildBulletinBoard,\r\n}\r\n\r\n/**\r\n * An interactable, oriented to stand on the sphere with meridian-aligned yaw\r\n * (rotation[1] is relative to local north, like every SurfaceGroup prop).\r\n * Renders its chunky primitive prop when `prop` is set (see props.ts), else\r\n * the placeholder box. Proximity is angular distance, computed centrally in\r\n * usePlanetController — this component only renders and handles clicks/taps.\r"
+            }
           ]
         }
       ],
@@ -399,6 +707,13 @@
           "path": "src/scene/props.ts",
           "symbols": [
             "buildBulletinBoard"
+          ],
+          "excerpts": [
+            {
+              "symbol": "buildBulletinBoard",
+              "line": 327,
+              "code": "export function buildBulletinBoard(): PropPart[] {\r\n  const tinted = (g: THREE.BufferGeometry, color: string, pos: [number, number, number], rot: [number, number, number] = [0, 0, 0], scale: [number, number, number] = [1, 1, 1]) => {\r\n    const n = tintGeometry(normalizeForMerge(g), color)\r\n    g.dispose()\r\n    n.applyMatrix4(\r\n      new THREE.Matrix4().compose(\r\n        new THREE.Vector3(...pos),\r\n        new THREE.Quaternion().setFromEuler(new THREE.Euler(...rot)),\r\n        new THREE.Vector3(...scale),\r\n      ),\r\n    )\r\n    return n\r\n  }\r\n  const FRAME = '#7f9578'\r"
+            }
           ]
         },
         {
@@ -406,11 +721,19 @@
           "symbols": [
             "Paper"
           ],
+          "excerpts": [
+            {
+              "symbol": "Paper",
+              "line": 1,
+              "code": "export interface Paper {\n  id: string\n  title: string\n  blurb: string\n  /** Public path (files live in public/, e.g. '/aiden-hock-resume.pdf'). */\n  file: string\n  type: 'pdf'\n}\n\n/**\n * Documents pinned to the bulletin board (and mirrored on /classic).\n * NOTE: /aiden-hock-resume.pdf is currently a PLACEHOLDER — the real\n * resume's header contains a phone number, which must not ship\n * (CLAUDE.md privacy rule). Aiden: strip the phone from the docx (or"
+            }
+          ],
           "note": "the interface"
         },
         {
           "path": "src/ui/modals/PapersModal.tsx",
           "symbols": [],
+          "excerpts": [],
           "note": "the modal"
         }
       ],

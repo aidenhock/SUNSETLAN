@@ -5,6 +5,26 @@
 import { readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
+
+/** ~14 lines of real source starting at the symbol's definition-ish
+ * line (falls back to first mention). Null when the file/symbol is
+ * missing — the verify step catches that separately. */
+function excerptFor(path, symbol) {
+  let src
+  try {
+    src = readFileSync(resolve(path), 'utf8')
+  } catch {
+    return null
+  }
+  const lines = src.split('\n')
+  const defRe = new RegExp(`(function|const|let|class|interface|type)\\s+${symbol}\\b|${symbol}\\s*[=(:]`)
+  let at = lines.findIndex((l) => defRe.test(l))
+  if (at < 0) at = lines.findIndex((l) => l.includes(symbol))
+  if (at < 0) return null
+  const code = lines.slice(at, at + 14).join('\n')
+  return { symbol, line: at + 1, code }
+}
+
 const src = readFileSync(resolve('docs/build-log.md'), 'utf8')
 const chapterBlocks = src.split(/^## /m).slice(1)
 if (chapterBlocks.length === 0) throw new Error('no chapters found')
@@ -31,11 +51,17 @@ const chapters = chapterBlocks.map((block) => {
   }
 
   const filesRaw = section('files')
-  const files = [...filesRaw.matchAll(/^- `([^`]+)`\s*—\s*(.+)$/gm)].map(([, path, symbolsRaw]) => ({
-    path,
-    symbols: [...symbolsRaw.matchAll(/`([^`]+)`/g)].map(([, s]) => s),
-    note: symbolsRaw.replace(/`[^`]+`,?\s*/g, '').trim() || undefined,
-  }))
+  const files = [...filesRaw.matchAll(/^- `([^`]+)`\s*—\s*(.+)$/gm)].map(([, path, symbolsRaw]) => {
+    const symbols = [...symbolsRaw.matchAll(/`([^`]+)`/g)].map(([, s]) => s)
+    return {
+      path,
+      symbols,
+      // REAL code excerpts captured at export time (the Matrix room
+      // renders these — never hand-copied prose about code).
+      excerpts: symbols.map((sym) => excerptFor(path, sym)).filter(Boolean),
+      note: symbolsRaw.replace(/`[^`]+`,?\s*/g, '').trim() || undefined,
+    }
+  })
   if (files.length === 0) throw new Error(`chapter "${id}" has no parseable Files lines`)
 
   const decisions = [...section('decisions').matchAll(/^- ([\s\S]*?)(?=\n- |$)/gm)].map(([, d]) =>
