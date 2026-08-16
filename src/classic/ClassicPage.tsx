@@ -2,6 +2,7 @@ import { cards } from '../content/about'
 import { ContactForm } from '../ui/ContactForm'
 import { contact } from '../content/contact'
 import { music } from '../content/music'
+import { papers } from '../content/papers'
 import { photos } from '../content/photos'
 import { projects } from '../content/projects'
 import { videos } from '../content/videos'
@@ -67,6 +68,29 @@ export default function ClassicPage() {
                     )}
                   </p>
                 )}
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section className="mt-12" aria-labelledby="papers-h">
+          <h2 id="papers-h" className="font-display text-2xl font-bold">
+            Papers
+          </h2>
+          {papers.length === 0 && <p className="mt-3 text-ink/70">The board is bare — pins coming soon.</p>}
+          <ul className="mt-4 space-y-4">
+            {papers.map((paper) => (
+              <li key={paper.id} className="rounded-xl border border-ink/10 bg-white p-4">
+                <h3 className="font-display text-lg font-semibold">{paper.title}</h3>
+                <p className="mt-1 leading-relaxed">{paper.blurb}</p>
+                <p className="mt-2 flex gap-3 text-sm font-semibold">
+                  <a href={paper.file} target="_blank" rel="noreferrer" className="text-deepwater underline">
+                    View
+                  </a>
+                  <a href={paper.file} download className="text-deepwater underline">
+                    Download
+                  </a>
+                </p>
               </li>
             ))}
           </ul>

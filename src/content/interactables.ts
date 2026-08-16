@@ -9,9 +9,10 @@ export type ModalKind =
   | 'videos'
   | 'contact'
   | 'card'
+  | 'papers'
 
 /** Chunky primitive prop bodies built in scene/props.ts. */
-export type PropKind = 'tripod' | 'mailbox' | 'stereo' | 'hedgestone'
+export type PropKind = 'tripod' | 'mailbox' | 'stereo' | 'hedgestone' | 'bulletin'
 
 export interface InteractableDef {
   id: string
@@ -66,6 +67,19 @@ export const interactables: InteractableDef[] = [
     rotation: [0, Math.PI, 0],
     modal: 'contact',
     contentKey: 'contact',
+  },
+  {
+    id: 'papers',
+    label: 'Papers',
+    prompt: 'Read the board',
+    // Corkboard on two posts; blocker sized to the posts' span.
+    prop: 'bulletin',
+    blockRadius: 0.9,
+    position: place(MAP.bulletinBoard.lat, MAP.bulletinBoard.long),
+    // Slight angle toward the walking approach (meridianYaw base).
+    rotation: [0, 0.2, 0],
+    modal: 'papers',
+    contentKey: 'papers',
   },
   {
     id: 'projects',

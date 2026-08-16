@@ -5,6 +5,7 @@ const CASES: [string, string][] = [
   ['music', 'Music'],
   ['photos', 'Photos'],
   ['projects', 'Projects'],
+  ['papers', 'Papers'],
   ['about', "Hey, I'm Aiden"],
   ['videos', 'Videos'],
   ['contact', 'Contact'],
@@ -31,6 +32,14 @@ test('every modal type opens from data; gallery lightbox and lite-embed work', a
       await page.waitForTimeout(200)
       await expect(nextBtn).toBeHidden()
       await expect(dialog).toBeVisible()
+    }
+
+    if (id === 'papers') {
+      // View opens the browser PDF viewer; Download carries the attr.
+      const view = page.getByRole('link', { name: 'View' })
+      await expect(view).toHaveAttribute('href', /aiden-hock-resume\.pdf$/)
+      await expect(view).toHaveAttribute('target', '_blank')
+      await expect(page.getByRole('link', { name: 'Download' })).toHaveAttribute('download', '')
     }
 
     if (id === 'videos') {

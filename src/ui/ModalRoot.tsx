@@ -4,6 +4,7 @@ import { CardModal } from './modals/CardModal'
 import { ContactModal } from './modals/ContactModal'
 import { GalleryModal } from './modals/GalleryModal'
 import { MusicModal } from './modals/MusicModal'
+import { PapersModal } from './modals/PapersModal'
 import { ProjectsModal } from './modals/ProjectsModal'
 import { VideosModal } from './modals/VideosModal'
 
@@ -25,5 +26,7 @@ export function ModalRoot() {
       return <VideosModal />
     case 'contact':
       return <ContactModal />
+    case 'papers':
+      return <PapersModal />
   }
 }

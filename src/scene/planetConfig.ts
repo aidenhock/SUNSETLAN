@@ -131,6 +131,7 @@ export const MAP = {
   // 358.7 hovered his center 0.19 m PAST the edge — the floating bug.
   ukulelePlayer: { lat: 18, long: 359.05 },
   palapa: { lat: 40, long: 40 }, // Projects — day-leaning side
+  bulletinBoard: { lat: 45, long: 343 }, // Papers — grass, sunset side, inland from the mailbox
   hedgeStone: { lat: 50, long: 300 }, // About — the moai in its hedge clearing, dusk boundary west
   campfire: { lat: 22, long: 180 }, // night beach
   // Log circle: three sittable logs ~3.2 m from the fire on the landward

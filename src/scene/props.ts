@@ -223,16 +223,26 @@ export function buildLogBench(): PropPart[] {
 
 /** Crate: pine box with dark corner posts and a strap band. ~0.9 m. */
 export function buildCrate(): PropPart[] {
-  const pine = paletteMaterial(PROP_COLORS.woodLight)
-  const dark = paletteMaterial(PROP_COLORS.woodDark)
-  const pieces: Piece[] = [at(new THREE.BoxGeometry(0.8, 0.8, 0.8), pine, [0, 0.4, 0])]
+  // ONE vertex-tinted merge (draw-call shave: two palette materials
+  // cost two draws for a background crate).
+  const tinted = (g: THREE.BufferGeometry, color: string, pos: [number, number, number]) => {
+    const n = tintGeometry(normalizeForMerge(g), color)
+    g.dispose()
+    n.applyMatrix4(new THREE.Matrix4().setPosition(...pos))
+    return n
+  }
+  const parts: THREE.BufferGeometry[] = [
+    tinted(new THREE.BoxGeometry(0.8, 0.8, 0.8), PROP_COLORS.woodLight, [0, 0.4, 0]),
+    tinted(new THREE.BoxGeometry(0.84, 0.14, 0.84), PROP_COLORS.woodDark, [0, 0.4, 0]),
+  ]
   for (const x of [-0.38, 0.38]) {
     for (const z of [-0.38, 0.38]) {
-      pieces.push(at(new THREE.BoxGeometry(0.1, 0.86, 0.1), dark, [x, 0.43, z]))
+      parts.push(tinted(new THREE.BoxGeometry(0.1, 0.86, 0.1), PROP_COLORS.woodDark, [x, 0.43, z]))
     }
   }
-  pieces.push(at(new THREE.BoxGeometry(0.84, 0.14, 0.84), dark, [0, 0.4, 0]))
-  return mergeByMaterial(pieces)
+  const merged = mergeGeometries(parts)
+  parts.forEach((g) => g.dispose())
+  return [{ geometry: merged, material: new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }) }]
 }
 
 /** Rowboat: flat-bottom hull from flared boxes + bench planks. ~2.7 m long (z). */
@@ -308,6 +318,63 @@ export function buildPalapa(): PropPart[] {
 }
 
 /** Big tree (About): chunky trunk, icosahedron canopy, branch with rings. */
+/** Bulletin board (Papers portal): a chunky faceted corkboard on two
+ * wooden posts with a little sloped roof (the AC reference), weathered
+ * green frame, cork face carrying pinned off-white paper quads at
+ * slight random rotations with tiny colored pin dots and two curled
+ * corners. Faces local +z (north = the walking approach) — the def
+ * adds a slight yaw. ONE vertex-tinted merged mesh. */
+export function buildBulletinBoard(): PropPart[] {
+  const tinted = (g: THREE.BufferGeometry, color: string, pos: [number, number, number], rot: [number, number, number] = [0, 0, 0], scale: [number, number, number] = [1, 1, 1]) => {
+    const n = tintGeometry(normalizeForMerge(g), color)
+    g.dispose()
+    n.applyMatrix4(
+      new THREE.Matrix4().compose(
+        new THREE.Vector3(...pos),
+        new THREE.Quaternion().setFromEuler(new THREE.Euler(...rot)),
+        new THREE.Vector3(...scale),
+      ),
+    )
+    return n
+  }
+  const FRAME = '#7f9578'
+  const CORK = '#cfa76b'
+  const PAPER = '#f5efdd'
+  const PAPER_SHADE = '#e4dcc4'
+  const PINS = ['#d94f3d', '#3d6fd9', '#e3b23c', '#3da05a']
+  const parts: THREE.BufferGeometry[] = [
+    // Posts + framed board.
+    tinted(new THREE.BoxGeometry(0.13, 1.05, 0.13), PROP_COLORS.woodDark, [-0.72, 0.5, 0]),
+    tinted(new THREE.BoxGeometry(0.13, 1.05, 0.13), PROP_COLORS.woodDark, [0.72, 0.5, 0]),
+    tinted(new THREE.BoxGeometry(1.78, 1.12, 0.1), FRAME, [0, 1.22, 0]),
+    tinted(new THREE.BoxGeometry(1.6, 0.94, 0.03), CORK, [0, 1.22, 0.05]),
+    // Little sloped roof with a front lip.
+    tinted(new THREE.BoxGeometry(1.9, 0.06, 0.5), FRAME, [0, 1.8, -0.06], [-0.42, 0, 0]),
+    tinted(new THREE.BoxGeometry(1.9, 0.1, 0.08), FRAME, [0, 1.74, 0.14]),
+  ]
+  // Pinned papers: flat quads, slight rotations, a colored pin dot each.
+  const SHEETS: Array<[number, number, number, string]> = [
+    [-0.55, 1.45, 0.06, PAPER],
+    [-0.1, 1.38, -0.09, PAPER],
+    [0.42, 1.47, 0.1, PAPER_SHADE],
+    [-0.42, 1.0, -0.05, PAPER_SHADE],
+    [0.12, 1.02, 0.07, PAPER],
+    [0.55, 0.98, -0.08, PAPER],
+  ]
+  SHEETS.forEach(([x, y, rz, shade], i) => {
+    parts.push(tinted(new THREE.BoxGeometry(0.3, 0.38, 0.012), shade, [x, y, 0.07], [0, 0, rz]))
+    parts.push(
+      tinted(new THREE.SphereGeometry(0.02, 6, 4), PINS[i % PINS.length], [x + Math.sin(rz) * 0.15, y + 0.16, 0.085]),
+    )
+  })
+  // Two curled corners: small angled flaps at sheet corners.
+  parts.push(tinted(new THREE.BoxGeometry(0.1, 0.1, 0.012), PAPER_SHADE, [-0.44, 0.85, 0.085], [0.35, 0.5, 0.2]))
+  parts.push(tinted(new THREE.BoxGeometry(0.09, 0.09, 0.012), PAPER, [0.66, 1.32, 0.085], [-0.3, -0.45, 0.15]))
+  const merged = mergeGeometries(parts)
+  for (const p of parts) p.dispose()
+  return [{ geometry: merged, material: new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }) }]
+}
+
 /** The moai (About portal; "hedge stone" is its historical id): a
  * ~2.9 m Easter-Island-style statue — elongated head with a heavy
  * brow, long wide-based nose, shadowed eye hollows, pursed lips, long

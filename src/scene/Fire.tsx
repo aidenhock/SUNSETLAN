@@ -263,6 +263,10 @@ export function Fire() {
         toneMapped: false,
         sizeAttenuation: true,
       })
+      // Manual bounds: live particles stay within ~5 m of the fire; the
+      // 9999 parking position would otherwise blow the auto-computed
+      // sphere up to never-cull (a draw call from across the planet).
+      g.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, 1.6, 0), 5)
       return { g, m, life: new Float32Array(count).fill(-1), max: new Float32Array(count).fill(1) }
     }
     return { small: mk(SMALL_COUNT, 0.09), large: mk(LARGE_COUNT, 0.16) }
@@ -312,6 +316,15 @@ export function Fire() {
       }
       inst.instanceMatrix.needsUpdate = true
       combined /= TONGUES.length
+      if (!inst.userData.bounded) {
+        // One-time: bounds from live matrices (tongues stay within ~2 m
+        // of the pit), then re-enable culling — the fire must not cost
+        // a draw call from the far side of the planet.
+        inst.computeBoundingSphere()
+        inst.boundingSphere?.set(inst.boundingSphere.center, Math.max(inst.boundingSphere.radius, 2.5))
+        inst.frustumCulled = true
+        inst.userData.bounded = true
+      }
     }
     if (light.current) {
       // Flicker amplitude synced to the tongues' combined amplitude.

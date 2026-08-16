@@ -298,6 +298,29 @@ export const contact: Contact = {
 
 ---
 
+## Papers — `src/content/papers.ts`
+
+```ts
+export interface Paper {
+  id: string      // stable slug, e.g. 'resume'
+  title: string
+  blurb: string   // one line under the title
+  file: string    // public path, e.g. '/aiden-hock-resume.pdf'
+  type: 'pdf'
+}
+```
+
+**Where it renders**: the bulletin board's Papers modal
+(`src/ui/modals/PapersModal.tsx`) and the `/classic` Papers section —
+View opens the browser's PDF viewer in a new tab, Download saves it;
+nothing is fetched until clicked. Empty array → friendly empty state.
+
+**Where files go**: drop PDFs in `public/` with clean kebab-case names.
+The resume at `/aiden-hock-resume.pdf` is currently a PLACEHOLDER: the
+real one's header contains a phone number (privacy rule — never ship).
+To finish: strip the phone from the docx, export as PDF from Word, and
+replace `public/aiden-hock-resume.pdf`.
+
 ## Aiden's gathering checklist
 
 **Photos** (`src/content/photos.ts`)

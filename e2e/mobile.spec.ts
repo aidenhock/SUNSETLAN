@@ -118,3 +118,17 @@ test('mobile: contact form fields and Send stay reachable', async ({ page }) => 
   await expect(dialog).toBeHidden()
   expect(realErrors(errors)).toEqual([])
 })
+
+test('mobile: papers modal opens; view and download links present', async ({ page }) => {
+  const errors = collectErrors(page)
+  await gotoWorld(page)
+  await page.waitForTimeout(400)
+  await page.evaluate(() => window.__store!.getState().openModal('papers'))
+  const dialog = page.getByRole('dialog', { name: 'Papers' })
+  await expect(dialog).toBeVisible({ timeout: 2000 })
+  await expect(page.getByRole('link', { name: 'View' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Download' })).toBeVisible()
+  await page.evaluate(() => window.__store!.getState().closeModal())
+  await expect(dialog).toBeHidden()
+  expect(realErrors(errors)).toEqual([])
+})

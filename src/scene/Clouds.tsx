@@ -21,8 +21,11 @@ import { skyRuntime } from './useSkyState'
  */
 
 const ALTITUDE_R = 80 // planet 55 + ~25 m
-const POOL_HIGH = 8
-const POOL_LOW = 5
+// 6 clusters (the recipe's low end): the cloud pool is the spawn
+// frustum's biggest draw-call VARIANCE source, and 8 straddled the
+// <50 mobile budget line.
+const POOL_HIGH = 6
+const POOL_LOW = 4
 const WIND_RAD_PER_S = 0.75 / ALTITUDE_R // one global wind, ~0.75 m/s
 const FADE_S = 3
 const LIFE_MIN_S = 60
@@ -172,6 +175,8 @@ export function Clouds() {
       mesh.scale.set(s, s, s)
       const mat = materials[i]
       mat.opacity = 0.92 * env
+      // A transparent mesh at opacity 0 still costs a draw call.
+      mesh.visible = env > 0.01
 
       // Per-frame tint: warm underlit near the sun's azimuth, cool dark on
       // the night side (angular distance + nightMix).
@@ -192,7 +197,10 @@ export function Clouds() {
     // Slots beyond the active pool stay hidden (tier drop mid-session).
     for (let i = poolSize; i < POOL_HIGH; i++) {
       const mesh = meshRefs.current[i]
-      if (mesh) materials[i].opacity = 0
+      if (mesh) {
+        materials[i].opacity = 0
+        mesh.visible = false
+      }
     }
   })
 

@@ -115,6 +115,23 @@ export function Island() {
     return new THREE.BoxGeometry(DOCK.halfWidthM * 2, DOCK.plankThicknessM, segLengthM)
   }, [])
 
+  // Draw-call shave: the dock is fully static, so planks + posts fuse
+  // into ONE wood mesh instead of two instanced draws.
+  const dockGeo = useMemo(() => {
+    const strip = (g: THREE.BufferGeometry, m: THREE.Matrix4) => {
+      const n = g.index ? g.toNonIndexed() : g.clone()
+      n.deleteAttribute('uv')
+      n.applyMatrix4(m)
+      return n
+    }
+    const parts: THREE.BufferGeometry[] = []
+    for (const m of dock.planks) parts.push(strip(plankGeo, m))
+    for (const m of dock.posts) parts.push(strip(postGeo, m))
+    const merged = mergeGeometries(parts)
+    parts.forEach((p) => p.dispose())
+    return merged
+  }, [dock, plankGeo])
+
   // The seating logs are FIRE FURNITURE (campfire fix): one merged
   // vertex-tinted mesh — proper bark + lighter end-grain caps — with a
   // warm tint BAKED toward the fire heart, distance-scaled, so their
@@ -181,9 +198,8 @@ export function Island() {
         <meshLambertMaterial vertexColors flatShading />
       </mesh>
 
-      {/* Dock (primitive, instanced). */}
-      <StaticInstances geometry={plankGeo} material={woodMat} matrices={dock.planks} />
-      <StaticInstances geometry={postGeo} material={woodMat} matrices={dock.posts} />
+      {/* Dock — one merged static wood mesh (draw-call shave). */}
+      <mesh geometry={dockGeo} material={woodMat} />
 
       {/* Chunky scatter — one draw call per material part. */}
       <InstancedProp parts={props.palm} placements={scatter.palms} />
