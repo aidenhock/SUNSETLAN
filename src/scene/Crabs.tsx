@@ -61,11 +61,16 @@ export function Crabs() {
     [],
   )
 
+  const lastT = useRef(-1)
   useFrame((state, rawDt) => {
     const dt = Math.min(rawDt, 0.1) // resumed tabs hand the gap to frame 1
     const m = mesh.current
     if (!m) return
     const t = state.clock.elapsedTime
+    // A STALL is a clock jump between frames (hidden tab, breakpoint) —
+    // not a snap timer that lapsed while its conditions were gated.
+    const stalled = lastT.current >= 0 && t - lastT.current > 0.25
+    lastT.current = t
     const tier = useStore.getState().qualityTier
     const active = tier === 'low' ? 2 : CRAB_COUNT
     poleInPlanetSpace(controlsRuntime.planetQuaternion, scratch.pole)
@@ -91,13 +96,13 @@ export function Crabs() {
           if (arcToPlayer < 6) void play2d('crabs', 'world', 0.165)
         }
         // Idle pincer snap (polish 2): a watched, paused crab snaps at
-        // random 3–8 s intervals with a claw twitch. Stall guard: a snap
-        // overdue by more than 0.25 s (hidden tab, throttled loop) was
-        // missed — re-arm silently instead of firing late.
+        // random 3–8 s intervals with a claw twitch.
         if (crab.state === 'pause' && arcToPlayer < 4 && t >= crab.nextSnapAt) {
-          const missed = t - crab.nextSnapAt > 0.25
+          // Overdue is NORMAL here (the timer lapses while the crab
+          // wanders or the player is far, then fires when conditions
+          // align); only a true clock stall re-arms silently.
           crab.nextSnapAt = t + nextSnapDelay()
-          if (!missed) {
+          if (!stalled) {
             crab.snapT = t
             void play2d('crabs', 'world', 0.35)
             const w = window as unknown as { __snapLog?: number[] }
