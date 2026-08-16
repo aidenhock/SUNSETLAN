@@ -4,6 +4,8 @@ import { AIDEN } from '../content/characters'
 import { buildNodes } from './BlockyCharacter'
 import {
   buildBulletinBoard,
+  buildCemetery,
+  buildHeadstone,
   buildHedgeStone,
   buildMusicStereo,
   buildCrate,
@@ -36,6 +38,8 @@ const BUILDERS: Record<string, () => PropPart[]> = {
   palapa: buildPalapa,
   hedgeStone: buildHedgeStone,
   bulletinBoard: buildBulletinBoard,
+  cemetery: buildCemetery,
+  headstone: buildHeadstone,
 }
 
 describe('prop builders merge cleanly', () => {

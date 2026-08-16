@@ -495,3 +495,47 @@ from the HUD menu.
   and the player marker moving at 10 Hz is imperceptible at 130 px.
 - Fog is per-cell wedges over a fully-drawn map rather than masking
   the draw — simpler, and the eased reveal is just an alpha ramp.
+
+## 14 · The memorial garden {#memorial-garden}
+
+**Hook:** A quiet walled corner of the island where remembrances live.
+
+**Plain:** Just past the terminator on the night-leaning side sits a
+small stone-walled garden with an arched wooden gate, two rows of
+headstones, a bench, and flowers. The front-row stones can be read —
+"E — Remember" opens a quiet card with a name, years, relation, and a
+message. At night the garden holds a faint warm glow and slow
+fireflies; it never gets bright. The same remembrances appear on
+/classic under Memorials. Three placeholder stones ship until Aiden
+writes real ones.
+
+**Technical:** The statics (`buildCemetery`: 14-block wall ring with a
+~70° northern opening, gate posts + lintel, decorative back-row
+stones, bench, flower clusters) are one vertex-tinted merge — one
+draw call — placed via the MAP table; interactable headstones are a
+new `PropKind 'headstone'` reusing the standard prop pipeline with a
+new `ModalKind 'memorial'` reading `src/content/memorials.ts` by
+`contentKey`. Blockers trace the VISIBLE wall (five r-1.15 circles on
+ring bearings that skip the gate, plus two gate-post circles) so the
+interior stays fully walkable — the moai lesson applied. The night
+mood is `<Cemetery/>`: one 12-point fireflies Points pool (blink +
+orbit from seeded params, zero allocations per frame) and two
+PointLights, all scaled by `smoothstep(nightMix, 0.45, 0.8)` and
+skipped on low tier.
+
+**Files:**
+- `src/content/memorials.ts` — the entries + the consent rule
+- `src/scene/props.ts` — `buildCemetery`, `buildHeadstone`
+- `src/scene/Cemetery.tsx` — fireflies + glow
+- `src/ui/modals/MemorialModal.tsx` — the quiet card
+
+**Decisions:**
+- CONSENT RULE recorded in the content file and CONTENT.md: names and
+  photos of living people require their explicit okay before shipping
+  publicly; pets are Aiden's call. Placeholders ship in the meantime
+  and say so in the modal.
+- The glow is deliberately dim (0.35/0.28 peak intensity, distance 4)
+  — the spec said "never bright"; the space should read hushed next
+  to the campfire's warmth, not compete with it.
+- Fireflies are a Points pool like the embers, not meshes — one draw,
+  tier-gated, night-gated, with the same parked-at-9999 idle pattern.

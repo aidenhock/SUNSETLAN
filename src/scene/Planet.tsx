@@ -9,6 +9,7 @@ import { useMusicMix, WorldEmitters } from './AudioEmitters'
 import { Avatar } from './Avatar'
 import { CelestialDome } from './CelestialDome'
 import { Clouds } from './Clouds'
+import { Cemetery } from './Cemetery'
 import { Crabs } from './Crabs'
 import { Fire } from './Fire'
 import { Interactable } from './Interactable'
@@ -57,6 +58,7 @@ export function PlanetScene({ isTouch, intro }: { isTouch: boolean; intro: boole
         <UkulelePlayer />
         <Crabs />
         <Fire />
+        <Cemetery />
         <WorldEmitters />
         {interactables.map((def) => (
           <Interactable key={def.id} def={def} />

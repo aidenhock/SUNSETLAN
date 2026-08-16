@@ -15,6 +15,7 @@ import {
 } from './planetConfig'
 import { IDENTITY_Q, InstancedProp, StaticInstances, surfacePartMatrix } from './instancing'
 import {
+  buildCemetery,
   buildCrate,
   buildPalapa,
   buildPalm,
@@ -72,6 +73,7 @@ export function Island() {
     () => ({
       palm: buildPalm(),
       rock: buildRock(),
+      cemetery: buildCemetery(),
       crate: buildCrate(),
       rowboat: buildRowboat(),
       palapa: buildPalapa(),
@@ -183,6 +185,7 @@ export function Island() {
 
   const single = useMemo(
     () => ({
+      cemetery: [placement(MAP.cemetery.lat, MAP.cemetery.long)],
       crate: [placement(MAP.tv.lat, MAP.tv.long + 0.8)],
       rowboat: [placement(MAP.rowboat.lat, MAP.rowboat.long, 0.9)],
       palapa: [placement(MAP.palapa.lat, MAP.palapa.long)],
@@ -211,6 +214,9 @@ export function Island() {
       <mesh geometry={seatingLogs}>
         <meshLambertMaterial vertexColors flatShading />
       </mesh>
+
+      {/* Memorial garden statics (fireflies + glow live in <Cemetery/>). */}
+      <InstancedProp parts={props.cemetery} placements={single.cemetery} />
 
       {/* CRT crate + beached rowboat. */}
       <InstancedProp parts={props.crate} placements={single.crate} />

@@ -10,9 +10,10 @@ export type ModalKind =
   | 'contact'
   | 'card'
   | 'papers'
+  | 'memorial'
 
 /** Chunky primitive prop bodies built in scene/props.ts. */
-export type PropKind = 'tripod' | 'mailbox' | 'stereo' | 'hedgestone' | 'bulletin'
+export type PropKind = 'tripod' | 'mailbox' | 'stereo' | 'hedgestone' | 'bulletin' | 'headstone'
 
 export interface InteractableDef {
   id: string
@@ -81,6 +82,23 @@ export const interactables: InteractableDef[] = [
     modal: 'papers',
     contentKey: 'papers',
   },
+  // Memorial garden headstones (TASK 3): the front row is
+  // interactable; approach reads "E — Remember". Quiet space.
+  ...[
+    { id: 'memorial-1', lat: 46.5, long: 105.5 },
+    { id: 'memorial-2', lat: 46.5, long: 107 },
+    { id: 'memorial-3', lat: 46.5, long: 108.5 },
+  ].map(({ id, lat, long }) => ({
+    id,
+    label: 'Remember',
+    prompt: 'Remember',
+    prop: 'headstone' as const,
+    blockRadius: 0.5,
+    position: place(lat, long),
+    rotation: [0, 0, 0] as [number, number, number],
+    modal: 'memorial' as const,
+    contentKey: id,
+  })),
   {
     id: 'projects',
     label: 'Projects',

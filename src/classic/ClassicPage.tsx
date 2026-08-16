@@ -2,6 +2,7 @@ import { cards } from '../content/about'
 import { ContactForm } from '../ui/ContactForm'
 import { contact } from '../content/contact'
 import { music } from '../content/music'
+import { memorials } from '../content/memorials'
 import { papers } from '../content/papers'
 import { photos } from '../content/photos'
 import { projects } from '../content/projects'
@@ -169,6 +170,23 @@ export default function ClassicPage() {
                     {video.title}
                   </span>
                 </a>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section className="mt-12" aria-labelledby="memorials-h">
+          <h2 id="memorials-h" className="font-display text-2xl font-bold">
+            Memorials
+          </h2>
+          <p className="mt-1 text-sm text-ink/60">A quiet corner of the island.</p>
+          <ul className="mt-4 space-y-4">
+            {memorials.map((m) => (
+              <li key={m.id} className="rounded-xl border border-ink/10 bg-white/60 p-4 text-ink/80">
+                <h3 className="font-display text-lg font-semibold">{m.name}</h3>
+                {m.years && <p className="text-sm text-ink/60">{m.years}</p>}
+                <p className="text-sm text-ink/60 italic">{m.relation}</p>
+                <p className="mt-2 leading-loose">{m.message}</p>
               </li>
             ))}
           </ul>

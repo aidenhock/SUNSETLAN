@@ -8,6 +8,7 @@ const CASES: [string, string][] = [
   ['papers', 'Papers'],
   ['about', "Hey, I'm Aiden"],
   ['videos', 'Videos'],
+  ['memorial-1', 'A good boy'],
   ['contact', 'Contact'],
 ]
 
@@ -40,6 +41,11 @@ test('every modal type opens from data; gallery lightbox and lite-embed work', a
       await expect(view).toHaveAttribute('href', /aiden-hock-resume\.pdf$/)
       await expect(view).toHaveAttribute('target', '_blank')
       await expect(page.getByRole('link', { name: 'Download' })).toHaveAttribute('download', '')
+    }
+
+    if (id === 'memorial-1') {
+      // Placeholder stones say so — no pretending to be real remembrances.
+      await expect(page.getByText('A placeholder stone', { exact: false })).toBeVisible()
     }
 
     if (id === 'videos') {

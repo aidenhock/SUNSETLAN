@@ -10,7 +10,7 @@ test('/classic renders every section without loading any three.js modules', asyn
 
   await page.goto('/classic', { waitUntil: 'networkidle' })
 
-  for (const heading of ["Hey, I'm Aiden", 'Projects', 'Papers', 'Photos', 'Music', 'Videos', 'Contact']) {
+  for (const heading of ["Hey, I'm Aiden", 'Projects', 'Papers', 'Photos', 'Music', 'Videos', 'Memorials', 'Contact']) {
     await expect(page.getByRole('heading', { name: heading, exact: false })).toBeVisible()
   }
   // Mirror rule: the About section is FINDABLE by its category label,

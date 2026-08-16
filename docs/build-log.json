@@ -260,12 +260,12 @@
           "excerpts": [
             {
               "symbol": "CELESTIAL_ELEVATION_INLAND_DEG",
-              "line": 182,
+              "line": 183,
               "code": "export const CELESTIAL_ELEVATION_INLAND_DEG = 45\r\n/** v3.8 TRUE SET: elevations are horizontal-relative; the sea horizon sits\r\n * at ≈ −16.6° from eye height. −15.8° puts the disc center 0.75° above the\r\n * sea line → ~40% of the sun disc (3.7° radius) submerged at the waterline;\r\n * the ocean geometry physically occludes the rest. */\r\nexport const CELESTIAL_ELEVATION_WATERLINE_DEG = -15.8\r\n/** v3.9 set floor: wading sinks it only slightly more, clamped so NEITHER\r\n * disc ever exceeds ~45% submerged (sun ρ 3.7° → 44%; moon ρ 2.74° → 43%)\r\n * — the disc and its glitter lane stay clearly visible at full set. */\r\nexport const CELESTIAL_ELEVATION_WADING_MIN_DEG = -16.2\r\nexport const CELESTIAL = { sunLongDeg: 0, moonLongDeg: 180 } as const\r\n\r\n/** Glitter corridor tuning (v3.14): the corridor centerline is the great\r\n * circle from the disc's base through the character; half-widths are\r"
             },
             {
               "symbol": "CELESTIAL_ELEVATION_WATERLINE_DEG",
-              "line": 187,
+              "line": 188,
               "code": "export const CELESTIAL_ELEVATION_WATERLINE_DEG = -15.8\r\n/** v3.9 set floor: wading sinks it only slightly more, clamped so NEITHER\r\n * disc ever exceeds ~45% submerged (sun ρ 3.7° → 44%; moon ρ 2.74° → 43%)\r\n * — the disc and its glitter lane stay clearly visible at full set. */\r\nexport const CELESTIAL_ELEVATION_WADING_MIN_DEG = -16.2\r\nexport const CELESTIAL = { sunLongDeg: 0, moonLongDeg: 180 } as const\r\n\r\n/** Glitter corridor tuning (v3.14): the corridor centerline is the great\r\n * circle from the disc's base through the character; half-widths are\r\n * perpendicular arc METERS (an azimuth cone pinches to a point at the\r\n * viewer's nadir — banned). Endpoint widths derive from the disc's\r\n * apparent width at reference distances: the limb distance (far) and\r\n * `nearRefM` (near, held at the shore). Rising scales both endpoints up\r\n * and eases opacity down to a floor; submergence is the only kill. */\r"
             }
           ]
@@ -311,7 +311,7 @@
           "excerpts": [
             {
               "symbol": "GLITTER",
-              "line": 201,
+              "line": 202,
               "code": "export const GLITTER = {\r\n  /** Corridor width at the disc base, in apparent disc widths. */\r\n  farWidthDisc: 0.65,\r\n  /** Corridor width held at the shoreline, in apparent disc widths… */\r\n  nearWidthDisc: 3.75,\r\n  /** …as seen from this reference distance (m) — the near width is a\r\n   * stable physical width, not a per-frame shore solve. */\r\n  nearRefM: 3,\r\n  /** Both endpoint widths scale up to this at inland-high. */\r\n  highWidthScale: 1.8,\r\n  /** Lane opacity at set (the vivid column)… */\r\n  opacityLow: 0.95,\r\n  /** …easing down to this floor at inland-high — never invisible. */\r\n  opacityFloor: 0.45,\r"
             }
           ]
@@ -651,7 +651,7 @@
           "excerpts": [
             {
               "symbol": "buildHedgeStone",
-              "line": 388,
+              "line": 480,
               "code": "export function buildHedgeStone(): PropPart[] {\r\n  const tinted = (g: THREE.BufferGeometry, color: string, pos: [number, number, number], rot: [number, number, number] = [0, 0, 0], scale: [number, number, number] = [1, 1, 1]) => {\r\n    const n = tintGeometry(normalizeForMerge(g), color)\r\n    g.dispose()\r\n    n.applyMatrix4(\r\n      new THREE.Matrix4().compose(\r\n        new THREE.Vector3(...pos),\r\n        new THREE.Quaternion().setFromEuler(new THREE.Euler(...rot)),\r\n        new THREE.Vector3(...scale),\r\n      ),\r\n    )\r\n    return n\r\n  }\r\n  const STONE = '#8a9484'\r"
             }
           ]
@@ -665,12 +665,12 @@
           "excerpts": [
             {
               "symbol": "prop: 'hedgestone'",
-              "line": 101,
+              "line": 119,
               "code": "    prop: 'hedgestone',\r\n    blockRadius: 1.1,\r\n    position: place(MAP.hedgeStone.lat, MAP.hedgeStone.long),\r\n    rotation: [0, 0, 0],\r\n    modal: 'card',\r\n    contentKey: 'about',\r\n  },\r\n  {\r\n    id: 'videos',\r\n    label: 'Videos',\r\n    prompt: 'Turn on the TV',\r\n    // \"CRT TV on crate\": the cube sits on the crate top (0.7 + sink back).\r\n    position: place(MAP.tv.lat, MAP.tv.long + 0.8, 0.8),\r\n    rotation: [0, Math.PI / 3, 0],\r"
             },
             {
               "symbol": "blockRadius",
-              "line": 43,
+              "line": 44,
               "code": "    blockRadius: 0.8,\r\n    position: place(MAP.musicUkulele.lat, MAP.musicUkulele.long),\r\n    rotation: [0, Math.PI / 6, 0],\r\n    modal: 'music',\r\n    contentKey: 'music',\r\n  },\r\n  {\r\n    id: 'photos',\r\n    label: 'Photos',\r\n    prompt: 'Look through the camera',\r\n    prop: 'tripod',\r\n    blockRadius: 0.7,\r\n    position: place(MAP.tripod.lat, MAP.tripod.long),\r\n    rotation: [0, Math.PI, 0], // faces the sun, out over the water\r"
             }
           ],
@@ -685,7 +685,7 @@
             {
               "symbol": "PROP_BUILDERS",
               "line": 10,
-              "code": "const PROP_BUILDERS: Record<PropKind, () => PropPart[]> = {\r\n  tripod: buildTripod,\r\n  mailbox: buildMailbox,\r\n  stereo: buildMusicStereo,\r\n  hedgestone: buildHedgeStone,\r\n  bulletin: buildBulletinBoard,\r\n}\r\n\r\n/**\r\n * An interactable, oriented to stand on the sphere with meridian-aligned yaw\r\n * (rotation[1] is relative to local north, like every SurfaceGroup prop).\r\n * Renders its chunky primitive prop when `prop` is set (see props.ts), else\r\n * the placeholder box. Proximity is angular distance, computed centrally in\r\n * usePlanetController — this component only renders and handles clicks/taps.\r"
+              "code": "const PROP_BUILDERS: Record<PropKind, () => PropPart[]> = {\r\n  tripod: buildTripod,\r\n  mailbox: buildMailbox,\r\n  stereo: buildMusicStereo,\r\n  hedgestone: buildHedgeStone,\r\n  bulletin: buildBulletinBoard,\r\n  headstone: buildHeadstone,\r\n}\r\n\r\n/**\r\n * An interactable, oriented to stand on the sphere with meridian-aligned yaw\r\n * (rotation[1] is relative to local north, like every SurfaceGroup prop).\r\n * Renders its chunky primitive prop when `prop` is set (see props.ts), else\r\n * the placeholder box. Proximity is angular distance, computed centrally in\r"
             }
           ]
         }
@@ -711,7 +711,7 @@
           "excerpts": [
             {
               "symbol": "buildBulletinBoard",
-              "line": 327,
+              "line": 419,
               "code": "export function buildBulletinBoard(): PropPart[] {\r\n  const tinted = (g: THREE.BufferGeometry, color: string, pos: [number, number, number], rot: [number, number, number] = [0, 0, 0], scale: [number, number, number] = [1, 1, 1]) => {\r\n    const n = tintGeometry(normalizeForMerge(g), color)\r\n    g.dispose()\r\n    n.applyMatrix4(\r\n      new THREE.Matrix4().compose(\r\n        new THREE.Vector3(...pos),\r\n        new THREE.Quaternion().setFromEuler(new THREE.Euler(...rot)),\r\n        new THREE.Vector3(...scale),\r\n      ),\r\n    )\r\n    return n\r\n  }\r\n  const FRAME = '#7f9578'\r"
             }
           ]
@@ -810,6 +810,57 @@
         "A second three.js scene for the map was ruled out by the task spec",
         "10 Hz updates instead of per-frame: a minimap doesn't need 60 fps,",
         "Fog is per-cell wedges over a fully-drawn map rather than masking"
+      ]
+    },
+    {
+      "id": "memorial-garden",
+      "title": "The memorial garden",
+      "hook": "A quiet walled corner of the island where remembrances live.",
+      "plain": "Just past the terminator on the night-leaning side sits a small stone-walled garden with an arched wooden gate, two rows of headstones, a bench, and flowers. The front-row stones can be read — \"E — Remember\" opens a quiet card with a name, years, relation, and a message. At night the garden holds a faint warm glow and slow fireflies; it never gets bright. The same remembrances appear on /classic under Memorials. Three placeholder stones ship until Aiden writes real ones.",
+      "technical": "The statics (`buildCemetery`: 14-block wall ring with a ~70° northern opening, gate posts + lintel, decorative back-row stones, bench, flower clusters) are one vertex-tinted merge — one draw call — placed via the MAP table; interactable headstones are a new `PropKind 'headstone'` reusing the standard prop pipeline with a new `ModalKind 'memorial'` reading `src/content/memorials.ts` by `contentKey`. Blockers trace the VISIBLE wall (five r-1.15 circles on ring bearings that skip the gate, plus two gate-post circles) so the interior stays fully walkable — the moai lesson applied. The night mood is `<Cemetery/>`: one 12-point fireflies Points pool (blink + orbit from seeded params, zero allocations per frame) and two PointLights, all scaled by `smoothstep(nightMix, 0.45, 0.8)` and skipped on low tier.",
+      "files": [
+        {
+          "path": "src/content/memorials.ts",
+          "symbols": [],
+          "excerpts": [],
+          "note": "the entries + the consent rule"
+        },
+        {
+          "path": "src/scene/props.ts",
+          "symbols": [
+            "buildCemetery",
+            "buildHeadstone"
+          ],
+          "excerpts": [
+            {
+              "symbol": "buildCemetery",
+              "line": 326,
+              "code": "export function buildCemetery(): PropPart[] {\r\n  const tinted = (g: THREE.BufferGeometry, color: string, pos: [number, number, number], rot: [number, number, number] = [0, 0, 0], scale: [number, number, number] = [1, 1, 1]) => {\r\n    const n = tintGeometry(normalizeForMerge(g), color)\r\n    g.dispose()\r\n    n.applyMatrix4(\r\n      new THREE.Matrix4().compose(\r\n        new THREE.Vector3(...pos),\r\n        new THREE.Quaternion().setFromEuler(new THREE.Euler(...rot)),\r\n        new THREE.Vector3(...scale),\r\n      ),\r\n    )\r\n    return n\r\n  }\r\n  const WALL = '#a8a294'\r"
+            },
+            {
+              "symbol": "buildHeadstone",
+              "line": 390,
+              "code": "export function buildHeadstone(): PropPart[] {\r\n  const tinted = (g: THREE.BufferGeometry, color: string, pos: [number, number, number], rot: [number, number, number] = [0, 0, 0]) => {\r\n    const n = tintGeometry(normalizeForMerge(g), color)\r\n    g.dispose()\r\n    n.applyMatrix4(\r\n      new THREE.Matrix4().compose(\r\n        new THREE.Vector3(...pos),\r\n        new THREE.Quaternion().setFromEuler(new THREE.Euler(...rot)),\r\n        new THREE.Vector3(1, 1, 1),\r\n      ),\r\n    )\r\n    return n\r\n  }\r\n  const parts = [\r"
+            }
+          ]
+        },
+        {
+          "path": "src/scene/Cemetery.tsx",
+          "symbols": [],
+          "excerpts": [],
+          "note": "fireflies + glow"
+        },
+        {
+          "path": "src/ui/modals/MemorialModal.tsx",
+          "symbols": [],
+          "excerpts": [],
+          "note": "the quiet card"
+        }
+      ],
+      "decisions": [
+        "CONSENT RULE recorded in the content file and CONTENT.md: names and",
+        "The glow is deliberately dim (0.35/0.28 peak intensity, distance 4)",
+        "Fireflies are a Points pool like the embers, not meshes — one draw,"
       ]
     }
   ]

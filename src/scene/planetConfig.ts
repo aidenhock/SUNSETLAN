@@ -132,6 +132,7 @@ export const MAP = {
   ukulelePlayer: { lat: 18, long: 359.05 },
   palapa: { lat: 40, long: 40 }, // Projects — day-leaning side
   bulletinBoard: { lat: 45, long: 343 }, // Papers — grass, sunset side, inland from the mailbox
+  cemetery: { lat: 47, long: 107 }, // Memorial garden — just past the terminator, night-leaning
   hedgeStone: { lat: 50, long: 300 }, // About — the moai in its hedge clearing, dusk boundary west
   campfire: { lat: 22, long: 180 }, // night beach
   // Log circle: three sittable logs ~3.2 m from the fire on the landward
@@ -333,6 +334,20 @@ const landmarkBlockers: { lat: number; long: number; radius: number }[] = [
   { lat: MAP.ukulelePlayer.lat, long: MAP.ukulelePlayer.long, radius: 0.7 },
   // The three fire logs (sit entry bypasses the target log's blocker).
   ...MAP.logs.map((l) => ({ lat: l.lat, long: l.long, radius: 0.9 })),
+  // Memorial garden wall (TASK 3): blockers TRACE the visible wall ring
+  // (r 3.2 m; lesson from the moai — colliders must trace something the
+  // player can SEE) leaving the northern gate open; two gate posts.
+  // 1° lat ≈ 0.96 m; 1° long ≈ 0.70 m at lat 47.
+  ...[72, 126, 180, 234, 288].map((bearingDeg) => {
+    const b = (bearingDeg * Math.PI) / 180
+    return {
+      lat: MAP.cemetery.lat + (Math.cos(b) * 3.2) / 0.96,
+      long: MAP.cemetery.long + (Math.sin(b) * 3.2) / 0.7,
+      radius: 1.15,
+    }
+  }),
+  { lat: MAP.cemetery.lat + 3.1 / 0.96, long: MAP.cemetery.long - 1.05 / 0.7, radius: 0.35 },
+  { lat: MAP.cemetery.lat + 3.1 / 0.96, long: MAP.cemetery.long + 1.05 / 0.7, radius: 0.35 },
   { lat: MAP.palapa.lat, long: MAP.palapa.long - 2, radius: 1.2 }, // desk
   { lat: MAP.tv.lat, long: MAP.tv.long + 0.8, radius: 0.9 }, // crate
   { lat: MAP.mailbox.lat, long: MAP.mailbox.long, radius: 0.5 },

@@ -3,6 +3,7 @@ import { useStore } from '../store/useStore'
 import { CardModal } from './modals/CardModal'
 import { ContactModal } from './modals/ContactModal'
 import { GalleryModal } from './modals/GalleryModal'
+import { MemorialModal } from './modals/MemorialModal'
 import { MusicModal } from './modals/MusicModal'
 import { PapersModal } from './modals/PapersModal'
 import { ProjectsModal } from './modals/ProjectsModal'
@@ -28,5 +29,7 @@ export function ModalRoot() {
       return <ContactModal />
     case 'papers':
       return <PapersModal />
+    case 'memorial':
+      return <MemorialModal def={def} />
   }
 }

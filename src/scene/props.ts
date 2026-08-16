@@ -318,6 +318,98 @@ export function buildPalapa(): PropPart[] {
 }
 
 /** Big tree (About): chunky trunk, icosahedron canopy, branch with rings. */
+/** Memorial garden statics (TASK 3): a low stone wall ring with a
+ * northern opening framed by an arched gate, a second row of
+ * decorative headstones, a small bench, and scattered flowers. The
+ * three INTERACTABLE headstones are separate `buildHeadstone` bodies.
+ * ONE vertex-tinted merge; wall blockers trace the visible wall. */
+export function buildCemetery(): PropPart[] {
+  const tinted = (g: THREE.BufferGeometry, color: string, pos: [number, number, number], rot: [number, number, number] = [0, 0, 0], scale: [number, number, number] = [1, 1, 1]) => {
+    const n = tintGeometry(normalizeForMerge(g), color)
+    g.dispose()
+    n.applyMatrix4(
+      new THREE.Matrix4().compose(
+        new THREE.Vector3(...pos),
+        new THREE.Quaternion().setFromEuler(new THREE.Euler(...rot)),
+        new THREE.Vector3(...scale),
+      ),
+    )
+    return n
+  }
+  const WALL = '#a8a294'
+  const WALL_B = '#948e80'
+  const STONE = '#b5b0a4'
+  const WOOD = PROP_COLORS.woodDark
+  const FLOWERS = ['#e893b8', '#ffd166', '#f5efdd']
+  const parts: THREE.BufferGeometry[] = []
+  // Wall ring r ~3.2 m with a ~70° northern opening: chunky blocks.
+  const BLOCKS = 14
+  for (let i = 0; i < BLOCKS; i++) {
+    const a = 0.65 + (i / (BLOCKS - 1)) * (Math.PI * 2 - 1.3)
+    const w = 0.95 + ((i * 23) % 3) * 0.12
+    const h = 0.42 + ((i * 31) % 3) * 0.07
+    parts.push(
+      tinted(
+        new RoundedBoxGeometry(w, h, 0.42, 2, 0.09),
+        i % 2 === 0 ? WALL : WALL_B,
+        [Math.sin(a) * 3.2, h / 2 - 0.04, Math.cos(a) * 3.2],
+        [0, -a + ((i * 13) % 5) * 0.03, 0],
+      ),
+    )
+  }
+  // Arched gate at the opening: two posts + three angled lintel blocks.
+  for (const x of [-1.05, 1.05]) {
+    parts.push(tinted(new THREE.BoxGeometry(0.18, 1.5, 0.18), WOOD, [x, 0.72, 3.1]))
+  }
+  parts.push(tinted(new THREE.BoxGeometry(0.85, 0.14, 0.16), WOOD, [-0.55, 1.55, 3.1], [0, 0, 0.5]))
+  parts.push(tinted(new THREE.BoxGeometry(0.85, 0.14, 0.16), WOOD, [0.55, 1.55, 3.1], [0, 0, -0.5]))
+  parts.push(tinted(new THREE.BoxGeometry(0.8, 0.14, 0.16), WOOD, [0, 1.78, 3.1]))
+  // Decorative second row of headstones (the interactable row renders
+  // as its own prop bodies).
+  for (const [x, z, lean] of [[-1.0, -1.5, 0.05], [0, -1.6, -0.04], [1.0, -1.45, 0.07]] as const) {
+    parts.push(tinted(new RoundedBoxGeometry(0.42, 0.62, 0.14, 2, 0.07), STONE, [x, 0.28, z], [lean, 0.06, lean]))
+  }
+  // A small wooden bench inside, along the east wall.
+  parts.push(tinted(new THREE.BoxGeometry(1.1, 0.09, 0.4), WOOD, [2.2, 0.42, 0.4], [0, -1.2, 0]))
+  for (const dz of [-0.4, 0.4]) {
+    parts.push(tinted(new THREE.BoxGeometry(0.12, 0.4, 0.34), WOOD, [2.2 + Math.sin(-1.2) * dz * 0.4, 0.2, 0.4 + Math.cos(-1.2) * dz], [0, -1.2, 0]))
+  }
+  // Scattered flowers: stem + tiny petal blob, three palette colors.
+  const SPOTS: Array<[number, number]> = [[-1.6, 0.6], [1.4, -0.4], [-0.4, 1.2], [0.8, 1.8], [-2.0, -0.8], [1.9, 1.2]]
+  SPOTS.forEach(([x, z], i) => {
+    parts.push(tinted(new THREE.CylinderGeometry(0.015, 0.02, 0.16, 4), '#4f8a58', [x, 0.08, z]))
+    parts.push(tinted(new THREE.SphereGeometry(0.05, 6, 4), FLOWERS[i % FLOWERS.length], [x, 0.18, z], [0, 0, 0], [1, 0.7, 1]))
+  })
+  const merged = mergeGeometries(parts)
+  for (const p of parts) p.dispose()
+  return [{ geometry: merged, material: new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }) }]
+}
+
+/** One interactable headstone: a chunky rounded stone with a slight
+ * lean and a lighter face panel — the Remember portals. */
+export function buildHeadstone(): PropPart[] {
+  const tinted = (g: THREE.BufferGeometry, color: string, pos: [number, number, number], rot: [number, number, number] = [0, 0, 0]) => {
+    const n = tintGeometry(normalizeForMerge(g), color)
+    g.dispose()
+    n.applyMatrix4(
+      new THREE.Matrix4().compose(
+        new THREE.Vector3(...pos),
+        new THREE.Quaternion().setFromEuler(new THREE.Euler(...rot)),
+        new THREE.Vector3(1, 1, 1),
+      ),
+    )
+    return n
+  }
+  const parts = [
+    tinted(new RoundedBoxGeometry(0.5, 0.74, 0.16, 2, 0.08), '#b5b0a4', [0, 0.34, 0], [0.04, 0, 0.02]),
+    tinted(new RoundedBoxGeometry(0.36, 0.4, 0.03, 2, 0.05), '#c6c1b5', [0, 0.42, 0.08], [0.04, 0, 0.02]),
+    tinted(new THREE.SphereGeometry(0.05, 6, 4), '#e893b8', [0.2, 0.06, 0.12]),
+  ]
+  const merged = mergeGeometries(parts)
+  for (const p of parts) p.dispose()
+  return [{ geometry: merged, material: new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }) }]
+}
+
 /** Bulletin board (Papers portal): a chunky faceted corkboard on two
  * wooden posts with a little sloped roof (the AC reference), weathered
  * green frame, cork face carrying pinned off-white paper quads at

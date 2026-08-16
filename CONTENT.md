@@ -321,6 +321,29 @@ real one's header contains a phone number (privacy rule — never ship).
 To finish: strip the phone from the docx, export as PDF from Word, and
 replace `public/aiden-hock-resume.pdf`.
 
+## Memorials — `src/content/memorials.ts`
+
+A quiet walled garden past the terminator (lat 47, long 107). Each
+entry is one headstone; the front row is interactable ("E — Remember").
+The same list renders as the Memorials section on /classic.
+
+```ts
+{
+  id: 'memorial-4',          // unique; also the interactable id if front-row
+  name: 'Rex',
+  years: '2008 – 2023',      // optional
+  relation: 'Family dog',
+  message: 'A few quiet lines.',
+  photo: '/memorials/rex.webp', // optional, under public/memorials/
+}
+```
+
+Drop photos through `scripts/optimize-images.mjs` like everything else.
+
+**CONSENT RULE (binding): names and photos of living people require
+their explicit okay before shipping publicly; pets are Aiden's call.**
+The three placeholder stones ship until real entries replace them.
+
 ## Aiden's gathering checklist
 
 **Photos** (`src/content/photos.ts`)
