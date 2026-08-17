@@ -3,6 +3,7 @@ import * as THREE from 'three'
 import { AudioBoot } from '../audio/AudioBoot'
 import { useIntroSwoop } from '../controls/useIntroSwoop'
 import { usePlanetController } from '../controls/usePlanetController'
+import { useRoomController } from '../controls/useRoomController'
 import { usePointerLockCamera } from '../controls/usePointerLockCamera'
 import { interactables } from '../content/interactables'
 import { useStore } from '../store/useStore'
@@ -23,10 +24,8 @@ import { UkulelePlayer } from './UkulelePlayer'
 import { WadeRipple } from './WadeRipple'
 import { Water } from './Water'
 
-/** The Matrix room's 3D half — code-split, only fetched on entry. */
-const MatrixRoomScene = lazy(() =>
-  import('./MatrixRoomScene').then((m) => ({ default: m.MatrixRoomScene })),
-)
+/** The build-log room — code-split, only fetched when you step through. */
+const RoomScene = lazy(() => import('./RoomScene').then((m) => ({ default: m.RoomScene })))
 
 /**
  * The whole rotating world. One group owns the planet quaternion; the avatar
@@ -37,13 +36,15 @@ const MatrixRoomScene = lazy(() =>
 export function PlanetScene({ isTouch, intro }: { isTouch: boolean; intro: boolean }) {
   const planetRef = useRef<THREE.Group>(null)
   const avatarRef = useRef<THREE.Group>(null)
+  const roomRef = useRef<THREE.Group>(null)
 
   // Inside the portal the whole planet stops rendering (visible=false
   // skips the subtree) — the room draws against black, so the scene's
   // draw calls drop to the room's own handful instead of stacking.
-  const inRoom = useStore((s) => s.openModalId === 'matrix')
+  const inRoom = useStore((s) => s.inRoom)
 
   usePlanetController({ planetRef, avatarRef })
+  useRoomController({ roomRef, avatarRef })
   usePointerLockCamera({ avatarRef, isTouch })
   useIntroSwoop({ enabled: intro })
   useMusicMix()
@@ -75,13 +76,12 @@ export function PlanetScene({ isTouch, intro }: { isTouch: boolean; intro: boole
           <Interactable key={def.id} def={def} />
         ))}
       </group>
-      <group visible={!inRoom}>
-        <Avatar ref={avatarRef} />
-        <WadeRipple />
-      </group>
+      {/* The avatar walks in both places; only the ripple is island-only. */}
+      <Avatar ref={avatarRef} />
+      {!inRoom && <WadeRipple />}
       {inRoom && (
         <Suspense fallback={null}>
-          <MatrixRoomScene />
+          <RoomScene ref={roomRef} />
         </Suspense>
       )}
     </>

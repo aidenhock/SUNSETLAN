@@ -1,0 +1,186 @@
+{
+  "$comment": [
+    "THE WORLD INDEX \u2014 every placed thing on the island, in one file.",
+    "Move a monument by editing lat/long/facingDeg here; the scene, the",
+    "blockers, the minimap, and docs/world-map.md all follow.",
+    "",
+    "lat: 90 = the pole (spawn). Lower = further out toward the water.",
+    "     grass ends ~66, sand runs ~24 down to the waterline ~15.",
+    "long: 0 = the sunset side (sun, dock), 180 = the night side (campfire).",
+    "facingDeg: 0 faces local NORTH (uphill, toward the pole); 90 faces east.",
+    "liftM: extra height above the ground, for things standing on furniture.",
+    "",
+    "Adding one: give it an id, and wire the id where the scene expects it.",
+    "Removing one: delete the entry and its consumer (tests name the ids)."
+  ],
+  "monuments": [
+    {
+      "id": "photos",
+      "kind": "interactable",
+      "label": "Camera tripod \u2014 Photos",
+      "lat": 14,
+      "long": 0,
+      "facingDeg": 180,
+      "notes": "On the dock's far end, over water, facing the sun."
+    },
+    {
+      "id": "contact",
+      "kind": "interactable",
+      "label": "Mailbox \u2014 Contact",
+      "lat": 24,
+      "long": 6,
+      "facingDeg": 180,
+      "notes": "Dock entrance."
+    },
+    {
+      "id": "papers",
+      "kind": "interactable",
+      "label": "Bulletin board \u2014 Papers",
+      "lat": 45,
+      "long": 343,
+      "facingDeg": 11.5,
+      "notes": "Grass, sunset side; angled toward the walking approach."
+    },
+    {
+      "id": "about",
+      "kind": "interactable",
+      "label": "Moai \u2014 About",
+      "lat": 50,
+      "long": 300,
+      "facingDeg": 0,
+      "notes": "Dusk boundary west. Walk fully around it."
+    },
+    {
+      "id": "projects",
+      "kind": "interactable",
+      "label": "Palapa desk \u2014 Projects",
+      "lat": 40,
+      "long": 40,
+      "facingDeg": 0
+    },
+    {
+      "id": "music",
+      "kind": "interactable",
+      "label": "Stereo on the log \u2014 Music",
+      "lat": 22,
+      "long": 173,
+      "facingDeg": 30,
+      "notes": "By the campfire."
+    },
+    {
+      "id": "videos",
+      "kind": "interactable",
+      "label": "CRT TV on crate \u2014 Videos",
+      "lat": 21,
+      "long": 150.8,
+      "facingDeg": 60,
+      "liftM": 0.8,
+      "notes": "Sits on the crate; screen glow reads at night."
+    },
+    {
+      "id": "rift",
+      "kind": "interactable",
+      "label": "Rift portal \u2014 the build-log room",
+      "lat": 32,
+      "long": 97,
+      "facingDeg": 0,
+      "liftM": 2.9,
+      "notes": "Floats. Step through to the room; the room is not on this map."
+    },
+    {
+      "id": "memorial-1",
+      "kind": "interactable",
+      "label": "Headstone 1",
+      "lat": 45.6,
+      "long": 104.4,
+      "facingDeg": 180
+    },
+    {
+      "id": "memorial-2",
+      "kind": "interactable",
+      "label": "Headstone 2",
+      "lat": 45.6,
+      "long": 107,
+      "facingDeg": 180
+    },
+    {
+      "id": "memorial-3",
+      "kind": "interactable",
+      "label": "Headstone 3",
+      "lat": 45.6,
+      "long": 109.6,
+      "facingDeg": 180
+    },
+    {
+      "id": "cemetery",
+      "kind": "structure",
+      "label": "Memorial garden \u2014 fenced plot",
+      "lat": 47,
+      "long": 107,
+      "facingDeg": 0,
+      "size": {
+        "widthM": 17,
+        "depthM": 13
+      },
+      "notes": "Gate on the south (downhill) side. Interior fully walkable."
+    },
+    {
+      "id": "dock",
+      "kind": "structure",
+      "label": "Dock",
+      "lat": 24,
+      "long": 0,
+      "facingDeg": 180,
+      "notes": "Runs lat 24 \u2192 13 down its meridian; DOCK in planetConfig holds the strip."
+    },
+    {
+      "id": "campfire",
+      "kind": "prop",
+      "label": "Campfire",
+      "lat": 22,
+      "long": 180,
+      "facingDeg": 0
+    },
+    {
+      "id": "log-center",
+      "kind": "seat",
+      "label": "Log \u2014 center",
+      "lat": 25.3,
+      "long": 180,
+      "facingDeg": 0
+    },
+    {
+      "id": "log-west",
+      "kind": "seat",
+      "label": "Log \u2014 west flank",
+      "lat": 23.4,
+      "long": 176.7,
+      "facingDeg": 54.4
+    },
+    {
+      "id": "log-east",
+      "kind": "seat",
+      "label": "Log \u2014 east flank",
+      "lat": 23.4,
+      "long": 183.3,
+      "facingDeg": -54.4
+    },
+    {
+      "id": "koa",
+      "kind": "npc",
+      "label": "Koa the ukulele player",
+      "lat": 18,
+      "long": 359.05,
+      "facingDeg": 0,
+      "notes": "Seat ON the dock's west edge; altitude derives from the deck strip."
+    },
+    {
+      "id": "rowboat",
+      "kind": "prop",
+      "label": "Beached rowboat",
+      "lat": 18,
+      "long": 210,
+      "facingDeg": 0
+    }
+  ]
+}

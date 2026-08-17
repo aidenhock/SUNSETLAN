@@ -1,7 +1,10 @@
 import * as THREE from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js'
-import { tintGeometry } from './geometryUtils'
+import { tintGeometry, wrapToSphere } from './geometryUtils'
+import { monument, monumentYaw } from '../content/monuments'
+import { groundAltitudeAt } from '../controls/terrain'
+import { PLANET_RADIUS, SINK_M } from './planetConfig'
 
 /**
  * Chunky primitive props — the style bible's hand-built replacements for the
@@ -317,62 +320,34 @@ export function buildPalapa(): PropPart[] {
   return mergeByMaterial(pieces)
 }
 
-/** Big tree (About): chunky trunk, icosahedron canopy, branch with rings. */
-/** Memorial garden statics (TASK 3): a low stone wall ring with a
- * northern opening framed by an arched gate, a second row of
- * decorative headstones, a small bench, and scattered flowers. The
- * three INTERACTABLE headstones are separate `buildHeadstone` bodies.
- * ONE vertex-tinted merge; wall blockers trace the visible wall. */
 /**
- * The Matrix glitch portal (TASK 4): a chunky obsidian archway standing
- * on the night-leaning grass, its inner void a flat green pane that
- * glows at night (PropBody ramps `userData.glow` parts with nightMix).
- * Displaced "glitch" chunks float just off the frame — the same blocks
- * the frame is built from, nudged and rolled, so the silhouette reads
- * as a doorway coming apart rather than a clean gate.
+ * Memorial garden (rebuild — ACNH-style fenced plot, MUCH bigger and
+ * walkable; replaces the old 3.2 m circular stone-wall ring that read
+ * as "hard to walk around in"). A `monument('cemetery').size` rectangle
+ * (17 × 13 m) of chunky light-stone fence posts (~2.2 m spacing) with
+ * dark iron rail sections between them on all four sides, a ~3 m south
+ * gate flanked by taller posts (no panel spans the gap), two rows of
+ * decorative headstones + flower clusters along the north fence, a
+ * raised stone path from the gate toward the plot's middle, a log
+ * bench near the east fence, and two lantern posts flanking the path.
+ * The interior stays EMPTY lawn — the whole point is walking around
+ * inside (the moai lesson: no invisible walls; planetConfig's cemetery
+ * blockers trace only the fence line the player can SEE).
+ *
+ * The three INTERACTABLE headstones (memorials.ts, ids memorial-1..3)
+ * are separate `buildHeadstone` bodies at lat 45.6 / longs 104.4-109.6,
+ * which land at local (east, north) ≈ (-1.7, -1.34), (0, -1.34),
+ * (1.7, -1.34) m relative to the plot center — south of center, so the
+ * decorative rows (north half, z = +1.4/+3.2) stay well clear.
+ *
+ * Built flat in the local +X east / +Y up / +Z north frame (placement
+ * rule 3's convention), then wrapToSphere-bent onto the planet
+ * (placement rule 2 — a 17 m span sags mid-length and buries its
+ * corners as one flat mesh). The RETURNED geometry is therefore
+ * already in planet-local ABSOLUTE coordinates, unlike every other
+ * builder in this file: render it with NO placement transform. ONE
+ * vertex-tinted merge (one draw call).
  */
-export function buildMatrixPortal(): PropPart[] {
-  const tinted = (g: THREE.BufferGeometry, color: string, pos: [number, number, number], rot: [number, number, number] = [0, 0, 0]) => {
-    const n = tintGeometry(normalizeForMerge(g), color)
-    g.dispose()
-    n.applyMatrix4(
-      new THREE.Matrix4().compose(
-        new THREE.Vector3(...pos),
-        new THREE.Quaternion().setFromEuler(new THREE.Euler(...rot)),
-        new THREE.Vector3(1, 1, 1),
-      ),
-    )
-    return n
-  }
-  const STONE = '#22262f'
-  const STONE_LIT = '#2f3542'
-  const frame: THREE.BufferGeometry[] = [
-    // Posts, lintel, and a stepped base slab.
-    tinted(new THREE.BoxGeometry(0.34, 2.5, 0.36), STONE, [-0.92, 1.25, 0]),
-    tinted(new THREE.BoxGeometry(0.34, 2.5, 0.36), STONE, [0.92, 1.25, 0]),
-    tinted(new THREE.BoxGeometry(2.5, 0.36, 0.4), STONE_LIT, [0, 2.62, 0]),
-    tinted(new THREE.BoxGeometry(2.7, 0.22, 0.6), STONE_LIT, [0, 0.11, 0]),
-    // Glitch chunks: frame pieces displaced off-axis, slightly rolled.
-    tinted(new THREE.BoxGeometry(0.34, 0.42, 0.36), STONE_LIT, [-1.12, 2.0, 0.16], [0, 0, 0.22]),
-    tinted(new THREE.BoxGeometry(0.34, 0.3, 0.36), STONE, [1.14, 0.95, -0.14], [0, 0, -0.18]),
-    tinted(new THREE.BoxGeometry(0.5, 0.22, 0.3), STONE_LIT, [0.42, 2.86, 0.1], [0, 0.3, 0.1]),
-  ]
-  const merged = mergeGeometries(frame)
-  for (const g of frame) g.dispose()
-  // The void pane, its own part so it can glow independently of light.
-  const paneGeo = normalizeForMerge(new THREE.BoxGeometry(1.5, 2.16, 0.08))
-  paneGeo.translate(0, 1.3, 0)
-  const paneMat = new THREE.MeshLambertMaterial({ color: '#0a2a18', flatShading: true })
-  paneMat.emissive.set('#3aff7e')
-  paneMat.emissiveIntensity = 0.35
-  paneMat.toneMapped = false
-  paneMat.userData.glow = true
-  return [
-    { geometry: merged, material: new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }) },
-    { geometry: paneGeo, material: paneMat },
-  ]
-}
-
 export function buildCemetery(): PropPart[] {
   const tinted = (g: THREE.BufferGeometry, color: string, pos: [number, number, number], rot: [number, number, number] = [0, 0, 0], scale: [number, number, number] = [1, 1, 1]) => {
     const n = tintGeometry(normalizeForMerge(g), color)
@@ -386,53 +361,155 @@ export function buildCemetery(): PropPart[] {
     )
     return n
   }
-  const WALL = '#a8a294'
-  const WALL_B = '#948e80'
-  const STONE = '#b5b0a4'
+
+  const cem = monument('cemetery')
+  const HW = (cem.size?.widthM ?? 17) / 2
+  const HD = (cem.size?.depthM ?? 13) / 2
+  const GATE_HALF = 1.5 // ~3 m opening, centered on the south (downhill) edge
+
+  const POST = '#cfc9bb'
+  const POST_CAP = '#a39d8f' // darker cap
+  const IRON = '#3a3f47'
+  const HEADSTONES = ['#b5b0a4', '#9d988c', '#8d8579']
+  const FLOWERS = ['#f5efdd', '#e893b8', '#ffd166'] // white, pink, yellow
+  const PATH = PROP_COLORS.stone
   const WOOD = PROP_COLORS.woodDark
-  const FLOWERS = ['#e893b8', '#ffd166', '#f5efdd']
+  const WOOD_LIGHT = PROP_COLORS.woodLight
+  const LANTERN_POST = PROP_COLORS.slate
+  const LANTERN = '#ffe6b0'
+
   const parts: THREE.BufferGeometry[] = []
-  // Wall ring r ~3.2 m with a ~70° northern opening: chunky blocks.
-  const BLOCKS = 14
-  for (let i = 0; i < BLOCKS; i++) {
-    const a = 0.65 + (i / (BLOCKS - 1)) * (Math.PI * 2 - 1.3)
-    const w = 0.95 + ((i * 23) % 3) * 0.12
-    const h = 0.42 + ((i * 31) % 3) * 0.07
+
+  /** Evenly spaced points along a straight run, ~pitch meters apart
+   * (never exactly pitch — the run divides evenly so posts land on
+   * both ends). */
+  const spaced = (from: number, to: number, pitch = 2.2): number[] => {
+    const len = to - from
+    const count = Math.max(1, Math.round(len / pitch)) + 1
+    return Array.from({ length: count }, (_, i) => from + (len * i) / (count - 1))
+  }
+
+  const post = (x: number, z: number, tall = false) => {
+    const h = tall ? 1.5 : 1.0
+    parts.push(tinted(new THREE.BoxGeometry(0.34, h, 0.34), POST, [x, h / 2, z]))
+    const capH = tall ? 0.14 : 0.1
+    parts.push(tinted(new THREE.BoxGeometry(0.4, capH, 0.4), POST_CAP, [x, h + capH / 2, z]))
+  }
+
+  // Dark iron rail section between two posts: 4 vertical bars + a top
+  // rail, oriented along the panel via atan2(dx,dz) — three.js rotateY
+  // maps local +Z to world (sinθ, 0, cosθ), so this is the angle whose
+  // sin/cos matches the panel's direction.
+  const panel = (x1: number, z1: number, x2: number, z2: number) => {
+    const dx = x2 - x1
+    const dz = z2 - z1
+    const len = Math.hypot(dx, dz)
+    for (let i = 1; i <= 4; i++) {
+      const t = i / 5
+      parts.push(tinted(new THREE.BoxGeometry(0.05, 0.85, 0.05), IRON, [x1 + dx * t, 0.425, z1 + dz * t]))
+    }
+    const yaw = Math.atan2(dx, dz)
     parts.push(
-      tinted(
-        new RoundedBoxGeometry(w, h, 0.42, 2, 0.09),
-        i % 2 === 0 ? WALL : WALL_B,
-        [Math.sin(a) * 3.2, h / 2 - 0.04, Math.cos(a) * 3.2],
-        [0, -a + ((i * 13) % 5) * 0.03, 0],
-      ),
+      tinted(new THREE.BoxGeometry(0.05, 0.05, len), IRON, [x1 + dx / 2, 0.85, z1 + dz / 2], [0, yaw, 0]),
     )
   }
-  // Arched gate at the opening: two posts + three angled lintel blocks.
-  for (const x of [-1.05, 1.05]) {
-    parts.push(tinted(new THREE.BoxGeometry(0.18, 1.5, 0.18), WOOD, [x, 0.72, 3.1]))
+
+  // North side: posts + panels across the full width.
+  const northXs = spaced(-HW, HW)
+  northXs.forEach((x) => post(x, HD))
+  for (let i = 0; i < northXs.length - 1; i++) panel(northXs[i], HD, northXs[i + 1], HD)
+
+  // South side: two segments flanking the gate. Each segment's inner
+  // post (nearest the gap) is the taller gate post; no panel crosses
+  // the gap itself — that's the open walk-through.
+  const southLeft = spaced(-HW, -GATE_HALF)
+  const southRight = spaced(GATE_HALF, HW)
+  southLeft.forEach((x, i) => post(x, -HD, i === southLeft.length - 1))
+  southRight.forEach((x, i) => post(x, -HD, i === 0))
+  for (let i = 0; i < southLeft.length - 1; i++) panel(southLeft[i], -HD, southLeft[i + 1], -HD)
+  for (let i = 0; i < southRight.length - 1; i++) panel(southRight[i], -HD, southRight[i + 1], -HD)
+
+  // East/west sides: interior posts only — the four corners already
+  // stand from the north/south passes above — but panels still run the
+  // FULL side, corner to corner.
+  const eastZs = spaced(-HD, HD)
+  eastZs.slice(1, -1).forEach((z) => post(HW, z))
+  for (let i = 0; i < eastZs.length - 1; i++) panel(HW, eastZs[i], HW, eastZs[i + 1])
+  const westZs = spaced(-HD, HD)
+  westZs.slice(1, -1).forEach((z) => post(-HW, z))
+  for (let i = 0; i < westZs.length - 1; i++) panel(-HW, westZs[i], -HW, westZs[i + 1])
+
+  // Two rows of decorative headstones parallel to the north fence, 4
+  // per row, evenly spread — north half only, clear of the interactable
+  // row's south-center landing spot (see the doc comment above).
+  const ROW_XS = [-5.25, -1.75, 1.75, 5.25]
+  let hi = 0
+  for (const rowZ of [3.2, 1.4]) {
+    for (const x of ROW_XS) {
+      const color = HEADSTONES[hi % HEADSTONES.length]
+      const yawJitter = (((hi * 37) % 7) - 3) * 0.03
+      const lean = 0.05 + ((hi * 13) % 3) * 0.02
+      // Alternate rounded-top slabs and squarer ones.
+      const geo =
+        hi % 2 === 0
+          ? new RoundedBoxGeometry(0.4, 0.6, 0.14, 2, 0.14)
+          : new THREE.BoxGeometry(0.42, 0.58, 0.14)
+      parts.push(tinted(geo, color, [x, 0.3, rowZ], [lean, yawJitter, 0]))
+      // Flower cluster on the south (approach) face of the stone.
+      const fz = rowZ - 0.2
+      const n = 3 + (hi % 2)
+      for (let k = 0; k < n; k++) {
+        const a = (k / n) * Math.PI * 2 + hi
+        const r = 0.06 + (k % 2) * 0.03
+        const fx = x + Math.cos(a) * r
+        const fzz = fz + Math.sin(a) * r
+        parts.push(tinted(new THREE.CylinderGeometry(0.012, 0.016, 0.13, 4), '#4f8a58', [fx, 0.065, fzz]))
+        parts.push(
+          tinted(new THREE.SphereGeometry(0.045, 6, 4), FLOWERS[(hi + k) % FLOWERS.length], [fx, 0.14, fzz], [0, 0, 0], [1, 0.7, 1]),
+        )
+      }
+      hi++
+    }
   }
-  parts.push(tinted(new THREE.BoxGeometry(0.85, 0.14, 0.16), WOOD, [-0.55, 1.55, 3.1], [0, 0, 0.5]))
-  parts.push(tinted(new THREE.BoxGeometry(0.85, 0.14, 0.16), WOOD, [0.55, 1.55, 3.1], [0, 0, -0.5]))
-  parts.push(tinted(new THREE.BoxGeometry(0.8, 0.14, 0.16), WOOD, [0, 1.78, 3.1]))
-  // Decorative second row of headstones (the interactable row renders
-  // as its own prop bodies).
-  for (const [x, z, lean] of [[-1.0, -1.5, 0.05], [0, -1.6, -0.04], [1.0, -1.45, 0.07]] as const) {
-    parts.push(tinted(new RoundedBoxGeometry(0.42, 0.62, 0.14, 2, 0.07), STONE, [x, 0.28, z], [lean, 0.06, lean]))
+
+  // Stone path from the gate toward the plot's middle: raised slabs
+  // (~0.02 m) with small gaps between them, not a solid ribbon.
+  for (let z = -HD + 0.2; z <= -0.2; z += 1.0) {
+    const wobble = (((z * 971) % 1) + 1) % 1
+    parts.push(tinted(new THREE.BoxGeometry(1.2, 0.04, 0.8), PATH, [(wobble - 0.5) * 0.1, 0.01, z]))
   }
-  // A small wooden bench inside, along the east wall.
-  parts.push(tinted(new THREE.BoxGeometry(1.1, 0.09, 0.4), WOOD, [2.2, 0.42, 0.4], [0, -1.2, 0]))
-  for (const dz of [-0.4, 0.4]) {
-    parts.push(tinted(new THREE.BoxGeometry(0.12, 0.4, 0.34), WOOD, [2.2 + Math.sin(-1.2) * dz * 0.4, 0.2, 0.4 + Math.cos(-1.2) * dz], [0, -1.2, 0]))
+
+  // Log bench near the east fence — log axis along north-south (rotateX
+  // turns the cylinder's default +Y axis to +Z) so a seated visitor's
+  // back is to the fence, facing west into the lawn. Inlined rather
+  // than calling buildLogBench: that builder returns its own palette
+  // material, which can't join this single vertex-tinted merge.
+  const benchX = HW - 1.3
+  parts.push(tinted(new THREE.CylinderGeometry(0.22, 0.22, 1.6, 7), WOOD, [benchX, 0.22, 0], [Math.PI / 2, 0, 0]))
+  for (const bz of [0.8, -0.8]) {
+    parts.push(
+      tinted(new THREE.CylinderGeometry(0.23, 0.23, 0.03, 7), WOOD_LIGHT, [benchX, 0.22, bz], [Math.PI / 2, 0, 0]),
+    )
   }
-  // Scattered flowers: stem + tiny petal blob, three palette colors.
-  const SPOTS: Array<[number, number]> = [[-1.6, 0.6], [1.4, -0.4], [-0.4, 1.2], [0.8, 1.8], [-2.0, -0.8], [1.9, 1.2]]
-  SPOTS.forEach(([x, z], i) => {
-    parts.push(tinted(new THREE.CylinderGeometry(0.015, 0.02, 0.16, 4), '#4f8a58', [x, 0.08, z]))
-    parts.push(tinted(new THREE.SphereGeometry(0.05, 6, 4), FLOWERS[i % FLOWERS.length], [x, 0.18, z], [0, 0, 0], [1, 0.7, 1]))
+
+  // Two lantern posts flanking the path just inside the gate.
+  for (const lx of [-0.9, 0.9]) {
+    parts.push(tinted(new THREE.CylinderGeometry(0.05, 0.06, 1.3, 6), LANTERN_POST, [lx, 0.65, -HD + 0.5]))
+    parts.push(tinted(new THREE.BoxGeometry(0.18, 0.22, 0.18), LANTERN, [lx, 1.41, -HD + 0.5]))
+  }
+
+  const flat = mergeGeometries(parts)
+  parts.forEach((p) => p.dispose())
+
+  const wrapped = wrapToSphere(flat, {
+    lat: cem.lat,
+    long: cem.long,
+    radius: PLANET_RADIUS,
+    yawRad: monumentYaw('cemetery'),
+    baseAlt: groundAltitudeAt(cem.lat, cem.long) - SINK_M,
   })
-  const merged = mergeGeometries(parts)
-  for (const p of parts) p.dispose()
-  return [{ geometry: merged, material: new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }) }]
+  flat.dispose()
+  return [{ geometry: wrapped, material: new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }) }]
 }
 
 /** One interactable headstone: a chunky rounded stone with a slight

@@ -154,6 +154,9 @@ export function usePlanetController({ planetRef, avatarRef }: ControllerRefs) {
     if (!planet || !avatar) return
     const dt = Math.min(rawDt, MAX_DT)
     const store = useStore.getState()
+    // Inside the room a different controller owns the avatar and the
+    // camera's runtime values; the planet just holds its last pose.
+    if (store.inRoom) return
 
     if (controlsRuntime.poseOverride) {
       const { lat, long } = controlsRuntime.poseOverride

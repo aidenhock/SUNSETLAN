@@ -4,17 +4,19 @@ import * as THREE from 'three'
 import { meridianYaw, surfaceQuaternion } from '../controls/planetMath'
 import type { InteractableDef, PropKind } from '../content/interactables'
 import { useStore } from '../store/useStore'
-import { buildBulletinBoard, buildHeadstone, buildMatrixPortal, buildHedgeStone, buildMailbox, buildMusicStereo, buildTripod, type PropPart } from './props'
+import { buildBulletinBoard, buildHeadstone, buildHedgeStone, buildMailbox, buildMusicStereo, buildTripod, type PropPart } from './props'
+import { buildRift } from './riftGeometry'
 import { skyRuntime } from './useSkyState'
 
-const PROP_BUILDERS: Record<PropKind, () => PropPart[]> = {
+/** 'portal' is absent by design: the rift renders through RiftBody
+ * with unlit materials, not the shared vertex-tinted prop pipeline. */
+const PROP_BUILDERS: Record<Exclude<PropKind, 'portal'>, () => PropPart[]> = {
   tripod: buildTripod,
   mailbox: buildMailbox,
   stereo: buildMusicStereo,
   hedgestone: buildHedgeStone,
   bulletin: buildBulletinBoard,
   headstone: buildHeadstone,
-  portal: buildMatrixPortal,
 }
 
 /**
@@ -58,7 +60,9 @@ export function Interactable({ def }: { def: InteractableDef }) {
   return (
     <group position={def.position} quaternion={quaternion}>
       <group rotation={rotation}>
-        {def.prop ? (
+        {def.prop === 'portal' ? (
+          <RiftBody isNearby={isNearby} onClick={onClick} hover={hover} />
+        ) : def.prop ? (
           <PropBody kind={def.prop} isNearby={isNearby} onClick={onClick} hover={hover} />
         ) : (
           <PlaceholderBody def={def} isNearby={isNearby} onClick={onClick} hover={hover} />
@@ -123,7 +127,7 @@ function PropBody({
   onClick,
   hover,
 }: {
-  kind: PropKind
+  kind: Exclude<PropKind, 'portal'>
   isNearby: boolean
   onClick: (e: { delta: number }) => void
   hover: { onPointerOver: () => void; onPointerOut: () => void }
@@ -176,5 +180,46 @@ function PropBody({
         <mesh key={i} geometry={p.geometry} material={p.material} onClick={onClick} {...hover} />
       ))}
     </>
+  )
+}
+
+/**
+ * The rift: a hovering shard burst that spins slowly in its own plane,
+ * bobs, and pulses. Its own component because `PropBody`'s self-brighten
+ * highlight is meaningless here — the rift is already pure light, so
+ * proximity widens it slightly instead.
+ */
+function RiftBody({
+  isNearby,
+  onClick,
+  hover,
+}: {
+  isNearby: boolean
+  onClick: (e: { delta: number }) => void
+  hover: { onPointerOver: () => void; onPointerOut: () => void }
+}) {
+  const parts = useMemo(() => buildRift(), [])
+  const spin = useRef<THREE.Group>(null)
+  const scale = useRef(1)
+
+  useFrame((state, rawDt) => {
+    const dt = Math.min(rawDt, 0.1)
+    const t = state.clock.elapsedTime
+    const g = spin.current
+    if (!g) return
+    g.rotation.z += dt * 0.11
+    g.position.y = Math.sin(t * 0.7) * 0.09
+    // Breathing scale, plus a small lean-in when the player is close.
+    const target = (isNearby ? 1.1 : 1) * (1 + Math.sin(t * 1.9) * 0.025)
+    scale.current += (target - scale.current) * Math.min(1, dt * 4)
+    g.scale.setScalar(scale.current)
+  })
+
+  return (
+    <group ref={spin} position={[0, 0, 0]}>
+      {parts.map((p, i) => (
+        <mesh key={i} geometry={p.geometry} material={p.material} onClick={onClick} {...hover} />
+      ))}
+    </group>
   )
 }

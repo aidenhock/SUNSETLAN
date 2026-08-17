@@ -1,5 +1,6 @@
 import { latLongToPosition } from '../controls/planetMath'
 import { groundAltitudeAt } from '../controls/terrain'
+import { monument, monumentYaw } from './monuments'
 import { MAP, PLANET_RADIUS, SINK_M } from '../scene/planetConfig'
 
 export type ModalKind =
@@ -44,7 +45,7 @@ export const interactables: InteractableDef[] = [
     prop: 'stereo',
     blockRadius: 0.8,
     position: place(MAP.musicUkulele.lat, MAP.musicUkulele.long),
-    rotation: [0, Math.PI / 6, 0],
+    rotation: [0, monumentYaw('music'), 0],
     modal: 'music',
     contentKey: 'music',
   },
@@ -55,7 +56,7 @@ export const interactables: InteractableDef[] = [
     prop: 'tripod',
     blockRadius: 0.7,
     position: place(MAP.tripod.lat, MAP.tripod.long),
-    rotation: [0, Math.PI, 0], // faces the sun, out over the water
+    rotation: [0, monumentYaw('photos'), 0], // faces the sun, out over the water
     modal: 'gallery',
     contentKey: 'photos',
   },
@@ -66,7 +67,7 @@ export const interactables: InteractableDef[] = [
     prop: 'mailbox',
     blockRadius: 0.6,
     position: place(MAP.mailbox.lat, MAP.mailbox.long),
-    rotation: [0, Math.PI, 0],
+    rotation: [0, monumentYaw('contact'), 0],
     modal: 'contact',
     contentKey: 'contact',
   },
@@ -79,37 +80,33 @@ export const interactables: InteractableDef[] = [
     blockRadius: 0.9,
     position: place(MAP.bulletinBoard.lat, MAP.bulletinBoard.long),
     // Slight angle toward the walking approach (meridianYaw base).
-    rotation: [0, 0.2, 0],
+    rotation: [0, monumentYaw('papers'), 0],
     modal: 'papers',
     contentKey: 'papers',
   },
   // Memorial garden headstones (TASK 3): the front row is
   // interactable; approach reads "E — Remember". Quiet space.
-  ...[
-    { id: 'memorial-1', lat: 46.5, long: 105.5 },
-    { id: 'memorial-2', lat: 46.5, long: 107 },
-    { id: 'memorial-3', lat: 46.5, long: 108.5 },
-  ].map(({ id, lat, long }) => ({
+  ...['memorial-1', 'memorial-2', 'memorial-3'].map((id) => ({
     id,
     label: 'Remember',
     prompt: 'Remember',
     prop: 'headstone' as const,
     blockRadius: 0.5,
-    position: place(lat, long),
-    rotation: [0, 0, 0] as [number, number, number],
+    position: place(monument(id).lat, monument(id).long),
+    rotation: [0, monumentYaw(id), 0] as [number, number, number],
     modal: 'memorial' as const,
     contentKey: id,
   })),
   {
-    id: 'matrix',
+    id: 'rift',
     // The HUD prompt shows `label` (PromptE), so it carries the verb.
     label: 'Step through',
-    prompt: 'Step through the portal',
-    // The archway IS the interactable; blocker traces the frame span.
+    prompt: 'Step through the rift',
+    // The rift floats; its blocker keeps you from standing inside it.
     prop: 'portal',
     blockRadius: 1.2,
-    position: place(MAP.matrixPortal.lat, MAP.matrixPortal.long),
-    rotation: [0, 0, 0],
+    position: place(MAP.matrixPortal.lat, MAP.matrixPortal.long, monument('rift').liftM ?? 0),
+    rotation: [0, monumentYaw('rift'), 0],
     modal: 'matrix',
     contentKey: 'buildLog',
   },
@@ -118,7 +115,7 @@ export const interactables: InteractableDef[] = [
     label: 'Projects',
     prompt: 'Check the monitor',
     position: place(MAP.palapa.lat, MAP.palapa.long),
-    rotation: [0, 0, 0],
+    rotation: [0, monumentYaw('projects'), 0],
     modal: 'projects',
     contentKey: 'projects',
   },
@@ -133,7 +130,7 @@ export const interactables: InteractableDef[] = [
     prop: 'hedgestone',
     blockRadius: 1.1,
     position: place(MAP.hedgeStone.lat, MAP.hedgeStone.long),
-    rotation: [0, 0, 0],
+    rotation: [0, monumentYaw('about'), 0],
     modal: 'card',
     contentKey: 'about',
   },
@@ -142,8 +139,8 @@ export const interactables: InteractableDef[] = [
     label: 'Videos',
     prompt: 'Turn on the TV',
     // "CRT TV on crate": the cube sits on the crate top (0.7 + sink back).
-    position: place(MAP.tv.lat, MAP.tv.long + 0.8, 0.8),
-    rotation: [0, Math.PI / 3, 0],
+    position: place(monument('videos').lat, monument('videos').long, monument('videos').liftM ?? 0),
+    rotation: [0, monumentYaw('videos'), 0],
     modal: 'videos',
     contentKey: 'videos',
   },

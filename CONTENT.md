@@ -353,6 +353,35 @@ excerpts). Write chapters for visitors first, developers second — and
 put failed experiments in `Decisions:`, they're the best part. There
 is nothing to fill in here beyond writing chapters.
 
+## The world index — `src/content/monuments.json`
+
+Where everything on the island stands. One entry per object with `lat`,
+`long`, `facingDeg` (degrees from local north, positive east) and
+optional `liftM`. Move a monument by editing its numbers here — the
+model, its collision, its minimap dot, and the docs all follow. Then:
+
+```
+node scripts/world-map.mjs     # refreshes docs/world-map.md
+npx vitest run                 # catches typos, duplicates, off-island coords
+```
+
+`docs/world-map.md` is the readable table of the same data.
+
+## The room's murals — `src/content/murals.ts`
+
+The screenshots hanging in the rift room, each tied to a build-log
+chapter. To refresh them after the world's look changes:
+
+```
+npm run build && npx vite preview --port 4173
+node scripts/capture-murals.mjs
+```
+
+To add one: capture a shot into `public/murals/<id>.jpg`, then add an
+entry with a free wall position (`at`), the wall's `faceYaw`, the
+`chapterId` it explains, and a caption (the caption is what the E
+prompt says).
+
 ## Aiden's gathering checklist
 
 **Photos** (`src/content/photos.ts`)

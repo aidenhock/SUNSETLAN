@@ -13,7 +13,7 @@ Owner: Aiden — data analyst / developer (Python, SQL, ETL, Flask, some React).
 - ✅ **Phase 3B** — two skies: planet-local CelestialDome (sun/moon/stars), `useSkyState` nightMix crossfade, box-cluster clouds, seagulls, shooting stars, CRT night glow, intro swoop over the terminator; refined through v3.14 (dome shader, celestial arc + set floor, character-anchored glitter lane).
 - ✅ **Character 2.0 (v3.15–v3.20) — LOCKED** — rounded AC-villager rig (teardrop body, layered Raymond eyes + bold-rect glasses, no-neck, ears/nose/eyelids), both gender templates, `?studio` Character Studio with full live dials.
 - ✅ **Phase 3C — Life & sound** — Aiden's 135-cut audio library + lazy buses/pools/proximity mixing, Koa the strummer (torso-mounted uke, deck-derived seat), crabs + gulls + surface footsteps, the campfire scene (Fire 2.0 tongues + lit teepee base + log circle + free-position sitting), tab-hidden audio protection (suspend/reset/guard/clamp/cap).
-- ▶ **Now: Phase 4 — Content & launch.** Scaffolding shipped: `CONTENT.md` (Aiden's gathering checklist + drop-in guide), `scripts/optimize-images.mjs` (staging → 1600px WebP via headless-canvas, no new deps), friendly empty states in every modal, meta/OG/Twitter tags + `public/og.png` (captured first-sight) + favicon set + robots/sitemap, analytics stub behind `VITE_ANALYTICS` (off by default — vendor needs Aiden's sign-off), CREDITS.md complete pass. **Photos gallery SHIPPED WITH REAL CONTENT** — Aiden's 17 photos (the LA arc, skies, wheels & friends; curated order in `photos.ts`) through the two-size pipeline (web 1800 px + 480 px thumb WebP, dimensions recorded; originals stay in gitignored `staging/photos/`); paginated 6-per-page grid + full-screen fit viewer with continuous wrap navigation, ±1 preload, swipe with post-drag click guards. Adding photos later: drop originals in `staging/photos/`, run `scripts/optimize-images.mjs`, paste (CONTENT.md documents it). Never source photos from personal folders/exports — only what Aiden stages ships. **Contact SHIPPED**: the mailbox is a real form → Formspree (plain `fetch`, JSON POST; endpoint from `VITE_FORMSPREE_ENDPOINT` in committed `.env` — public value; `.env.example` for forks). idle→sending→sent/failed states in the interface's voice, client-side validation gates the button, hidden `_gotcha` honeypot silently drops bots (client AND Formspree server-side), unset env renders the form disabled with an explanation (never silent), mailto/social links stay as fallback. The failure copy sources the address from `content/contact.ts` — never retype an email in UI copy. **Fonts SHIPPED (self-hosted)**: `scripts/fetch-fonts.mjs` downloads the latin woff2 subsets into `public/fonts/` and generates `src/fonts.css` (`@font-face`, `font-display: swap`), imported by `index.css` — no runtime font CDN, matching the project's no-external-requests ethos. Bricolage is variable, so one 75 KB file covers 400–700; 109 KB total. **Minimap SHIPPED** (compass HUD, exploration fog, persistence — M toggles). **Memorial garden SHIPPED** (lat 47/107, placeholder stones; consent rule in `memorials.ts`). **Build-log portal room SHIPPED** (lat 32/97, code-split, 13 draw calls). Remaining: real projects/music/videos/about content, real memorial entries, custom domain (placeholder `sunsetlan.vercel.app` in meta/sitemap/canonical), analytics vendor decision.
+- ▶ **Now: Phase 4 — Content & launch.** Scaffolding shipped: `CONTENT.md` (Aiden's gathering checklist + drop-in guide), `scripts/optimize-images.mjs` (staging → 1600px WebP via headless-canvas, no new deps), friendly empty states in every modal, meta/OG/Twitter tags + `public/og.png` (captured first-sight) + favicon set + robots/sitemap, analytics stub behind `VITE_ANALYTICS` (off by default — vendor needs Aiden's sign-off), CREDITS.md complete pass. **Photos gallery SHIPPED WITH REAL CONTENT** — Aiden's 17 photos (the LA arc, skies, wheels & friends; curated order in `photos.ts`) through the two-size pipeline (web 1800 px + 480 px thumb WebP, dimensions recorded; originals stay in gitignored `staging/photos/`); paginated 6-per-page grid + full-screen fit viewer with continuous wrap navigation, ±1 preload, swipe with post-drag click guards. Adding photos later: drop originals in `staging/photos/`, run `scripts/optimize-images.mjs`, paste (CONTENT.md documents it). Never source photos from personal folders/exports — only what Aiden stages ships. **Contact SHIPPED**: the mailbox is a real form → Formspree (plain `fetch`, JSON POST; endpoint from `VITE_FORMSPREE_ENDPOINT` in committed `.env` — public value; `.env.example` for forks). idle→sending→sent/failed states in the interface's voice, client-side validation gates the button, hidden `_gotcha` honeypot silently drops bots (client AND Formspree server-side), unset env renders the form disabled with an explanation (never silent), mailto/social links stay as fallback. The failure copy sources the address from `content/contact.ts` — never retype an email in UI copy. **Fonts SHIPPED (self-hosted)**: `scripts/fetch-fonts.mjs` downloads the latin woff2 subsets into `public/fonts/` and generates `src/fonts.css` (`@font-face`, `font-display: swap`), imported by `index.css` — no runtime font CDN, matching the project's no-external-requests ethos. Bricolage is variable, so one 75 KB file covers 400–700; 109 KB total. **Minimap SHIPPED** (bird's-eye, player-CENTRED, camera-up, live every frame, whole island always visible — M toggles; exploration fog was built then removed at the owner's call). **Memorial garden SHIPPED** (lat 47/107, placeholder stones; consent rule in `memorials.ts`). **Rift + walkable room SHIPPED** (lat 32/97; a place you walk in, ~23 draw calls). **World index SHIPPED**: `src/content/monuments.json` + `docs/world-map.md`. Remaining: real projects/music/videos/about content, real memorial entries, custom domain (placeholder `sunsetlan.vercel.app` in meta/sitemap/canonical), analytics vendor decision.
 
 ### Goals, in priority order
 1. Memorable within 10 seconds; calm, cozy, Animal-Crossing-adjacent vibe. The rotating planet and its split sky are the signature.
@@ -78,7 +78,18 @@ The sun, moon, stars, and sky gradient are **children of the rotating planet gro
 - **Clouds** (playbook §4 recipe — binding): hand-built clusters of 3–6 white rounded boxes per cloud group (Aviator pattern), instanced when numerous, slow planet-local drift in `useFrame`. Never drei `<Cloud>`/`<Clouds>` (billboard sprites needing a cloud texture). Warm-tinted and plentiful on the sunset side, sparse on the night side.
 - **Lighting** (playbook §4 recipe — base rig ships before 3B): `HemisphereLight(skyPastel, groundPastel)` + one soft `DirectionalLight` + gentle ambient, `MeshLambertMaterial` everywhere. Cozy brightness comes from light intensity and saturated-but-light palette colors — never bloom/postprocessing. 3B's `useSkyState` lerps this same rig (hemisphere sky/ground colors, directional color/intensity) with `nightMix`.
 
-## World map (single source of truth — matches the approved top-down map)
+## World map (the INDEX is the source of truth)
+
+**`src/content/monuments.json` is where coordinates live.** Every placed
+thing — interactables, props, NPCs, seats, structures — carries `lat`,
+`long`, `facingDeg` (degrees from local NORTH, positive east), and
+optional `liftM` / `size` there. `planetConfig.MAP` DERIVES from it and
+`interactables.ts` takes its rotations from it, so moving anything means
+editing that one file and running `node scripts/world-map.mjs`
+(regenerates the readable table at `docs/world-map.md`). Vitest guards
+duplicate ids, off-island coordinates, and interactables whose monument
+went missing. The table below is the design intent; the JSON is the
+truth.
 
 | What | Kind | lat | long | Notes |
 |---|---|---|---|---|
@@ -91,8 +102,8 @@ The sun, moon, stars, and sky gradient are **children of the rotating planet gro
 | Seagulls ×2–3 | critter | — | ~0 | Tilted orbit loops over sunset-side water |
 | Palapa + desk | Projects | 40 | 40 | Day-leaning side |
 | Hedge stone (the moai) | About | 50 | 300 | Dusk boundary west — a ~2.9 m Easter-Island moai (heavy brow, long wide-based nose, shadowed eye hollows, pursed lips, long ears, arms folded to the belly), weathered grey-green with lighter chips, stones scattered at the base; REPLACED the big tree + rings. NO hedge and NO ring guards (removed — invisible walls read as getting stuck on nothing): the interactable IS the statue (prompt "Read the stone") with ONE snug 1.1 m slide-along blocker — walk fully around it; the 2.5 m trigger fires on any side |
-| Cemetery / memorial garden | prop + 3 interactables | 47 | 107 | Night-leaning side. Stone wall ring (r 3.2) with a ~70° northern gap and an arched wooden gate, two headstone rows, bench, flowers — ONE vertex-tinted merge. Front row is interactable ("E — Remember" → memorial modal, `content/memorials.ts`). Blockers trace the VISIBLE wall + gate posts; interior fully walkable. Night: `<Cemetery/>` fireflies pool + two dim warm lights, nightMix- and tier-gated — never bright. **CONSENT RULE: names/photos of living people need their explicit okay before shipping publicly** |
-| Matrix glitch portal | interactable | 32 | 97 | Night-leaning side. Obsidian archway + glitch chunks + green pane that flickers and brightens with nightMix (`userData.glow` parts own their emissive). "E — Step through" mounts the room IN THE SAME CANVAS: the planet group and avatar go `visible={false}`, `MatrixRoomScene` (lazy) parks at the camera — 13 draw calls, 732 tris, e2e-pinned < 50. Rain = generated canvas glyph atlas sampled by UV-baked column quads merged into 3 scrolling materials (NO new shaders). Renders `docs/build-log.json` chapters with real build-time code excerpts; E/Esc exits |
+| Memorial garden | structure + 3 interactables | 47 | 107 | Night-leaning side. A **17 × 13 m fenced plot** you walk around inside: iron fence on chunky stone posts, gate gap on the south side, stone path, two rows of headstones with flowers, bench, lanterns — ONE vertex-tinted merge bent onto the sphere with `wrapToSphere` (placement rule 2 generalized: anything wider than ~4 m is built flat and wrapped, never laid flat). Front row is interactable ("E — Remember" → memorial modal, `content/memorials.ts`). Blockers trace the VISIBLE fence at ~1 m pitch and skip the gate; the interior is completely free. Night: `<Cemetery/>` fireflies + two dim warm lights, nightMix- and tier-gated — never bright. **CONSENT RULE: names/photos of living people need their explicit okay before shipping publicly** |
+| Rift portal (id `rift`) | interactable | 32 | 97 | Night-leaning side, floating ~2.9 m up. A **Fortnite-style rift**: a white-hot core with flat crystalline shards flung radially out of it, spinning slowly, deliberately OFF the island's matte style (unlit `MeshBasicMaterial`, `toneMapped:false` — it is the one thing here that is not part of the world). 4 draw calls: merged shards, an additive rim pass for glowing edges, core, glow disc. "E — Step through" ENTERS THE ROOM (see below) — it is a place, not a modal |
 | Campfire | prop | 22 | 180 | Night beach; Fire 2.0 flame + flicker light + crackle; 1.2 m blocker |
 | Log circle ×3 | prop/seat | 23.4–25.3 | 176.7–183.3 | Landward arc ~3.2 m from the fire at bearings 0/±65°, opening toward the sea; ends clearly separated (walkable gaps, full lap fits between log and fire blockers); center log perpendicular to the fire→sea axis, flanks just inside tangent; free-position sitting (E — Sit); 0.9 m blockers |
 | Stereo on the log | Music | 22 | 173 | Aiden's music portal, by the fire — chunky lagoon boombox (speakers, tape deck, handle, antenna) on a driftwood log; replaced the resting uke (read as a lump from above), which replaced the placeholder cube. Interactable nearby-highlight rule: emissive = the part's OWN color (self-brighten, night-scaled) — a flat teal tint turned shaded wood grey-green |
@@ -102,6 +113,36 @@ The sun, moon, stars, and sky gradient are **children of the rotating planet gro
 | Scatter palms/rocks/shells | props | per taste | — | Re-scatter for the new bands; altitudes from rule 1 |
 
 Blockers regenerate from this table. Interactable prompts/copy unchanged.
+
+## The room through the rift (a second walkable space)
+
+Stepping into the rift puts the player INSIDE a room — not a dialog.
+`inRoom` in the store is the switch; the planet group and the sky rig
+stand down (the island's draws stop entirely), `RoomScene` mounts from
+a lazy chunk, and `useRoomController` takes over.
+
+- **Same invariant as the island: the avatar never moves.** The room
+  group slides underneath it, so the camera rig, jump arc, avatar
+  animation, and footstep hooks are untouched. Position lives in
+  `roomRuntime` (x, z, yaw), the room's answer to lat/long.
+- **36 × 24 m**, so sprinting across it takes a few seconds. Walls
+  clamp PER AXIS (diagonals slide, never freeze). The follow camera
+  marches its own ray to the nearest wall and pulls in — it must never
+  end up outside the room looking through a wall.
+- **Look**: four walls of falling 0s and 1s that run far above and
+  below the room, a see-through glass floor and ceiling so those walls
+  read as endless, and the rift hovering at the centre as the way out.
+  The wallpaper is a GENERATED canvas tile scrolled by `map.offset.y` —
+  the two-shader rule (dome + water) still stands, no new shaders.
+- **Murals**: one framed screenshot per feature on the walls, each tied
+  to a build-log chapter (`content/murals.ts`). "E — <caption>" opens
+  that chapter: plain language, then how it works, then the real
+  build-time code excerpt. **This is the ONE place image textures are
+  allowed** (the ban still holds everywhere on the island) — and they
+  are screenshots of this project, captured by
+  `scripts/capture-murals.mjs`; rerun it when the world's look changes.
+- **The minimap follows** and redraws as the room's rectangle.
+- Budget: ~23 draw calls inside the room, well under the mobile 50.
 
 ## Art direction — the style bible
 
@@ -188,14 +229,35 @@ Real photos/projects/music/videos/contact (fill per `CONTENT.md`; images through
 Roaming NPCs of family & friends — Animal-Crossing-style wander/waypoints + optional recorded voice notes with captions; ship only with each person's explicit okay (public site). Treasure ship offshore with secrets. Footprints in sand. Day/night slider. (Shipped since this list was written: the minimap HUD, and fireflies — in the memorial garden.)
 
 ## Working conventions
-Unchanged (strict TS, no `any`; content only via content files; commit per working feature; `main` deployable; ask before deps or art-direction changes; test mobile viewport after control/UI changes) plus: quaternion/sky/audio math stays in hooks under `controls/` or `scene/` with comments; new analytic bands get vitest cases; e2e suites live in `e2e/` from 3A onward.
+Unchanged (strict TS, no `any`; content only via content files; commit per working feature; `main` deployable; ask before deps or art-direction changes; test mobile viewport after control/UI changes) plus: **unattended batch prompts must state the session model to use, and default to Opus** (see Model routing — the session model does all undelegated work) plus: quaternion/sky/audio math stays in hooks under `controls/` or `scene/` with comments; new analytic bands get vitest cases; e2e suites live in `e2e/` from 3A onward.
 
 **DOCUMENTATION STEP (standing)**: every feature session ends by adding or updating its chapter in `docs/build-log.md` — then running `node scripts/export-build-log.mjs` (strict parse + regenerates `docs/build-log.json`) — before the final commit. A feature isn't done until its chapter exists. This file is the Matrix room's in-game content source: write entries for VISITORS first (hook + plain sections carry the room), developers second (technical + files + decisions); `Files:` lines must name real paths and symbols because the room renders actual code excerpts. Failed experiments go in `Decisions:` — they're the most interesting content.
 
 ## Model routing (cost tiers — agents in `.claude/agents/`)
 
-- **worker** (Sonnet): delegate routine, fully specified implementation — map-table placements, content files, new tests, constant retunes. It escalates design questions instead of deciding them.
-- **verifier** (Haiku, low effort, read-only + Bash): ALL review/verification fan-outs — verifying a single finding, running a suite and reporting pass/fail. Never run these on the session model.
-- **Explore** (Haiku): codebase exploration always routes here, never on an expensive model.
-- **fable-advisor** (Fable, few turns): consult before guessing whenever a decision isn't covered by this file or the session is genuinely stuck; it returns a decision + rationale, no code.
-- The main session model is reserved for planning, novel systems (controller/sky/audio math), integration, and final review.
+**Session model: Opus 5 by default. NEVER run long or unattended
+batches on Fable** — the session model performs all work that isn't
+explicitly delegated, so a batch session bills almost entirely to it.
+Start batch runs with `/model opus`; use `/model sonnet` for purely
+mechanical sessions (content files, retunes, test additions).
+
+**Effort discipline:** subagents inherit the session's thinking/effort
+configuration. Use Extra high only for novel systems work (controller,
+sky, audio math). Drop to medium or low for implementation and
+verification sessions.
+
+- **fable-advisor** (Fable, few turns, decisions only — no code):
+  consult for genuinely novel design decisions not covered by this
+  file, or when a session is stuck. The correct pattern is a cheap
+  session that consults Fable, never a Fable session doing the work.
+  **Fallback:** if the Fable allowance is exhausted, the session model
+  decides using this file's principles and logs the decision — never
+  block or stall a run waiting on Fable.
+- **worker** (Sonnet): routine, fully specified implementation — map
+  placements, content files, new tests, constant retunes. Escalates
+  design questions rather than deciding them.
+- **verifier** (Haiku, low effort, read-only + Bash): ALL review and
+  verification fan-outs. Never on the session model. Fan-outs ≤ 20.
+- **Explore** (Haiku): all codebase exploration.
+- Session model handles: planning, integration, novel systems, and
+  final review.

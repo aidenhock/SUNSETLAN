@@ -47,7 +47,7 @@
             {
               "symbol": "controlsRuntime",
               "line": 38,
-              "code": "export const controlsRuntime = {\n  joyX: 0,\n  joyY: 0,\n  azimuth: Math.PI,\n  /** Set to snap the camera heading next frame (consumed once) — used by the\n   * e2e suites and, later, the intro swoop. */\n  azimuthOverride: null as number | null,\n  /** Teleport: put this lat/long under the avatar next frame (consumed once). */\n  poseOverride: null as { lat: number; long: number } | null,\n  wadeRippleTime: 0,\n  /** Written every frame for the animated avatar's clip selection. */\n  locomotion: 'idle' as 'idle' | 'walk' | 'run',\n  airborne: false,\n  /** Body world yaw + camera pitch, published for the head look-at (v3.3). */"
+              "code": "export const controlsRuntime = {\r\n  joyX: 0,\r\n  joyY: 0,\r\n  azimuth: Math.PI,\r\n  /** Set to snap the camera heading next frame (consumed once) — used by the\r\n   * e2e suites and, later, the intro swoop. */\r\n  azimuthOverride: null as number | null,\r\n  /** Teleport: put this lat/long under the avatar next frame (consumed once). */\r\n  poseOverride: null as { lat: number; long: number } | null,\r\n  wadeRippleTime: 0,\r\n  /** Written every frame for the animated avatar's clip selection. */\r\n  locomotion: 'idle' as 'idle' | 'walk' | 'run',\r\n  airborne: false,\r\n  /** Body world yaw + camera pitch, published for the head look-at (v3.3). */\r"
             }
           ],
           "note": "the frame loop, blocker slide-along"
@@ -77,23 +77,23 @@
           "excerpts": [
             {
               "symbol": "terrainProfile",
-              "line": 54,
+              "line": 55,
               "code": "export function terrainProfile(polarRad: number): number {\r\n  const p = THREE.MathUtils.radToDeg(polarRad)\r\n  if (p <= TERRAIN.plateauEndDeg) return GRASS_ALTITUDE\r\n  if (p <= TERRAIN.shoulderEndDeg) {\r\n    return THREE.MathUtils.lerp(\r\n      GRASS_ALTITUDE,\r\n      SAND_ALTITUDE,\r\n      THREE.MathUtils.smoothstep(p, TERRAIN.plateauEndDeg, TERRAIN.shoulderEndDeg),\r\n    )\r\n  }\r\n  if (p <= TERRAIN.waterlineDeg) {\r\n    return THREE.MathUtils.lerp(\r\n      SAND_ALTITUDE,\r\n      0,\r"
             },
             {
               "symbol": "TERRAIN",
-              "line": 41,
+              "line": 42,
               "code": "export const TERRAIN = {\r\n  /** Grass plateau ends (deg from the pole). */\r\n  plateauEndDeg: 63,\r\n  /** Rolling shoulder down to the sand altitude. */\r\n  shoulderEndDeg: 67,\r\n  /** Waterline: profile crosses exactly 0 here (= ISLAND_POLAR_DEG). */\r\n  waterlineDeg: ISLAND_POLAR_DEG,\r\n  /** Submerged apron ends here, below the ocean-floor sphere. */\r\n  apronEndDeg: 81,\r\n  apronAltitude: -0.9,\r\n} as const\r\n\r\n/** Altitude above sea level at a polar angle (radians from the pole). */\r\nexport function terrainProfile(polarRad: number): number {\r"
             },
             {
               "symbol": "DOCK",
-              "line": 86,
+              "line": 87,
               "code": "export const DOCK = {\r\n  longDeg: 0,\r\n  latMinDeg: 13,\r\n  latMaxDeg: 24,\r\n  halfWidthM: 1,\r\n  deckHeightM: 0.6,\r\n  plankThicknessM: 0.18,\r\n  segmentCount: 5,\r\n}\r\n\r\n/** Footstep tuning (3C): gains, foot-plant phases in the swing cycle,\r\n * and the jump double-tap gap. */\r\nexport const FOOTSTEPS = {\r\n  stepGainWalk: 0.5,\r"
             },
             {
               "symbol": "surfaceUnderfoot",
-              "line": 113,
-              "code": "export function surfaceUnderfoot(polarDeg: number, longDeg: number, wet: boolean): Surface {\r\n  if (wet) return 'wade'\r\n  const lat = 90 - polarDeg\r\n  if (lat >= DOCK.latMinDeg && lat <= DOCK.latMaxDeg) {\r\n    const dLongRad = THREE_DEG * Math.abs(((longDeg - DOCK.longDeg + 540) % 360) - 180)\r\n    const offM = PLANET_RADIUS * Math.sin(polarDeg * THREE_DEG) * Math.sin(dLongRad)\r\n    if (Math.abs(offM) <= DOCK.halfWidthM + 0.2) return 'dock'\r\n  }\r\n  return polarDeg <= TERRAIN.plateauEndDeg + 2 ? 'grass' : 'sand'\r\n}\r\nconst THREE_DEG = Math.PI / 180\r\n\r\n/** World map placements (lat, long) — CLAUDE.md v3 table. */\r\nexport const MAP = {\r"
+              "line": 114,
+              "code": "export function surfaceUnderfoot(polarDeg: number, longDeg: number, wet: boolean): Surface {\r\n  if (wet) return 'wade'\r\n  const lat = 90 - polarDeg\r\n  if (lat >= DOCK.latMinDeg && lat <= DOCK.latMaxDeg) {\r\n    const dLongRad = THREE_DEG * Math.abs(((longDeg - DOCK.longDeg + 540) % 360) - 180)\r\n    const offM = PLANET_RADIUS * Math.sin(polarDeg * THREE_DEG) * Math.sin(dLongRad)\r\n    if (Math.abs(offM) <= DOCK.halfWidthM + 0.2) return 'dock'\r\n  }\r\n  return polarDeg <= TERRAIN.plateauEndDeg + 2 ? 'grass' : 'sand'\r\n}\r\nconst THREE_DEG = Math.PI / 180\r\n\r\n/** World map placements (lat, long) — CLAUDE.md v3 table. */\r\n/**\r"
             }
           ]
         },
@@ -157,13 +157,13 @@
           "excerpts": [
             {
               "symbol": "facetTerrain",
-              "line": 201,
-              "code": "export function facetTerrain(\n  geometry: THREE.BufferGeometry,\n  options: FacetTerrainOptions,\n): THREE.BufferGeometry {\n  const {\n    amplitude = 0.12,\n    colorA = '#ffffff',\n    colorB = '#ffffff',\n    patchSize = 7,\n    checker = 0.5,\n    bias = 0.5,\n    speckle = 0.06,\n    poleFadeRad = 0,\n    seed = 1,"
+              "line": 202,
+              "code": "export function facetTerrain(\r\n  geometry: THREE.BufferGeometry,\r\n  options: FacetTerrainOptions,\r\n): THREE.BufferGeometry {\r\n  const {\r\n    amplitude = 0.12,\r\n    colorA = '#ffffff',\r\n    colorB = '#ffffff',\r\n    patchSize = 7,\r\n    checker = 0.5,\r\n    bias = 0.5,\r\n    speckle = 0.06,\r\n    poleFadeRad = 0,\r\n    seed = 1,\r"
             },
             {
               "symbol": "bakeWarmTintToward",
-              "line": 52,
-              "code": "export function bakeWarmTintToward(\n  geometry: THREE.BufferGeometry,\n  target: THREE.Vector3,\n  base: string,\n  warm: string,\n  opts: { ambient?: number; nearM?: number; farM?: number; facingMin?: number; facingMax?: number } = {},\n): THREE.BufferGeometry {\n  const { ambient = 0.15, nearM = 0.15, farM = 1.57, facingMin = 0.35, facingMax = 0.9 } = opts\n  const g = geometry.index ? geometry.toNonIndexed() : geometry.clone()\n  g.computeVertexNormals()\n  const pos = g.attributes.position as THREE.BufferAttribute\n  const nor = g.attributes.normal as THREE.BufferAttribute\n  const colors = new Float32Array(pos.count * 3)\n  const cBase = new THREE.Color(base)"
+              "line": 53,
+              "code": "export function bakeWarmTintToward(\r\n  geometry: THREE.BufferGeometry,\r\n  target: THREE.Vector3,\r\n  base: string,\r\n  warm: string,\r\n  opts: { ambient?: number; nearM?: number; farM?: number; facingMin?: number; facingMax?: number } = {},\r\n): THREE.BufferGeometry {\r\n  const { ambient = 0.15, nearM = 0.15, farM = 1.57, facingMin = 0.35, facingMax = 0.9 } = opts\r\n  const g = geometry.index ? geometry.toNonIndexed() : geometry.clone()\r\n  g.computeVertexNormals()\r\n  const pos = g.attributes.position as THREE.BufferAttribute\r\n  const nor = g.attributes.normal as THREE.BufferAttribute\r\n  const colors = new Float32Array(pos.count * 3)\r\n  const cBase = new THREE.Color(base)\r"
             }
           ]
         },
@@ -176,12 +176,12 @@
           "excerpts": [
             {
               "symbol": "terrainProfile",
-              "line": 54,
+              "line": 55,
               "code": "export function terrainProfile(polarRad: number): number {\r\n  const p = THREE.MathUtils.radToDeg(polarRad)\r\n  if (p <= TERRAIN.plateauEndDeg) return GRASS_ALTITUDE\r\n  if (p <= TERRAIN.shoulderEndDeg) {\r\n    return THREE.MathUtils.lerp(\r\n      GRASS_ALTITUDE,\r\n      SAND_ALTITUDE,\r\n      THREE.MathUtils.smoothstep(p, TERRAIN.plateauEndDeg, TERRAIN.shoulderEndDeg),\r\n    )\r\n  }\r\n  if (p <= TERRAIN.waterlineDeg) {\r\n    return THREE.MathUtils.lerp(\r\n      SAND_ALTITUDE,\r\n      0,\r"
             },
             {
               "symbol": "TERRAIN.apronEndDeg",
-              "line": 71,
+              "line": 72,
               "code": "  if (p <= TERRAIN.apronEndDeg) {\r\n    return THREE.MathUtils.lerp(\r\n      0,\r\n      TERRAIN.apronAltitude,\r\n      THREE.MathUtils.smoothstep(p, TERRAIN.waterlineDeg, TERRAIN.apronEndDeg),\r\n    )\r\n  }\r\n  return TERRAIN.apronAltitude\r\n}\r\n\r\n/**\r\n * The dock: longitude 0, entrance on sand, last segments over open water.\r\n * Deck top sits deckHeightM above the LOCAL ground band (surface-snapped\r\n * segments), consumed by both the visuals and groundAltitudeAt.\r"
             }
           ]
@@ -208,13 +208,13 @@
           "excerpts": [
             {
               "symbol": "nightMix",
-              "line": 144,
-              "code": "  nightMix: 0,\n  sunLocal: SUN_HOME_LOCAL.clone(),\n  moonLocal: MOON_HOME_LOCAL.clone(),\n  sunWorld: SUN_HOME_LOCAL.clone(),\n  moonWorld: MOON_HOME_LOCAL.clone(),\n  /** Apparent elevation of each disc ABOVE the ocean limb (deg), from the\n   * live camera — eases the glitter intensity. Inherits the arc smoothing\n   * via the smoothed disc solve. */\n  sunElevAboveLimbDeg: 45,\n  moonElevAboveLimbDeg: 45,\n  /** Visible fraction of each disc above the limb (0..1) — the glitter's\n   * submergence gate (v3.12). */\n  sunVisibleFrac: 1,\n  moonVisibleFrac: 1,"
+              "line": 145,
+              "code": "  nightMix: 0,\r\n  sunLocal: SUN_HOME_LOCAL.clone(),\r\n  moonLocal: MOON_HOME_LOCAL.clone(),\r\n  sunWorld: SUN_HOME_LOCAL.clone(),\r\n  moonWorld: MOON_HOME_LOCAL.clone(),\r\n  /** Apparent elevation of each disc ABOVE the ocean limb (deg), from the\r\n   * live camera — eases the glitter intensity. Inherits the arc smoothing\r\n   * via the smoothed disc solve. */\r\n  sunElevAboveLimbDeg: 45,\r\n  moonElevAboveLimbDeg: 45,\r\n  /** Visible fraction of each disc above the limb (0..1) — the glitter's\r\n   * submergence gate (v3.12). */\r\n  sunVisibleFrac: 1,\r\n  moonVisibleFrac: 1,\r"
             },
             {
               "symbol": "skyRuntime",
-              "line": 143,
-              "code": "export const skyRuntime = {\n  nightMix: 0,\n  sunLocal: SUN_HOME_LOCAL.clone(),\n  moonLocal: MOON_HOME_LOCAL.clone(),\n  sunWorld: SUN_HOME_LOCAL.clone(),\n  moonWorld: MOON_HOME_LOCAL.clone(),\n  /** Apparent elevation of each disc ABOVE the ocean limb (deg), from the\n   * live camera — eases the glitter intensity. Inherits the arc smoothing\n   * via the smoothed disc solve. */\n  sunElevAboveLimbDeg: 45,\n  moonElevAboveLimbDeg: 45,\n  /** Visible fraction of each disc above the limb (0..1) — the glitter's\n   * submergence gate (v3.12). */\n  sunVisibleFrac: 1,"
+              "line": 144,
+              "code": "export const skyRuntime = {\r\n  nightMix: 0,\r\n  sunLocal: SUN_HOME_LOCAL.clone(),\r\n  moonLocal: MOON_HOME_LOCAL.clone(),\r\n  sunWorld: SUN_HOME_LOCAL.clone(),\r\n  moonWorld: MOON_HOME_LOCAL.clone(),\r\n  /** Apparent elevation of each disc ABOVE the ocean limb (deg), from the\r\n   * live camera — eases the glitter intensity. Inherits the arc smoothing\r\n   * via the smoothed disc solve. */\r\n  sunElevAboveLimbDeg: 45,\r\n  moonElevAboveLimbDeg: 45,\r\n  /** Visible fraction of each disc above the limb (0..1) — the glitter's\r\n   * submergence gate (v3.12). */\r\n  sunVisibleFrac: 1,\r"
             }
           ],
           "note": "the per-frame lerp rig"
@@ -260,12 +260,12 @@
           "excerpts": [
             {
               "symbol": "CELESTIAL_ELEVATION_INLAND_DEG",
-              "line": 184,
+              "line": 185,
               "code": "export const CELESTIAL_ELEVATION_INLAND_DEG = 45\r\n/** v3.8 TRUE SET: elevations are horizontal-relative; the sea horizon sits\r\n * at ≈ −16.6° from eye height. −15.8° puts the disc center 0.75° above the\r\n * sea line → ~40% of the sun disc (3.7° radius) submerged at the waterline;\r\n * the ocean geometry physically occludes the rest. */\r\nexport const CELESTIAL_ELEVATION_WATERLINE_DEG = -15.8\r\n/** v3.9 set floor: wading sinks it only slightly more, clamped so NEITHER\r\n * disc ever exceeds ~45% submerged (sun ρ 3.7° → 44%; moon ρ 2.74° → 43%)\r\n * — the disc and its glitter lane stay clearly visible at full set. */\r\nexport const CELESTIAL_ELEVATION_WADING_MIN_DEG = -16.2\r\nexport const CELESTIAL = { sunLongDeg: 0, moonLongDeg: 180 } as const\r\n\r\n/** Glitter corridor tuning (v3.14): the corridor centerline is the great\r\n * circle from the disc's base through the character; half-widths are\r"
             },
             {
               "symbol": "CELESTIAL_ELEVATION_WATERLINE_DEG",
-              "line": 189,
+              "line": 190,
               "code": "export const CELESTIAL_ELEVATION_WATERLINE_DEG = -15.8\r\n/** v3.9 set floor: wading sinks it only slightly more, clamped so NEITHER\r\n * disc ever exceeds ~45% submerged (sun ρ 3.7° → 44%; moon ρ 2.74° → 43%)\r\n * — the disc and its glitter lane stay clearly visible at full set. */\r\nexport const CELESTIAL_ELEVATION_WADING_MIN_DEG = -16.2\r\nexport const CELESTIAL = { sunLongDeg: 0, moonLongDeg: 180 } as const\r\n\r\n/** Glitter corridor tuning (v3.14): the corridor centerline is the great\r\n * circle from the disc's base through the character; half-widths are\r\n * perpendicular arc METERS (an azimuth cone pinches to a point at the\r\n * viewer's nadir — banned). Endpoint widths derive from the disc's\r\n * apparent width at reference distances: the limb distance (far) and\r\n * `nearRefM` (near, held at the shore). Rising scales both endpoints up\r\n * and eases opacity down to a floor; submergence is the only kill. */\r"
             }
           ]
@@ -311,7 +311,7 @@
           "excerpts": [
             {
               "symbol": "GLITTER",
-              "line": 203,
+              "line": 204,
               "code": "export const GLITTER = {\r\n  /** Corridor width at the disc base, in apparent disc widths. */\r\n  farWidthDisc: 0.65,\r\n  /** Corridor width held at the shoreline, in apparent disc widths… */\r\n  nearWidthDisc: 3.75,\r\n  /** …as seen from this reference distance (m) — the near width is a\r\n   * stable physical width, not a per-frame shore solve. */\r\n  nearRefM: 3,\r\n  /** Both endpoint widths scale up to this at inland-high. */\r\n  highWidthScale: 1.8,\r\n  /** Lane opacity at set (the vivid column)… */\r\n  opacityLow: 0.95,\r\n  /** …easing down to this floor at inland-high — never invisible. */\r\n  opacityFloor: 0.45,\r"
             }
           ]
@@ -546,12 +546,12 @@
           "excerpts": [
             {
               "symbol": "mergeByMaterial",
-              "line": 90,
+              "line": 93,
               "code": "function mergeByMaterial(pieces: Piece[]): PropPart[] {\r\n  const buckets = new Map<THREE.MeshLambertMaterial, THREE.BufferGeometry[]>()\r\n  for (const p of pieces) {\r\n    const geo = normalizeForMerge(p.geometry).applyMatrix4(p.matrix)\r\n    const list = buckets.get(p.material)\r\n    if (list) list.push(geo)\r\n    else buckets.set(p.material, [geo])\r\n  }\r\n  const parts: PropPart[] = []\r\n  for (const [material, geos] of buckets) {\r\n    const merged = geos.length === 1 ? geos[0] : mergeGeometries(geos)\r\n    geos.forEach((g) => g !== merged && g.dispose())\r\n    parts.push({ geometry: merged, material })\r\n  }\r"
             },
             {
               "symbol": "paletteMaterial",
-              "line": 24,
+              "line": 27,
               "code": "export function paletteMaterial(\r\n  color: string,\r\n  emissive = '#000000',\r\n  emissiveIntensity = 0,\r\n): THREE.MeshLambertMaterial {\r\n  const key = `${color}|${emissive}|${emissiveIntensity}`\r\n  let mat = materialCache.get(key)\r\n  if (!mat) {\r\n    mat = new THREE.MeshLambertMaterial({ color, flatShading: true })\r\n    mat.emissive.set(emissive)\r\n    mat.emissiveIntensity = emissiveIntensity\r\n    materialCache.set(key, mat)\r\n  }\r\n  return mat\r"
             }
           ]
@@ -651,7 +651,7 @@
           "excerpts": [
             {
               "symbol": "buildHedgeStone",
-              "line": 530,
+              "line": 607,
               "code": "export function buildHedgeStone(): PropPart[] {\r\n  const tinted = (g: THREE.BufferGeometry, color: string, pos: [number, number, number], rot: [number, number, number] = [0, 0, 0], scale: [number, number, number] = [1, 1, 1]) => {\r\n    const n = tintGeometry(normalizeForMerge(g), color)\r\n    g.dispose()\r\n    n.applyMatrix4(\r\n      new THREE.Matrix4().compose(\r\n        new THREE.Vector3(...pos),\r\n        new THREE.Quaternion().setFromEuler(new THREE.Euler(...rot)),\r\n        new THREE.Vector3(...scale),\r\n      ),\r\n    )\r\n    return n\r\n  }\r\n  const STONE = '#8a9484'\r"
             }
           ]
@@ -665,13 +665,13 @@
           "excerpts": [
             {
               "symbol": "prop: 'hedgestone'",
-              "line": 133,
-              "code": "    prop: 'hedgestone',\r\n    blockRadius: 1.1,\r\n    position: place(MAP.hedgeStone.lat, MAP.hedgeStone.long),\r\n    rotation: [0, 0, 0],\r\n    modal: 'card',\r\n    contentKey: 'about',\r\n  },\r\n  {\r\n    id: 'videos',\r\n    label: 'Videos',\r\n    prompt: 'Turn on the TV',\r\n    // \"CRT TV on crate\": the cube sits on the crate top (0.7 + sink back).\r\n    position: place(MAP.tv.lat, MAP.tv.long + 0.8, 0.8),\r\n    rotation: [0, Math.PI / 3, 0],\r"
+              "line": 130,
+              "code": "    prop: 'hedgestone',\r\n    blockRadius: 1.1,\r\n    position: place(MAP.hedgeStone.lat, MAP.hedgeStone.long),\r\n    rotation: [0, monumentYaw('about'), 0],\r\n    modal: 'card',\r\n    contentKey: 'about',\r\n  },\r\n  {\r\n    id: 'videos',\r\n    label: 'Videos',\r\n    prompt: 'Turn on the TV',\r\n    // \"CRT TV on crate\": the cube sits on the crate top (0.7 + sink back).\r\n    position: place(monument('videos').lat, monument('videos').long, monument('videos').liftM ?? 0),\r\n    rotation: [0, monumentYaw('videos'), 0],\r"
             },
             {
               "symbol": "blockRadius",
-              "line": 45,
-              "code": "    blockRadius: 0.8,\r\n    position: place(MAP.musicUkulele.lat, MAP.musicUkulele.long),\r\n    rotation: [0, Math.PI / 6, 0],\r\n    modal: 'music',\r\n    contentKey: 'music',\r\n  },\r\n  {\r\n    id: 'photos',\r\n    label: 'Photos',\r\n    prompt: 'Look through the camera',\r\n    prop: 'tripod',\r\n    blockRadius: 0.7,\r\n    position: place(MAP.tripod.lat, MAP.tripod.long),\r\n    rotation: [0, Math.PI, 0], // faces the sun, out over the water\r"
+              "line": 46,
+              "code": "    blockRadius: 0.8,\r\n    position: place(MAP.musicUkulele.lat, MAP.musicUkulele.long),\r\n    rotation: [0, monumentYaw('music'), 0],\r\n    modal: 'music',\r\n    contentKey: 'music',\r\n  },\r\n  {\r\n    id: 'photos',\r\n    label: 'Photos',\r\n    prompt: 'Look through the camera',\r\n    prop: 'tripod',\r\n    blockRadius: 0.7,\r\n    position: place(MAP.tripod.lat, MAP.tripod.long),\r\n    rotation: [0, monumentYaw('photos'), 0], // faces the sun, out over the water\r"
             }
           ],
           "note": "the About def ()"
@@ -684,8 +684,8 @@
           "excerpts": [
             {
               "symbol": "PROP_BUILDERS",
-              "line": 10,
-              "code": "const PROP_BUILDERS: Record<PropKind, () => PropPart[]> = {\r\n  tripod: buildTripod,\r\n  mailbox: buildMailbox,\r\n  stereo: buildMusicStereo,\r\n  hedgestone: buildHedgeStone,\r\n  bulletin: buildBulletinBoard,\r\n  headstone: buildHeadstone,\r\n  portal: buildMatrixPortal,\r\n}\r\n\r\n/**\r\n * An interactable, oriented to stand on the sphere with meridian-aligned yaw\r\n * (rotation[1] is relative to local north, like every SurfaceGroup prop).\r\n * Renders its chunky primitive prop when `prop` is set (see props.ts), else\r"
+              "line": 13,
+              "code": "const PROP_BUILDERS: Record<Exclude<PropKind, 'portal'>, () => PropPart[]> = {\r\n  tripod: buildTripod,\r\n  mailbox: buildMailbox,\r\n  stereo: buildMusicStereo,\r\n  hedgestone: buildHedgeStone,\r\n  bulletin: buildBulletinBoard,\r\n  headstone: buildHeadstone,\r\n}\r\n\r\n/**\r\n * An interactable, oriented to stand on the sphere with meridian-aligned yaw\r\n * (rotation[1] is relative to local north, like every SurfaceGroup prop).\r\n * Renders its chunky primitive prop when `prop` is set (see props.ts), else\r\n * the placeholder box. Proximity is angular distance, computed centrally in\r"
             }
           ]
         }
@@ -711,7 +711,7 @@
           "excerpts": [
             {
               "symbol": "buildBulletinBoard",
-              "line": 469,
+              "line": 546,
               "code": "export function buildBulletinBoard(): PropPart[] {\r\n  const tinted = (g: THREE.BufferGeometry, color: string, pos: [number, number, number], rot: [number, number, number] = [0, 0, 0], scale: [number, number, number] = [1, 1, 1]) => {\r\n    const n = tintGeometry(normalizeForMerge(g), color)\r\n    g.dispose()\r\n    n.applyMatrix4(\r\n      new THREE.Matrix4().compose(\r\n        new THREE.Vector3(...pos),\r\n        new THREE.Quaternion().setFromEuler(new THREE.Euler(...rot)),\r\n        new THREE.Vector3(...scale),\r\n      ),\r\n    )\r\n    return n\r\n  }\r\n  const FRAME = '#7f9578'\r"
             }
           ]
@@ -745,38 +745,32 @@
     {
       "id": "minimap",
       "title": "The minimap",
-      "hook": "A little compass-map in the corner remembers everywhere you've been.",
-      "plain": "The circular minimap keeps the sunset side at the top like a compass, shows the island's grass, beach, and waterline, and starts covered in fog — walking reveals it cell by cell, and the reveal is remembered between visits. Portals appear as labelled dots once you've found their neighborhood. M (or the menu) hides it.",
-      "technical": "A 2D canvas overlay — deliberately not a second three.js scene — redrawn at 10 Hz (5 Hz on low tier) with zero per-frame allocations. `projectPolar` maps lat/long to map pixels (pole at centre, long 0 up); the player's position derives from the live planet quaternion via `poleInPlanetSpace` — the same math the world runs — and the facing cone from the established azimuth↔north mapping. Exploration is an 8×24 cell grid (`cellIndex` / `cellsWithinRange`, 6 m discovery radius, vitest-pinned), eased in over 0.4 s (instant under reduced motion), persisted under a versioned localStorage key with a no-storage fallback, and resettable from the HUD menu.",
+      "hook": "A little map in the corner that keeps you at the centre of the world.",
+      "plain": "The circular minimap is a bird's-eye view of the island with\r you always in the middle and whatever you are facing pointing up — walk\r and the island slides under your marker, turn and the map turns with\r you. Everything is on it from the first second: no fog to clear, no\r progress to grind. Portals show as labelled dots. M (or the menu)\r hides it. Step through the rift and the same little window switches to\r a plan of the room you are standing in.",
+      "technical": "A 2D canvas overlay — deliberately not a second three.js\r scene — redrawn every animation frame with zero per-frame allocations,\r so the map tracks continuously instead of catching up when you stop.\r The projection is azimuthal around the PLAYER: `playerFrame` builds the\r tangent frame under the avatar from the live planet quaternion, then\r every target becomes a `rangeTo` (great-circle metres) and a `bearingTo`\r (radians from local north). `cameraHeading` converts the camera's world\r forward into the same frame and `toScreen` subtracts it, so the heading\r points up. The island is drawn by projecting two 64-point latitude\r rings, which stay correct under any rotation; `roomToScreen` does the\r same job for the room's flat rectangle.",
       "files": [
         {
           "path": "src/ui/minimapMath.ts",
           "symbols": [
-            "projectPolar",
-            "cellIndex",
-            "cellsWithinRange",
-            "loadExplored"
+            "playerFrame",
+            "bearingTo",
+            "toScreen"
           ],
           "excerpts": [
             {
-              "symbol": "projectPolar",
-              "line": 20,
-              "code": "export function projectPolar(lat: number, long: number, radiusPx: number): { x: number; y: number } {\n  const r = (Math.min(90 - lat, 90 - LAT_EDGE) / (90 - LAT_EDGE)) * radiusPx\n  const a = (long * Math.PI) / 180\n  return { x: r * Math.sin(a), y: -r * Math.cos(a) }\n}\n\n/** Map radius (px fraction of the rim) at a given latitude. */\nexport function radiusAtLat(lat: number, radiusPx: number): number {\n  return (Math.min(90 - lat, 90 - LAT_EDGE) / (90 - LAT_EDGE)) * radiusPx\n}\n\nexport function cellIndex(lat: number, long: number): number {\n  const band = Math.min(LAT_BANDS - 1, Math.max(0, Math.floor((90 - lat) / BAND_DEG)))\n  const sector = Math.min(LONG_SECTORS - 1, Math.floor(wrap360(long) / SECTOR_DEG))"
+              "symbol": "playerFrame",
+              "line": 34,
+              "code": "export function playerFrame(quat: THREE.Quaternion, out?: LocalFrame): LocalFrame {\n  const frame = out ?? {\n    pole: new THREE.Vector3(),\n    north: new THREE.Vector3(),\n    east: new THREE.Vector3(),\n  }\n  poleInPlanetSpace(quat, frame.pole)\n  frame.pole.normalize()\n  // North = the tangent toward lat 90. Degenerate exactly at the pole,\n  // where any tangent is north; +Z keeps the map from flipping there.\n  const lat = Math.asin(THREE.MathUtils.clamp(frame.pole.y, -1, 1))\n  if (Math.abs(Math.cos(lat)) < 1e-6) {\n    frame.north.set(0, 0, 1)\n  } else {"
             },
             {
-              "symbol": "cellIndex",
-              "line": 31,
-              "code": "export function cellIndex(lat: number, long: number): number {\n  const band = Math.min(LAT_BANDS - 1, Math.max(0, Math.floor((90 - lat) / BAND_DEG)))\n  const sector = Math.min(LONG_SECTORS - 1, Math.floor(wrap360(long) / SECTOR_DEG))\n  return band * LONG_SECTORS + sector\n}\n\nexport function cellCenter(index: number): { lat: number; long: number } {\n  const band = Math.floor(index / LONG_SECTORS)\n  const sector = index % LONG_SECTORS\n  return { lat: 90 - (band + 0.5) * BAND_DEG, long: (sector + 0.5) * SECTOR_DEG }\n}\n\n/** Approximate great-circle meters between two lat/long points. */\nexport function arcMeters(latA: number, longA: number, latB: number, longB: number): number {"
+              "symbol": "bearingTo",
+              "line": 66,
+              "code": "export function bearingTo(frame: LocalFrame, unit: THREE.Vector3): number {\n  // Project the target onto the tangent plane at the player.\n  _u.copy(unit).addScaledVector(frame.pole, -frame.pole.dot(unit))\n  if (_u.lengthSq() < 1e-12) return 0\n  _u.normalize()\n  return Math.atan2(_u.dot(frame.east), _u.dot(frame.north))\n}\n\n/**\n * The camera's heading as a bearing from local north, so the map can be\n * rotated to put \"where I am looking\" at the top. `forwardWorld` is the\n * camera's forward direction in world space; `quat` the planet's.\n */\nexport function cameraHeading("
             },
             {
-              "symbol": "cellsWithinRange",
-              "line": 54,
-              "code": "export function cellsWithinRange(lat: number, long: number, rangeM: number): number[] {\n  const here = cellIndex(lat, long)\n  const band = Math.floor(here / LONG_SECTORS)\n  const sector = here % LONG_SECTORS\n  const out: number[] = []\n  for (let db = -1; db <= 1; db++) {\n    const b = band + db\n    if (b < 0 || b >= LAT_BANDS) continue\n    for (let ds = -1; ds <= 1; ds++) {\n      const sIdx = (sector + ds + LONG_SECTORS) % LONG_SECTORS\n      const idx = b * LONG_SECTORS + sIdx\n      const c = cellCenter(idx)\n      if (arcMeters(lat, long, c.lat, c.long) <= rangeM) out.push(idx)\n    }"
-            },
-            {
-              "symbol": "loadExplored",
-              "line": 79,
-              "code": "export function loadExplored(storage: Pick<Storage, 'getItem'> | null): Set<number> {\n  try {\n    const raw = storage?.getItem(STORAGE_KEY)\n    if (!raw) return new Set()\n    const arr = JSON.parse(raw) as unknown\n    if (!Array.isArray(arr)) return new Set()\n    return new Set(arr.filter((n) => Number.isInteger(n) && n >= 0 && n < TOTAL_CELLS) as number[])\n  } catch {\n    return new Set()\n  }\n}\n\nexport function saveExplored(storage: Pick<Storage, 'setItem'> | null, explored: Set<number>): void {\n  try {"
+              "symbol": "toScreen",
+              "line": 96,
+              "code": "export function toScreen(\n  range: number,\n  bearing: number,\n  heading: number,\n  pxPerM: number,\n  out: { x: number; y: number },\n): { x: number; y: number } {\n  const a = bearing - heading\n  const r = range * pxPerM\n  out.x = Math.sin(a) * r\n  out.y = -Math.cos(a) * r\n  return out\n}\n"
             }
           ]
         },
@@ -787,37 +781,24 @@
           "note": "the canvas overlay"
         },
         {
-          "path": "src/store/useStore.ts",
-          "symbols": [
-            "toggleMinimap",
-            "resetExploration"
-          ],
-          "excerpts": [
-            {
-              "symbol": "toggleMinimap",
-              "line": 42,
-              "code": "  toggleMinimap: () => void\r\n  resetExploration: () => void\r\n}\r\n\r\n/** Mute persists across visits (3C); everything else is session state. */\r\nconst persistedMute = (() => {\r\n  try {\r\n    return localStorage.getItem('sl-muted') === '1'\r\n  } catch {\r\n    return false\r\n  }\r\n})()\r\n\r\n/** Minimap starts ON unless the visitor turned it off before. */\r"
-            },
-            {
-              "symbol": "resetExploration",
-              "line": 43,
-              "code": "  resetExploration: () => void\r\n}\r\n\r\n/** Mute persists across visits (3C); everything else is session state. */\r\nconst persistedMute = (() => {\r\n  try {\r\n    return localStorage.getItem('sl-muted') === '1'\r\n  } catch {\r\n    return false\r\n  }\r\n})()\r\n\r\n/** Minimap starts ON unless the visitor turned it off before. */\r\nconst persistedMinimap = (() => {\r"
-            }
-          ]
+          "path": "src/content/monuments.ts",
+          "symbols": [],
+          "excerpts": [],
+          "note": "where the dots come from"
         }
       ],
       "decisions": [
-        "A second three.js scene for the map was ruled out by the task spec",
-        "10 Hz updates instead of per-frame: a minimap doesn't need 60 fps,",
-        "Fog is per-cell wedges over a fully-drawn map rather than masking"
+        "A second three.js scene for the map was ruled out and would have",
+        "Exploration fog was built, shipped, and then REMOVED at the owner's",
+        "North-up was replaced by camera-up with the player pinned at the"
       ]
     },
     {
       "id": "memorial-garden",
       "title": "The memorial garden",
-      "hook": "A quiet walled corner of the island where remembrances live.",
-      "plain": "Just past the terminator on the night-leaning side sits a small stone-walled garden with an arched wooden gate, two rows of headstones, a bench, and flowers. The front-row stones can be read — \"E — Remember\" opens a quiet card with a name, years, relation, and a message. At night the garden holds a faint warm glow and slow fireflies; it never gets bright. The same remembrances appear on /classic under Memorials. Three placeholder stones ship until Aiden writes real ones.",
-      "technical": "The statics (`buildCemetery`: 14-block wall ring with a ~70° northern opening, gate posts + lintel, decorative back-row stones, bench, flower clusters) are one vertex-tinted merge — one draw call — placed via the MAP table; interactable headstones are a new `PropKind 'headstone'` reusing the standard prop pipeline with a new `ModalKind 'memorial'` reading `src/content/memorials.ts` by `contentKey`. Blockers trace the VISIBLE wall (five r-1.15 circles on ring bearings that skip the gate, plus two gate-post circles) so the interior stays fully walkable — the moai lesson applied. The night mood is `<Cemetery/>`: one 12-point fireflies Points pool (blink + orbit from seeded params, zero allocations per frame) and two PointLights, all scaled by `smoothstep(nightMix, 0.45, 0.8)` and skipped on low tier.",
+      "hook": "A quiet fenced corner of the island where remembrances live.",
+      "plain": "Past the terminator on the night-leaning side is a walled\r garden: an iron fence on chunky stone posts, a gate you walk in\r through, a stone path, rows of headstones with flowers in front of\r them, a bench, and lanterns. The front row can be read — \"E — Remember\"\r opens a quiet card with a name, years, relation, and a message. At\r night the garden holds a faint warm glow and slow fireflies; it never\r gets bright. The same remembrances appear on /classic under Memorials.\r Three placeholder stones ship until Aiden writes real ones.",
+      "technical": "The plot is 17 × 13 m — big enough to walk around\r inside, which is far past the ~4 m limit where a flat mesh laid on a\r 55 m sphere sags mid-span and buries its corners. So `buildCemetery`\r builds everything flat in local space and then bends it with\r `wrapToSphere`, which maps each vertex through the same geodesic offset\r the walk controller uses; the whole garden stays ONE vertex-tinted\r merge — one draw call, ~5.1k triangles. Blockers are generated from the\r same rectangle at ~1 m pitch, skipping the gate gap, so they trace the\r fence you can see (the moai lesson) and never touch the interior. The\r night mood is `<Cemetery/>`: a 12-point firefly pool and two\r PointLights, both scaled by `smoothstep(nightMix, 0.45, 0.8)` and\r skipped on low tier.",
       "files": [
         {
           "path": "src/content/memorials.ts",
@@ -834,13 +815,26 @@
           "excerpts": [
             {
               "symbol": "buildCemetery",
-              "line": 376,
-              "code": "export function buildCemetery(): PropPart[] {\r\n  const tinted = (g: THREE.BufferGeometry, color: string, pos: [number, number, number], rot: [number, number, number] = [0, 0, 0], scale: [number, number, number] = [1, 1, 1]) => {\r\n    const n = tintGeometry(normalizeForMerge(g), color)\r\n    g.dispose()\r\n    n.applyMatrix4(\r\n      new THREE.Matrix4().compose(\r\n        new THREE.Vector3(...pos),\r\n        new THREE.Quaternion().setFromEuler(new THREE.Euler(...rot)),\r\n        new THREE.Vector3(...scale),\r\n      ),\r\n    )\r\n    return n\r\n  }\r\n  const WALL = '#a8a294'\r"
+              "line": 351,
+              "code": "export function buildCemetery(): PropPart[] {\r\n  const tinted = (g: THREE.BufferGeometry, color: string, pos: [number, number, number], rot: [number, number, number] = [0, 0, 0], scale: [number, number, number] = [1, 1, 1]) => {\r\n    const n = tintGeometry(normalizeForMerge(g), color)\r\n    g.dispose()\r\n    n.applyMatrix4(\r\n      new THREE.Matrix4().compose(\r\n        new THREE.Vector3(...pos),\r\n        new THREE.Quaternion().setFromEuler(new THREE.Euler(...rot)),\r\n        new THREE.Vector3(...scale),\r\n      ),\r\n    )\r\n    return n\r\n  }\r\n\r"
             },
             {
               "symbol": "buildHeadstone",
-              "line": 440,
+              "line": 517,
               "code": "export function buildHeadstone(): PropPart[] {\r\n  const tinted = (g: THREE.BufferGeometry, color: string, pos: [number, number, number], rot: [number, number, number] = [0, 0, 0]) => {\r\n    const n = tintGeometry(normalizeForMerge(g), color)\r\n    g.dispose()\r\n    n.applyMatrix4(\r\n      new THREE.Matrix4().compose(\r\n        new THREE.Vector3(...pos),\r\n        new THREE.Quaternion().setFromEuler(new THREE.Euler(...rot)),\r\n        new THREE.Vector3(1, 1, 1),\r\n      ),\r\n    )\r\n    return n\r\n  }\r\n  const parts = [\r"
+            }
+          ]
+        },
+        {
+          "path": "src/scene/geometryUtils.ts",
+          "symbols": [
+            "wrapToSphere"
+          ],
+          "excerpts": [
+            {
+              "symbol": "wrapToSphere",
+              "line": 318,
+              "code": "export function wrapToSphere(\r\n  geometry: THREE.BufferGeometry,\r\n  opts: {\r\n    lat: number\r\n    long: number\r\n    radius: number\r\n    /** Yaw of the local frame, radians from local north. */\r\n    yawRad?: number\r\n    /** Altitude of the local y=0 plane above the sphere. */\r\n    baseAlt?: number\r\n    /** Per-vertex altitude, e.g. to follow terrain (takes east/north metres). */\r\n    altitudeAt?: (east: number, north: number) => number\r\n  },\r\n): THREE.BufferGeometry {\r"
             }
           ]
         },
@@ -849,91 +843,85 @@
           "symbols": [],
           "excerpts": [],
           "note": "fireflies + glow"
-        },
-        {
-          "path": "src/ui/modals/MemorialModal.tsx",
-          "symbols": [],
-          "excerpts": [],
-          "note": "the quiet card"
         }
       ],
       "decisions": [
         "CONSENT RULE recorded in the content file and CONTENT.md: names and",
-        "The glow is deliberately dim (0.35/0.28 peak intensity, distance 4)",
-        "Fireflies are a Points pool like the embers, not meshes — one draw,"
+        "The first version was a 3.2 m circular stone ring — too cramped to",
+        "The glow is deliberately dim (0.35 / 0.28 peak, distance 4): the"
       ]
     },
     {
       "id": "matrix-room",
-      "title": "The portal room",
-      "hook": "A glitching doorway on the night side opens into the making-of.",
-      "plain": "Past the terminator stands a dark stone archway with a green pane humming inside it. Stepping through drops you into a black room with code rain falling around you, where you can read how every part of this island was built — including the real source code, the experiments that failed, and why certain things are the way they are. E steps back out through the inner portal. The same chapters read as plain text on /classic under Build log.",
-      "technical": "The room mounts inside the SAME canvas — never a second WebGL context: `openModalId === 'matrix'` flips the planet group and avatar to `visible={false}` (the subtree stops drawing) and lazily mounts `MatrixRoomScene`, which parks itself at the camera's position and yaw. Both halves are code-split, so nothing about the room touches the initial payload. The rain uses no new shaders: a procedurally generated canvas glyph atlas (`makeGlyphAtlas`, playbook §3's generated-tile caveat) is sampled by tall quads whose UVs are baked to one atlas column each with a random phase; the columns merge into three geometries sharing three materials whose `map.offset.y` scrolls at different speeds. Whole room: 13 draw calls, 732 triangles. Chapter text and the code excerpts come from `docs/build-log.json`, exported from this very file at build time — the room is documentation rendering itself.",
+      "title": "The room through the rift",
+      "hook": "A tear in the air on the night side opens into a room you can\r\nrun around in.",
+      "plain": "A shard of broken light hangs over the grass past the\r terminator. Step into it and you are standing in a rectangular room:\r walls of falling ones and zeroes running endlessly above and below a\r glass floor, a framed screenshot of every feature on this island hung\r around you, and the rift itself hovering in the middle. Walk up to any\r picture and press E to read how that piece was built — in plain\r language first, then the real code. Walk back into the rift to come\r home. The minimap comes with you and redraws itself as a plan of the\r room.",
+      "technical": "The room is a second walkable space, not a dialog, and\r it keeps the island's central invariant: THE AVATAR NEVER MOVES. The\r room group slides underneath it instead (`useRoomController`), so the\r camera rig, jump arc, avatar animation, and footstep hooks all work\r unchanged; only \"where am I\" changes, and that lives in `roomRuntime`.\r Walls clamp per axis so diagonals slide, and the follow camera marches\r its own ray to the nearest wall so it never ends up outside looking in.\r Entering flips `inRoom`: the planet group and the sky rig stand down\r (the planet's draws stop entirely) and `RoomScene` mounts from a lazy\r chunk. The wallpaper is a generated canvas of 0s and 1s scrolled by\r `map.offset.y` — no new shader, the two-shader rule stands. The mural\r images are the one place this project uses image textures, and they are\r screenshots of itself, captured by `scripts/capture-murals.mjs`.\r Chapter text comes from `docs/build-log.json`, exported from this file\r at build time — the room is documentation rendering itself.",
       "files": [
         {
-          "path": "src/scene/matrixAtlas.ts",
+          "path": "src/controls/useRoomController.ts",
           "symbols": [
-            "makeGlyphAtlas"
+            "useRoomController",
+            "ROOM"
           ],
           "excerpts": [
             {
-              "symbol": "makeGlyphAtlas",
-              "line": 19,
-              "code": "export function makeGlyphAtlas(seedRandom: () => number): THREE.CanvasTexture {\n  const SIZE = 512\n  const cell = SIZE / ATLAS_COLS\n  const canvas = document.createElement('canvas')\n  canvas.width = SIZE\n  canvas.height = SIZE\n  const ctx = canvas.getContext('2d')!\n  ctx.clearRect(0, 0, SIZE, SIZE)\n  ctx.font = `${Math.floor(cell * 0.82)}px monospace`\n  ctx.textAlign = 'center'\n  ctx.textBaseline = 'middle'\n  for (let col = 0; col < ATLAS_COLS; col++) {\n    for (let row = 0; row < ATLAS_ROWS; row++) {\n      const glyph = GLYPHS[Math.floor(seedRandom() * GLYPHS.length)]"
-            }
-          ]
-        },
-        {
-          "path": "src/scene/MatrixRoomScene.tsx",
-          "symbols": [
-            "MatrixRoomScene",
-            "buildRainGroup"
-          ],
-          "excerpts": [
-            {
-              "symbol": "MatrixRoomScene",
-              "line": 62,
-              "code": "export function MatrixRoomScene() {\n  const { camera } = useThree()\n  const root = useRef<THREE.Group>(null)\n  const rain = useRef<THREE.Group>(null)\n  const glow = useRef<THREE.Mesh>(null)\n\n  const { rainGeos, rainMats, portal } = useMemo(() => {\n    const rng = mulberry32(0x3a7f1c)\n    const atlas = makeGlyphAtlas(rng)\n    const geos = SPEEDS.map(() => buildRainGroup(rng, 30, [8.5, 13]))\n    const mats = SPEEDS.map(() => {\n      const tex = atlas.clone()\n      tex.needsUpdate = true\n      return new THREE.MeshBasicMaterial({"
+              "symbol": "useRoomController",
+              "line": 64,
+              "code": "export function useRoomController({\r\n  roomRef,\r\n  avatarRef,\r\n}: {\r\n  roomRef: React.RefObject<THREE.Group | null>\r\n  avatarRef: React.RefObject<THREE.Group | null>\r\n}) {\r\n  const [, getKeys] = useKeyboardControls()\r\n  const yaw = useRef(0)\r\n  const targetYaw = useRef(0)\r\n  const jumpT = useRef<number | null>(null)\r\n  const lastJump = useRef(false)\r\n  /** Floor height in world Y, captured from wherever the player entered. */\r\n  const floorY = useRef(0)\r"
             },
             {
-              "symbol": "buildRainGroup",
-              "line": 26,
-              "code": "function buildRainGroup(rng: () => number, columns: number, radii: [number, number]): THREE.BufferGeometry {\n  const quads: THREE.BufferGeometry[] = []\n  for (let i = 0; i < columns; i++) {\n    const az = rng() * Math.PI * 2\n    const r = radii[0] + rng() * (radii[1] - radii[0])\n    const g = new THREE.PlaneGeometry(0.55, COL_H).toNonIndexed()\n    // Bake this quad's atlas column + phase into its UVs.\n    const col = Math.floor(rng() * ATLAS_COLS)\n    const phase = rng() * V_REPEAT\n    const uv = g.attributes.uv as THREE.BufferAttribute\n    for (let v = 0; v < uv.count; v++) {\n      uv.setXY(v, (col + uv.getX(v)) / ATLAS_COLS, uv.getY(v) * V_REPEAT + phase)\n    }\n    // Far columns dim for depth (vertex color, still one material)."
+              "symbol": "ROOM",
+              "line": 27,
+              "code": "export const ROOM = {\r\n  halfX: 18,\r\n  halfZ: 12,\r\n  /** How close the avatar's centre may get to a wall. */\r\n  margin: 0.7,\r\n  /** Where the player stands when they arrive — south of the rift. */\r\n  spawn: { x: 0, z: 8 },\r\n  /** The rift hangs at the centre; this is the \"step back through\" range. */\r\n  exitRange: 2.8,\r\n  /** Mural reading range, with the usual hysteresis on the way out. */\r\n  muralRange: 4.6,\r\n  muralExitRange: 5.4,\r\n  /** Third-person camera clearance from the walls. */\r\n  camClear: 0.5,\r"
             }
           ]
         },
         {
-          "path": "src/ui/modals/MatrixRoom.tsx",
-          "symbols": [],
-          "excerpts": [],
-          "note": "the chapter reader"
-        },
-        {
-          "path": "src/content/buildLog.ts",
+          "path": "src/scene/RoomScene.tsx",
           "symbols": [
-            "buildLogChapters"
+            "RoomScene"
           ],
           "excerpts": [
             {
-              "symbol": "buildLogChapters",
-              "line": 33,
-              "code": "export const buildLogChapters: BuildLogChapter[] = data.chapters\n"
+              "symbol": "RoomScene",
+              "line": 57,
+              "code": "export const RoomScene = forwardRef<THREE.Group>(function RoomScene(_props, ref) {\r\n  const openModal = useStore((s) => s.openModal)\r\n  const nearbyMural = useStore((s) => s.nearbyMural)\r\n  const wallMat = useRef<THREE.MeshBasicMaterial>(null)\r\n  const rift = useRef<THREE.Group>(null)\r\n\r\n  const { walls, wallpaper, frames, riftParts, textures } = useMemo(() => {\r\n    const rng = mulberry32(0x0b1a01)\r\n    const paper = makeBinaryWallpaper(rng)\r\n    const w = mergeGeometries([\r\n      wall(ROOM.halfX * 2, 0, -ROOM.halfZ, 0),\r\n      wall(ROOM.halfX * 2, 0, ROOM.halfZ, Math.PI),\r\n      wall(ROOM.halfZ * 2, ROOM.halfX, 0, -Math.PI / 2),\r\n      wall(ROOM.halfZ * 2, -ROOM.halfX, 0, Math.PI / 2),\r"
+            }
+          ]
+        },
+        {
+          "path": "src/content/murals.ts",
+          "symbols": [],
+          "excerpts": [],
+          "note": "which screenshot explains which chapter"
+        },
+        {
+          "path": "src/scene/riftGeometry.ts",
+          "symbols": [
+            "buildRift"
+          ],
+          "excerpts": [
+            {
+              "symbol": "buildRift",
+              "line": 76,
+              "code": "export function buildRift(): RiftPart[] {\r\n  const rng = mulberry32(0x5121f7)\r\n  const blades = shardField(rng)\r\n  const shards = mergeGeometries(blades)!\r\n  // The rim is the same field re-merged from a fresh seed-identical pass,\r\n  // scaled up a hair and drawn additively behind — cheap glowing edges\r\n  // without an outline shader.\r\n  const rimRng = mulberry32(0x5121f7)\r\n  const rimParts = shardField(rimRng)\r\n  const rim = mergeGeometries(rimParts)!\r\n  rim.scale(1.13, 1.13, 1.6)\r\n  for (const g of [...blades, ...rimParts]) g.dispose()\r\n\r\n  const core = normalizeForMerge(new THREE.IcosahedronGeometry(0.17, 1))\r"
             }
           ]
         }
       ],
       "decisions": [
-        "A second `<Canvas>` for the room was rejected: two WebGL contexts",
-        "Rain as scrolling UV strips instead of per-glyph instances or a",
-        "The room reads `build-log.json` rather than duplicating prose in a"
+        "The first version was a MODAL: a reader panel over a static 3D",
+        "A second `<Canvas>` was rejected: two WebGL contexts double renderer",
+        "Moving the room instead of the avatar looks like a trick, but it is"
       ]
     },
     {
       "id": "self-hosted-fonts",
       "title": "Making the type real",
-      "hook": "The site had specified its typefaces for months and never\nactually loaded them.",
-      "plain": "Two fonts were named in the stylesheet — Bricolage Grotesque for headings, Atkinson Hyperlegible (a typeface designed for low vision) for body text — but nothing ever fetched them, so every visitor saw their operating system's default. They now ship with the site itself rather than being requested from Google, which means no third party learns you visited. Alongside that: icons at every size a browser or phone launcher asks for, a web manifest, and the canonical link search engines want.",
-      "technical": "`scripts/fetch-fonts.mjs` downloads the latin woff2 subsets into `public/fonts/` and generates `src/fonts.css` with `@font-face` rules and `font-display: swap`; `src/index.css` imports it next to the `@theme` tokens that name the families. Latin-only keeps the payload at 109 KB — latin-ext, vietnamese, and cyrillic would roughly triple it for glyphs this site never renders. `scripts/make-favicons.mjs` renders `favicon.svg` at 16/32/192/512 and 180 (apple-touch) through headless Chromium, the same no-new-dependency trick `optimize-images.mjs` uses.",
+      "hook": "The site had specified its typefaces for months and never\r\nactually loaded them.",
+      "plain": "Two fonts were named in the stylesheet — Bricolage Grotesque\r for headings, Atkinson Hyperlegible (a typeface designed for low\r vision) for body text — but nothing ever fetched them, so every visitor\r saw their operating system's default. They now ship with the site\r itself rather than being requested from Google, which means no third\r party learns you visited. Alongside that: icons at every size a browser\r or phone launcher asks for, a web manifest, and the canonical link\r search engines want.",
+      "technical": "`scripts/fetch-fonts.mjs` downloads the latin woff2\r subsets into `public/fonts/` and generates `src/fonts.css` with\r `@font-face` rules and `font-display: swap`; `src/index.css` imports it\r next to the `@theme` tokens that name the families. Latin-only keeps\r the payload at 109 KB — latin-ext, vietnamese, and cyrillic would\r roughly triple it for glyphs this site never renders.\r `scripts/make-favicons.mjs` renders `favicon.svg` at 16/32/192/512 and\r 180 (apple-touch) through headless Chromium, the same\r no-new-dependency trick `optimize-images.mjs` uses.",
       "files": [
         {
           "path": "scripts/fetch-fonts.mjs",
@@ -972,6 +960,78 @@
         "Self-hosting over a fonts CDN. Nothing else in this project makes an",
         "The first version shipped Bricolage twice. Asking Google for weights",
         "Latin subsets only, and `font-display: swap` so text is readable"
+      ]
+    },
+    {
+      "id": "world-index",
+      "title": "The world index",
+      "hook": "Every object on the island now lives at coordinates you can\r\nedit in one file.",
+      "plain": "Where the dock is, which way the moai faces, how high the\r rift floats — all of it used to be scattered through the code that\r draws each thing. Now there is a single list, `monuments.json`, with a\r line per object: latitude, longitude, the direction it faces, and how\r far off the ground it sits. Move a number, and the model, its collision,\r its dot on the minimap, and the printed world map all follow. There is\r a readable version of the list at `docs/world-map.md`.",
+      "technical": "`src/content/monuments.json` is the data (plain JSON so\r node scripts and the app read the same file); `monuments.ts` wraps it\r with types and `monument()` / `monumentPos()` / `monumentYaw()`, which\r throw loudly on an unknown id rather than silently placing something at\r the origin. `planetConfig.MAP` is now DERIVED from it, so every existing\r consumer of MAP inherited the indirection for free, and `interactables.ts`\r takes its rotations from `facingDeg` instead of hardcoded radians.\r `scripts/world-map.mjs` regenerates the docs table. Vitest guards the\r things that silently break a world: duplicate ids, coordinates off the\r island, and interactables whose monument has gone missing.",
+      "files": [
+        {
+          "path": "src/content/monuments.json",
+          "symbols": [],
+          "excerpts": [],
+          "note": "the index itself"
+        },
+        {
+          "path": "src/content/monuments.ts",
+          "symbols": [
+            "monument",
+            "monumentPos",
+            "monumentYaw"
+          ],
+          "excerpts": [
+            {
+              "symbol": "monument",
+              "line": 40,
+              "code": "export function monument(id: string): Monument {\n  const m = byId.get(id)\n  if (!m) throw new Error(`monuments.json has no monument with id \"${id}\"`)\n  return m\n}\n\n/** Its lat/long, in the shape planetConfig's MAP entries use. */\nexport function monumentPos(id: string): { lat: number; long: number } {\n  const m = monument(id)\n  return { lat: m.lat, long: m.long }\n}\n\n/** Its facing in radians, ready for a rotation. */\nexport function monumentYaw(id: string): number {"
+            },
+            {
+              "symbol": "monumentPos",
+              "line": 47,
+              "code": "export function monumentPos(id: string): { lat: number; long: number } {\n  const m = monument(id)\n  return { lat: m.lat, long: m.long }\n}\n\n/** Its facing in radians, ready for a rotation. */\nexport function monumentYaw(id: string): number {\n  return (monument(id).facingDeg * Math.PI) / 180\n}\n\nexport const monumentsOfKind = (kind: MonumentKind) => monuments.filter((m) => m.kind === kind)\n"
+            },
+            {
+              "symbol": "monumentYaw",
+              "line": 53,
+              "code": "export function monumentYaw(id: string): number {\n  return (monument(id).facingDeg * Math.PI) / 180\n}\n\nexport const monumentsOfKind = (kind: MonumentKind) => monuments.filter((m) => m.kind === kind)\n"
+            }
+          ]
+        },
+        {
+          "path": "scripts/world-map.mjs",
+          "symbols": [
+            "docs/world-map.md"
+          ],
+          "excerpts": [
+            {
+              "symbol": "docs/world-map.md",
+              "line": 2,
+              "code": " * Regenerates docs/world-map.md from src/content/monuments.json — the\n * readable index of where everything on the island stands and which way\n * it faces. Run it after moving anything:\n *\n *   node scripts/world-map.mjs\n *\n * The JSON is the source of truth; this file is the printout.\n */\nimport { readFileSync, writeFileSync } from 'node:fs'\nimport { resolve } from 'node:path'\n\nconst { monuments } = JSON.parse(readFileSync(resolve('src/content/monuments.json'), 'utf8'))\n\nconst KIND_ORDER = ['interactable', 'structure', 'prop', 'npc', 'seat']"
+            }
+          ],
+          "note": "regenerates"
+        },
+        {
+          "path": "src/scene/planetConfig.ts",
+          "symbols": [
+            "MAP"
+          ],
+          "excerpts": [
+            {
+              "symbol": "MAP",
+              "line": 133,
+              "code": "export const MAP = {\r\n  tripod: monumentPos('photos'), // Photos — on the dock end, over water\r\n  mailbox: monumentPos('contact'), // Contact — dock entrance\r\n  // NPC — seat ON the dock's west edge (cross-track ~0.87 m < the 1 m\r\n  // half-width, so his butt overlaps the deck), legs over the surf.\r\n  ukulelePlayer: monumentPos('koa'),\r\n  palapa: monumentPos('projects'), // Projects — day-leaning side\r\n  bulletinBoard: monumentPos('papers'), // Papers — grass, sunset side\r\n  matrixPortal: monumentPos('rift'), // Build-log room — night-leaning side\r\n  cemetery: monumentPos('cemetery'), // Memorial garden\r\n  hedgeStone: monumentPos('about'), // About — the moai, dusk boundary west\r\n  campfire: monumentPos('campfire'), // night beach\r\n  // Log circle: three sittable logs ~3.2 m from the fire on the landward\r\n  // arc, opening toward the sea. Yaw comes from each log's facingDeg.\r"
+            }
+          ]
+        }
+      ],
+      "decisions": [
+        "JSON, not TypeScript, for the data half. It keeps the file editable",
+        "`facingDeg` is measured from local NORTH, not from world axes, because",
+        "MAP was kept rather than replaced. Rewriting every `MAP.campfire`"
       ]
     }
   ]

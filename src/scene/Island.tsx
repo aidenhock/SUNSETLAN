@@ -185,7 +185,6 @@ export function Island() {
 
   const single = useMemo(
     () => ({
-      cemetery: [placement(MAP.cemetery.lat, MAP.cemetery.long)],
       crate: [placement(MAP.tv.lat, MAP.tv.long + 0.8)],
       rowboat: [placement(MAP.rowboat.lat, MAP.rowboat.long, 0.9)],
       palapa: [placement(MAP.palapa.lat, MAP.palapa.long)],
@@ -215,8 +214,11 @@ export function Island() {
         <meshLambertMaterial vertexColors flatShading />
       </mesh>
 
-      {/* Memorial garden statics (fireflies + glow live in <Cemetery/>). */}
-      <InstancedProp parts={props.cemetery} placements={single.cemetery} />
+      {/* Memorial garden statics (fireflies + glow live in <Cemetery/>).
+          buildCemetery returns ONE part already wrapped onto the sphere
+          (placement rule 2 — a 17 m fence sags as a flat mesh), so it
+          renders as a plain mesh with no placement transform. */}
+      <mesh geometry={props.cemetery[0].geometry} material={props.cemetery[0].material} />
 
       {/* CRT crate + beached rowboat. */}
       <InstancedProp parts={props.crate} placements={single.crate} />

@@ -1,75 +1,104 @@
 import { describe, expect, it } from 'vitest'
-import {
-  arcMeters,
-  cameraBearing,
-  cellCenter,
-  cellIndex,
-  cellsWithinRange,
-  LAT_BANDS,
-  loadExplored,
-  LONG_SECTORS,
-  projectPolar,
-  saveExplored,
-  TOTAL_CELLS,
-} from './minimapMath'
+import * as THREE from 'three'
+import { latLongToUnit } from '../controls/planetMath'
+import { PLANET_RADIUS } from '../scene/planetConfig'
+import { bearingTo, cameraHeading, playerFrame, rangeTo, roomToScreen, toScreen } from './minimapMath'
 
-describe('minimap projection (compass: long 0 up)', () => {
-  it('the pole projects to the centre', () => {
-    const p = projectPolar(90, 123, 65)
-    expect(Math.hypot(p.x, p.y)).toBeLessThan(1e-9)
+/**
+ * The minimap is a player-CENTRED bird's-eye view: everything is a
+ * bearing and a range from wherever the avatar is standing, rotated so
+ * the camera's heading points up. These pin the projection — a sign
+ * error here silently mirrors the whole map.
+ */
+
+/** The planet quaternion that puts (lat, long) under the avatar. */
+const quatFor = (lat: number, long: number) =>
+  new THREE.Quaternion().setFromUnitVectors(latLongToUnit(lat, long), new THREE.Vector3(0, 1, 0))
+
+describe('player frame', () => {
+  it('north points toward the island centre, east is perpendicular', () => {
+    const f = playerFrame(quatFor(40, 25))
+    const toPole = latLongToUnit(90, 0)
+    // Walking "north" must reduce the angle to the pole.
+    const stepped = f.pole.clone().addScaledVector(f.north, 0.01).normalize()
+    expect(stepped.angleTo(toPole)).toBeLessThan(f.pole.angleTo(toPole))
+    expect(Math.abs(f.north.dot(f.pole))).toBeLessThan(1e-6)
+    expect(Math.abs(f.east.dot(f.pole))).toBeLessThan(1e-6)
+    expect(Math.abs(f.east.dot(f.north))).toBeLessThan(1e-6)
   })
-  it('long 0 points up, long 90 points right, rim lands on the radius', () => {
-    const up = projectPolar(13, 0, 65)
-    expect(up.x).toBeCloseTo(0, 6)
-    expect(up.y).toBeCloseTo(-65, 6)
-    const right = projectPolar(13, 90, 65)
-    expect(right.x).toBeCloseTo(65, 6)
-    expect(right.y).toBeCloseTo(0, 6)
-  })
-  it('latitudes beyond the rim clamp to the rim', () => {
-    const p = projectPolar(5, 180, 65)
-    expect(Math.hypot(p.x, p.y)).toBeCloseTo(65, 6)
+
+  it('east increases longitude', () => {
+    const f = playerFrame(quatFor(30, 100))
+    const stepped = f.pole.clone().addScaledVector(f.east, 0.01).normalize()
+    const long = (Math.atan2(stepped.x, stepped.z) * 180) / Math.PI
+    expect(long).toBeGreaterThan(100)
   })
 })
 
-describe('exploration grid (8 bands × 24 sectors)', () => {
-  it('cells tile the cap and round-trip through their centres', () => {
-    expect(TOTAL_CELLS).toBe(LAT_BANDS * LONG_SECTORS)
-    for (const idx of [0, 5, 23, 24, 100, TOTAL_CELLS - 1]) {
-      const c = cellCenter(idx)
-      expect(cellIndex(c.lat, c.long)).toBe(idx)
-    }
+describe('range and bearing', () => {
+  it('range is great-circle metres', () => {
+    const f = playerFrame(quatFor(50, 0))
+    // 10 degrees of latitude away, along the same meridian.
+    const target = latLongToUnit(40, 0)
+    const expected = (10 * Math.PI * PLANET_RADIUS) / 180
+    expect(rangeTo(f, target, PLANET_RADIUS)).toBeCloseTo(expected, 4)
   })
-  it('longitude wraps into sectors', () => {
-    expect(cellIndex(50, 359.9)).toBe(cellIndex(50, -0.1))
+
+  it('bearing is 0 toward the pole and ±90° to the sides', () => {
+    const f = playerFrame(quatFor(40, 60))
+    expect(bearingTo(f, latLongToUnit(90, 0))).toBeCloseTo(0, 5)
+    // Due south (away from the pole) is a half turn.
+    expect(Math.abs(bearingTo(f, latLongToUnit(20, 60)))).toBeCloseTo(Math.PI, 4)
+    expect(bearingTo(f, latLongToUnit(40, 70))).toBeGreaterThan(0) // east
+    expect(bearingTo(f, latLongToUnit(40, 50))).toBeLessThan(0) // west
   })
-  it('discovery marks only cells whose centre is in range', () => {
-    const c = cellCenter(cellIndex(50, 100))
-    const near = cellsWithinRange(c.lat, c.long, 6)
-    expect(near).toContain(cellIndex(c.lat, c.long))
-    // A 6 m range cannot reach a neighbouring band's centre (~9.2 m away).
-    for (const idx of near) {
-      const cc = cellCenter(idx)
-      expect(arcMeters(c.lat, c.long, cc.lat, cc.long)).toBeLessThanOrEqual(6)
-    }
+
+  it('the player is at zero range from itself', () => {
+    const f = playerFrame(quatFor(33, 210))
+    expect(rangeTo(f, latLongToUnit(33, 210), PLANET_RADIUS)).toBeCloseTo(0, 6)
   })
 })
 
-describe('camera bearing + persistence', () => {
-  it('facing north (az = long) reads bearing 0', () => {
-    expect(cameraBearing(120, (120 * Math.PI) / 180)).toBeCloseTo(0, 9)
+describe('camera heading', () => {
+  it('matches the bearing of whatever the camera looks at', () => {
+    const quat = quatFor(45, 12)
+    const f = playerFrame(quat)
+    // A world-space forward direction, converted into the planet frame,
+    // should read the same bearing as a target lying along it.
+    const forwardWorld = new THREE.Vector3(0, 0, -1)
+    const heading = cameraHeading(f, forwardWorld, quat)
+    const local = forwardWorld.clone().applyQuaternion(quat.clone().invert())
+    const target = f.pole.clone().addScaledVector(local, 0.05).normalize()
+    expect(heading).toBeCloseTo(bearingTo(f, target), 4)
   })
-  it('persistence round-trips and tolerates junk + missing storage', () => {
-    const mem = new Map<string, string>()
-    const storage = {
-      getItem: (k: string) => mem.get(k) ?? null,
-      setItem: (k: string, v: string) => void mem.set(k, v),
-    }
-    saveExplored(storage, new Set([3, 44, 191]))
-    expect([...loadExplored(storage)].sort((a, b) => a - b)).toEqual([3, 44, 191])
-    mem.set('sunsetlan-explored-v1', '{bad json')
-    expect(loadExplored(storage).size).toBe(0)
-    expect(loadExplored(null).size).toBe(0)
-    expect(() => saveExplored(null, new Set([1]))).not.toThrow()
+})
+
+describe('screen mapping', () => {
+  const out = { x: 0, y: 0 }
+
+  it('puts a target dead ahead at the top of the map', () => {
+    toScreen(10, 1.2, 1.2, 2, out) // bearing === heading
+    expect(out.x).toBeCloseTo(0, 6)
+    expect(out.y).toBeCloseTo(-20, 6) // canvas y grows downward
+  })
+
+  it('puts a target to the right when it is clockwise of the heading', () => {
+    toScreen(10, Math.PI / 2, 0, 1, out)
+    expect(out.x).toBeCloseTo(10, 6)
+    expect(out.y).toBeCloseTo(0, 6)
+  })
+
+  it('room space rotates with the camera the same way', () => {
+    // Facing +Z: something 5 m ahead (+Z) is up on the map.
+    roomToScreen(0, 5, 0, 1, 1, out)
+    expect(out.y).toBeCloseTo(-5, 6)
+    expect(out.x).toBeCloseTo(0, 6)
+    // Facing +Z: something 5 m east (+X) is to the LEFT on screen,
+    // because facing +Z means +X is behind your right shoulder.
+    roomToScreen(5, 0, 0, 1, 1, out)
+    expect(out.x).toBeCloseTo(-5, 6)
+    // Turn the camera to face +X and the same point moves to the top.
+    roomToScreen(5, 0, 1, 0, 1, out)
+    expect(out.y).toBeCloseTo(-5, 6)
   })
 })

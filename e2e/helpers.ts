@@ -9,6 +9,8 @@ declare global {
         closeModal: () => void
         nearbyLog: number | null
         seatedSeat: { log: number; offsetM: number } | null
+        inRoom: boolean
+        nearbyMural: string | null
       }
     }
     __controls?: {
@@ -18,6 +20,8 @@ declare global {
       surfPolarDeg: number
       surfLongDeg: number
     }
+    /** Room-space position inside the build-log room (?e2e). */
+    __room?: { x: number; z: number; yaw: number; active: boolean }
   }
 }
 

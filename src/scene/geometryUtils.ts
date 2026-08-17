@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { latLongToUnit } from '../controls/planetMath'
 
 /**
  * Deterministic pseudo-noise from a position. Seam-duplicated sphere vertices
@@ -299,4 +300,75 @@ export function facetTerrain(
   // Flat face normals fall out of non-indexed geometry automatically.
   nonIndexed.computeVertexNormals()
   return nonIndexed
+}
+
+/**
+ * Bends flat local geometry onto the planet (placement rule 2, solved
+ * generally). A rectangle wider than ~4 m placed as one flat mesh sags
+ * mid-span and buries its corners; this maps every vertex through the
+ * SAME geodesic offset the walk controller uses, so a 17 m cemetery
+ * fence hugs the curve exactly and still renders as ONE draw call.
+ *
+ * Local convention matches every other placement: +X east, +Y up,
+ * +Z north (toward the pole), `yawRad` turning +Z toward +X. The
+ * returned geometry is in PLANET-LOCAL ABSOLUTE coordinates — render it
+ * with an identity transform inside the planet group, never inside a
+ * SurfaceGroup.
+ */
+export function wrapToSphere(
+  geometry: THREE.BufferGeometry,
+  opts: {
+    lat: number
+    long: number
+    radius: number
+    /** Yaw of the local frame, radians from local north. */
+    yawRad?: number
+    /** Altitude of the local y=0 plane above the sphere. */
+    baseAlt?: number
+    /** Per-vertex altitude, e.g. to follow terrain (takes east/north metres). */
+    altitudeAt?: (east: number, north: number) => number
+  },
+): THREE.BufferGeometry {
+  const { lat, long, radius, yawRad = 0, baseAlt = 0, altitudeAt } = opts
+  const up = latLongToUnit(lat, long).normalize()
+  const polar = THREE.MathUtils.degToRad(90 - lat)
+  const longRad = THREE.MathUtils.degToRad(long)
+  const north = new THREE.Vector3(
+    -Math.cos(polar) * Math.sin(longRad),
+    Math.sin(polar),
+    -Math.cos(polar) * Math.cos(longRad),
+  ).normalize()
+  const east = new THREE.Vector3().crossVectors(north, up).normalize()
+
+  const out = geometry.clone()
+  const pos = out.attributes.position as THREE.BufferAttribute
+  const cos = Math.cos(yawRad)
+  const sin = Math.sin(yawRad)
+  const dir = new THREE.Vector3()
+  const tangent = new THREE.Vector3()
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i)
+    const y = pos.getY(i)
+    const z = pos.getZ(i)
+    // Yaw the local frame (three.js rotateY convention).
+    const xe = x * cos + z * sin
+    const zn = -x * sin + z * cos
+    const arc = Math.hypot(xe, zn)
+    if (arc < 1e-6) {
+      dir.copy(up)
+    } else {
+      const theta = arc / radius
+      tangent.copy(east).multiplyScalar(xe / arc).addScaledVector(north, zn / arc)
+      dir.copy(up).multiplyScalar(Math.cos(theta)).addScaledVector(tangent, Math.sin(theta))
+    }
+    const alt = baseAlt + (altitudeAt ? altitudeAt(xe, zn) : 0) + y
+    dir.multiplyScalar(radius + alt)
+    pos.setXYZ(i, dir.x, dir.y, dir.z)
+  }
+  pos.needsUpdate = true
+  // Non-indexed geometry: this yields the flat per-face normals the
+  // whole world is shaded with.
+  out.computeVertexNormals()
+  out.computeBoundingSphere()
+  return out
 }

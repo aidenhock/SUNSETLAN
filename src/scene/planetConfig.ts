@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { monument, monumentPos, monumentYaw } from '../content/monuments'
 import { latLongToUnit } from '../controls/planetMath'
 
 /**
@@ -123,35 +124,35 @@ export function surfaceUnderfoot(polarDeg: number, longDeg: number, wet: boolean
 const THREE_DEG = Math.PI / 180
 
 /** World map placements (lat, long) — CLAUDE.md v3 table. */
+/**
+ * The world map, DERIVED from the monument index (src/content/
+ * monuments.json — the single place coordinates are edited). Keys here
+ * are the names scene code already uses; move something by editing the
+ * JSON, not this table.
+ */
 export const MAP = {
-  tripod: { lat: 14, long: 0 }, // Photos — on the dock end, over water
-  mailbox: { lat: 24, long: 6 }, // Contact — dock entrance
+  tripod: monumentPos('photos'), // Photos — on the dock end, over water
+  mailbox: monumentPos('contact'), // Contact — dock entrance
   // NPC — seat ON the dock's west edge (cross-track ~0.87 m < the 1 m
   // half-width, so his butt overlaps the deck), legs over the surf.
-  // 358.7 hovered his center 0.19 m PAST the edge — the floating bug.
-  ukulelePlayer: { lat: 18, long: 359.05 },
-  palapa: { lat: 40, long: 40 }, // Projects — day-leaning side
-  bulletinBoard: { lat: 45, long: 343 }, // Papers — grass, sunset side, inland from the mailbox
-  matrixPortal: { lat: 32, long: 97 }, // Build log room — just past the terminator
-  cemetery: { lat: 47, long: 107 }, // Memorial garden — just past the terminator, night-leaning
-  hedgeStone: { lat: 50, long: 300 }, // About — the moai in its hedge clearing, dusk boundary west
-  campfire: { lat: 22, long: 180 }, // night beach
+  ukulelePlayer: monumentPos('koa'),
+  palapa: monumentPos('projects'), // Projects — day-leaning side
+  bulletinBoard: monumentPos('papers'), // Papers — grass, sunset side
+  matrixPortal: monumentPos('rift'), // Build-log room — night-leaning side
+  cemetery: monumentPos('cemetery'), // Memorial garden
+  hedgeStone: monumentPos('about'), // About — the moai, dusk boundary west
+  campfire: monumentPos('campfire'), // night beach
   // Log circle: three sittable logs ~3.2 m from the fire on the landward
-  // arc, opening toward the sea (campfire polish 3: pushed out from
-  // 2.2 m and the flank bearings widened to ±65° so the ends never
-  // touch — clear walkable gaps between logs, and a full lap fits
-  // between the log blockers (2.3 m inner edge) and the fire blocker
-  // (1.2 m). Center log perpendicular to the fire→sea meridian; flanks
-  // turned just inside tangent so the circle still opens to the sea.
+  // arc, opening toward the sea. Yaw comes from each log's facingDeg.
   logs: [
-    { lat: 25.3, long: 180, yaw: 0 },
-    { lat: 23.4, long: 176.7, yaw: 0.95 },
-    { lat: 23.4, long: 183.3, yaw: -0.95 },
+    { ...monumentPos('log-center'), yaw: monumentYaw('log-center') },
+    { ...monumentPos('log-west'), yaw: monumentYaw('log-west') },
+    { ...monumentPos('log-east'), yaw: monumentYaw('log-east') },
   ],
-  musicUkulele: { lat: 22, long: 173 }, // Music — by the fire
-  tv: { lat: 21, long: 150 }, // Videos — screen glow reads at night
-  rowboat: { lat: 18, long: 210 },
-} as const
+  musicUkulele: monumentPos('music'), // Music — by the fire
+  tv: { lat: monument('videos').lat, long: monument('videos').long - 0.8 }, // Videos — the CRATE's spot; the TV sits on it
+  rowboat: monumentPos('rowboat'),
+}
 
 /** Surf cycle (v3.3) — the single source for the water shader AND the wade
  * ripple: a slow vertical swing of the near-shore water surface that walks
@@ -335,20 +336,40 @@ const landmarkBlockers: { lat: number; long: number; radius: number }[] = [
   { lat: MAP.ukulelePlayer.lat, long: MAP.ukulelePlayer.long, radius: 0.7 },
   // The three fire logs (sit entry bypasses the target log's blocker).
   ...MAP.logs.map((l) => ({ lat: l.lat, long: l.long, radius: 0.9 })),
-  // Memorial garden wall (TASK 3): blockers TRACE the visible wall ring
-  // (r 3.2 m; lesson from the moai — colliders must trace something the
-  // player can SEE) leaving the northern gate open; two gate posts.
-  // 1° lat ≈ 0.96 m; 1° long ≈ 0.70 m at lat 47.
-  ...[72, 126, 180, 234, 288].map((bearingDeg) => {
-    const b = (bearingDeg * Math.PI) / 180
-    return {
-      lat: MAP.cemetery.lat + (Math.cos(b) * 3.2) / 0.96,
-      long: MAP.cemetery.long + (Math.sin(b) * 3.2) / 0.7,
-      radius: 1.15,
+  // Memorial garden fence (rebuild — bigger walkable ACNH-style plot):
+  // blockers TRACE the visible iron-fence line (r 0.55, ~1 m spacing —
+  // the moai lesson: colliders must trace something the player can
+  // SEE) around all four sides of the widthM × depthM rectangle,
+  // skipping the ~3 m south gate gap so the gate and the WHOLE interior
+  // stay walkable (no interior points are ever emitted). Local frame
+  // matches wrapToSphere (+X east, +Z north); converted to lat/long
+  // with the same flat approx used elsewhere in this file: 1° lat ≈
+  // π·PLANET_RADIUS/180 m, 1° long ≈ that × cos(latitude).
+  ...(() => {
+    const cem = monument('cemetery')
+    const hw = (cem.size?.widthM ?? 0) / 2
+    const hd = (cem.size?.depthM ?? 0) / 2
+    const gateHalf = 1.5
+    const mPerDegLat = (Math.PI * PLANET_RADIUS) / 180
+    const mPerDegLong = mPerDegLat * Math.cos((cem.lat * Math.PI) / 180)
+    const spaced = (from: number, to: number, pitch = 1.0): number[] => {
+      const len = to - from
+      const count = Math.max(1, Math.round(len / pitch)) + 1
+      return Array.from({ length: count }, (_, i) => from + (len * i) / (count - 1))
     }
-  }),
-  { lat: MAP.cemetery.lat + 3.1 / 0.96, long: MAP.cemetery.long - 1.05 / 0.7, radius: 0.35 },
-  { lat: MAP.cemetery.lat + 3.1 / 0.96, long: MAP.cemetery.long + 1.05 / 0.7, radius: 0.35 },
+    const point = (x: number, z: number) => ({
+      lat: cem.lat + z / mPerDegLat,
+      long: cem.long + x / mPerDegLong,
+      radius: 0.55,
+    })
+    const out: { lat: number; long: number; radius: number }[] = []
+    for (const x of spaced(-hw, hw)) out.push(point(x, hd)) // north
+    for (const x of spaced(-hw, -gateHalf)) out.push(point(x, -hd)) // south, west of gate
+    for (const x of spaced(gateHalf, hw)) out.push(point(x, -hd)) // south, east of gate
+    for (const z of spaced(-hd, hd)) out.push(point(hw, z)) // east
+    for (const z of spaced(-hd, hd)) out.push(point(-hw, z)) // west
+    return out
+  })(),
   { lat: MAP.palapa.lat, long: MAP.palapa.long - 2, radius: 1.2 }, // desk
   { lat: MAP.tv.lat, long: MAP.tv.long + 0.8, radius: 0.9 }, // crate
   { lat: MAP.mailbox.lat, long: MAP.mailbox.long, radius: 0.5 },

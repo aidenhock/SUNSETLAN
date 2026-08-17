@@ -188,14 +188,12 @@ test('desktop: minimap — visible by default, M toggles, menu toggles, marker c
   expect(realErrors(errors)).toEqual([])
 })
 
-test('desktop: matrix portal — prompt, room renders real build-log code, E exits, budget holds', async ({
-  page,
-}) => {
+test('desktop: rift room — walk in, read a mural, walk back out', async ({ page }) => {
   const errors = collectErrors(page)
   await gotoWorld(page)
   await page.waitForTimeout(800)
 
-  // Walk up to the portal (lat 32 / long 97): the prompt fires.
+  // Walk up to the rift (lat 32 / long 97): the prompt fires.
   await page.evaluate(() => {
     window.__controls!.poseOverride = { lat: 34.4, long: 97 }
     window.__controls!.azimuthOverride = Math.PI
@@ -203,36 +201,82 @@ test('desktop: matrix portal — prompt, room renders real build-log code, E exi
   await page.waitForTimeout(700)
   await expect(page.getByText('Step through')).toBeVisible()
 
-  // E steps through into the room.
+  // E steps through into the room — a place, not a dialog.
   await page.keyboard.press('KeyE')
-  const room = page.getByRole('dialog', { name: 'Build log' })
-  await expect(room).toBeVisible({ timeout: 5000 })
-  await expect(page.getByRole('heading', { name: 'The world that turns beneath you' })).toBeVisible()
+  await page.waitForFunction(() => window.__store!.getState().inRoom, undefined, {
+    timeout: 5000,
+  })
+  await page.waitForTimeout(1200)
+  await expect(page.getByRole('dialog')).toBeHidden()
 
-  // The room renders REAL build-time code excerpts, not prose about code.
-  await page.getByText('src/controls/planetMath.ts').click()
+  // The room is WALKABLE: holding W moves the player through room space.
+  const before = await page.evaluate(() => ({ x: window.__room!.x, z: window.__room!.z }))
+  await page.keyboard.down('KeyW')
+  await page.waitForTimeout(700)
+  await page.keyboard.up('KeyW')
+  const after = await page.evaluate(() => ({ x: window.__room!.x, z: window.__room!.z }))
+  expect(
+    Math.hypot(after.x - before.x, after.z - before.z),
+    'walking must move the player inside the room',
+  ).toBeGreaterThan(1.5)
+
+  // Walls stop you: run at one long enough to cross the room twice.
+  await page.evaluate(() => {
+    window.__controls!.azimuthOverride = 0
+  })
+  await page.keyboard.down('KeyW')
+  await page.waitForTimeout(2500)
+  await page.keyboard.up('KeyW')
+  const walled = await page.evaluate(() => ({ x: window.__room!.x, z: window.__room!.z }))
+  expect(Math.abs(walled.x), 'the east/west walls hold').toBeLessThanOrEqual(15)
+  expect(Math.abs(walled.z), 'the north/south walls hold').toBeLessThanOrEqual(10)
+
+  // Stand in front of a mural: the prompt names it, E opens the chapter.
+  await page.evaluate(() => {
+    window.__room!.x = -13
+    window.__room!.z = -8.5
+  })
+  await page.waitForTimeout(500)
+  await expect(page.getByText('The world turns, you do not')).toBeVisible()
+  await page.keyboard.press('KeyE')
+  const dialog = page.getByRole('dialog')
+  await expect(dialog).toBeVisible({ timeout: 3000 })
+  await expect(
+    page.getByRole('heading', { name: 'The world that turns beneath you' }),
+  ).toBeVisible()
+  // It renders the REAL build-time code excerpt, not prose about code.
+  await page.getByText('How it works').click()
   await expect(page.locator('pre', { hasText: 'export function rotationStep' }).first()).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(dialog).toBeHidden()
 
-  // Chapters page with the arrows; the planet is not being drawn in here.
-  await page.keyboard.press('ArrowRight')
-  await expect(page.getByRole('heading', { name: 'The world that turns beneath you' })).toBeHidden()
-  await page.waitForTimeout(600)
-  const calls = await page.evaluate(() => (window as unknown as {
-    __renderInfo?: () => { calls: number }
-  }).__renderInfo!().calls)
-  expect(calls, 'the room must stay well inside the mobile draw budget').toBeLessThan(50)
+  // The minimap follows you into the room (rectangle, not island).
+  await expect(page.locator('[data-minimap]')).toHaveAttribute(
+    'aria-label',
+    'Map of the build-log room',
+  )
 
-  // E steps back out through the portal; the world comes back.
+  // Walk back into the rift at the centre and step out.
+  await page.evaluate(() => {
+    window.__room!.x = 0
+    window.__room!.z = 0
+  })
+  await page.waitForTimeout(500)
+  await expect(page.getByText('Step back through')).toBeVisible()
   await page.keyboard.press('KeyE')
-  await expect(room).toBeHidden({ timeout: 3000 })
-  await page.waitForTimeout(400)
+  await page.waitForFunction(() => !window.__store!.getState().inRoom, undefined, {
+    timeout: 5000,
+  })
+
+  // The island takes over again: walking rotates the world.
+  await page.waitForTimeout(600)
   const polar = await page.evaluate(() => window.__controls!.surfPolarDeg)
   await page.keyboard.down('KeyW')
-  await page.waitForTimeout(400)
+  await page.waitForTimeout(500)
   await page.keyboard.up('KeyW')
   expect(
     Math.abs((await page.evaluate(() => window.__controls!.surfPolarDeg)) - polar),
-    'movement must resume after leaving the room',
+    'movement must resume on the island',
   ).toBeGreaterThan(0.1)
 
   expect(realErrors(errors)).toEqual([])

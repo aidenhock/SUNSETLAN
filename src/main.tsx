@@ -14,6 +14,9 @@ if (new URLSearchParams(window.location.search).has('e2e')) {
   import('./controls/usePlanetController').then((m) => {
     ;(window as unknown as { __controls: unknown }).__controls = m.controlsRuntime
   })
+  import('./controls/useRoomController').then((m) => {
+    ;(window as unknown as { __room: unknown }).__room = m.roomRuntime
+  })
 }
 
 const isClassic = window.location.pathname.replace(/\/+$/, '') === '/classic'

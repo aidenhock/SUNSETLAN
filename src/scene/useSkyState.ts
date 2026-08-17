@@ -12,6 +12,7 @@ import {
   TERRAIN,
 } from './planetConfig'
 import { paletteMaterial, PROP_COLORS } from './props'
+import { useStore } from '../store/useStore'
 
 /**
  * The two-skies state (CLAUDE.md 3B, v3.2 rules). One place, per frame:
@@ -230,6 +231,8 @@ const _hemiSkyNight = new THREE.Color(SKY.hemiSkyNight)
 const _hemiGroundDay = new THREE.Color(SKY.hemiGroundDay)
 const _hemiGroundNight = new THREE.Color(SKY.hemiGroundNight)
 const _c = new THREE.Color()
+/** The build-log room's background: black, not sky. */
+const ROOM_VOID = '#020604'
 const _flameMat = paletteMaterial(PROP_COLORS.flame, PROP_COLORS.ember, 0.85)
 
 export function useSkyState({
@@ -304,8 +307,13 @@ export function useSkyState({
     )
 
     // Fog + background = the current sky horizon stop (v3.2), so terrain
-    // fade and the dome horizon always agree.
-    _c.lerpColors(_fogDay, _fogNight, nightMix)
+    // fade and the dome horizon always agree. Inside the room there is no
+    // sky at all: it paints its own void, and this must not overwrite it.
+    if (useStore.getState().inRoom) {
+      _c.set(ROOM_VOID)
+    } else {
+      _c.lerpColors(_fogDay, _fogNight, nightMix)
+    }
     if (scene.fog) scene.fog.color.copy(_c)
     if (scene.background instanceof THREE.Color) scene.background.copy(_c)
 

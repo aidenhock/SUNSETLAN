@@ -1,13 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import * as THREE from 'three'
 import { AIDEN } from '../content/characters'
+import { monument } from '../content/monuments'
+import { latLongToUnit } from '../controls/planetMath'
 import { buildNodes } from './BlockyCharacter'
+import { blockers, PLANET_RADIUS } from './planetConfig'
 import {
   buildBulletinBoard,
   buildCemetery,
   buildHeadstone,
   buildHedgeStone,
-  buildMatrixPortal,
   buildMusicStereo,
   buildCrate,
   buildLogBench,
@@ -41,7 +43,6 @@ const BUILDERS: Record<string, () => PropPart[]> = {
   bulletinBoard: buildBulletinBoard,
   cemetery: buildCemetery,
   headstone: buildHeadstone,
-  matrixPortal: buildMatrixPortal,
 }
 
 describe('prop builders merge cleanly', () => {
@@ -57,6 +58,37 @@ describe('prop builders merge cleanly', () => {
       }
     })
   }
+})
+
+/**
+ * Memorial garden rebuild: the fence blockers must trace the visible
+ * fence line and nothing else — the gate gap and the whole interior
+ * have to stay walkable. Distances use the same great-circle arc
+ * (acos(dot) × PLANET_RADIUS) the controller's own collision checks
+ * use, so this is measuring the thing the player actually feels.
+ */
+describe('cemetery fence blockers leave the gate and interior clear', () => {
+  const cem = monument('cemetery')
+  const hd = (cem.size?.depthM ?? 0) / 2
+  const mPerDegLat = (Math.PI * PLANET_RADIUS) / 180
+
+  const arcDistM = (a: THREE.Vector3, b: THREE.Vector3) =>
+    Math.acos(THREE.MathUtils.clamp(a.dot(b), -1, 1)) * PLANET_RADIUS
+
+  it('no blocker lies within 1.2 m of the south gate centre', () => {
+    // South edge, x = 0 in the plot's local frame: the middle of the gate.
+    const gateUnit = latLongToUnit(cem.lat - hd / mPerDegLat, cem.long)
+    for (const b of blockers) {
+      expect(arcDistM(b.unit, gateUnit)).toBeGreaterThan(1.2)
+    }
+  })
+
+  it('no blocker lies within 4 m of the plot interior centre', () => {
+    const centerUnit = latLongToUnit(cem.lat, cem.long)
+    for (const b of blockers) {
+      expect(arcDistM(b.unit, centerUnit)).toBeGreaterThan(4)
+    }
+  })
 })
 
 describe('BlockyCharacter nodes merge cleanly', () => {

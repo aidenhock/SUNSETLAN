@@ -23,10 +23,16 @@ interface AppState {
   pointerLocked: boolean
   /** Visitor-tunable settings; state only, no localStorage assumptions. */
   settings: { cameraMode: CameraMode }
-  /** Minimap HUD (TASK 2): visibility persists; the reset counter
-   * signals the Minimap component to clear exploration. */
+  /** Minimap HUD: visibility persists. The map shows the whole island —
+   * no exploration state, by the owner's call. */
   minimapVisible: boolean
-  minimapResetCount: number
+  /** True while the player is inside the build-log room (a separate
+   * walkable space; the island stops rendering). */
+  inRoom: boolean
+  /** Mural the player is standing in front of, inside the room. */
+  nearbyMural: string | null
+  /** True when standing in the rift at the room's centre (the way out). */
+  nearbyRoomExit: boolean
   setNearby: (id: string | null) => void
   setNearbyLog: (index: number | null) => void
   sitDown: (seat: { log: number; offsetM: number }) => void
@@ -40,7 +46,10 @@ interface AppState {
   setPointerLocked: (locked: boolean) => void
   setCameraMode: (mode: CameraMode) => void
   toggleMinimap: () => void
-  resetExploration: () => void
+  enterRoom: () => void
+  exitRoom: () => void
+  setNearbyMural: (id: string | null) => void
+  setNearbyRoomExit: (near: boolean) => void
 }
 
 /** Mute persists across visits (3C); everything else is session state. */
@@ -73,12 +82,18 @@ export const useStore = create<AppState>((set) => ({
   pointerLocked: false,
   settings: { cameraMode: 'pointerLock' },
   minimapVisible: persistedMinimap,
-  minimapResetCount: 0,
+  inRoom: false,
+  nearbyMural: null,
+  nearbyRoomExit: false,
   setNearby: (id) => set({ nearbyId: id }),
   setNearbyLog: (index) => set({ nearbyLog: index }),
   sitDown: (seat) => set({ seatedSeat: seat }),
   standUp: () => set({ seatedSeat: null }),
-  openModal: (id) => set({ openModalId: id }),
+  // Stepping into the rift is a place, not a dialog: the same E press
+  // and the same click that open every other interactable's modal put
+  // the player INSIDE the room instead.
+  openModal: (id) =>
+    id === 'rift' ? set({ inRoom: true, nearbyId: null }) : set({ openModalId: id }),
   closeModal: () => set({ openModalId: null }),
   setMuted: (muted) => {
     try {
@@ -103,5 +118,9 @@ export const useStore = create<AppState>((set) => ({
       }
       return { minimapVisible: next }
     }),
-  resetExploration: () => set((s) => ({ minimapResetCount: s.minimapResetCount + 1 })),
+  enterRoom: () => set({ inRoom: true, nearbyId: null }),
+  exitRoom: () =>
+    set({ inRoom: false, nearbyMural: null, nearbyRoomExit: false, openModalId: null }),
+  setNearbyMural: (nearbyMural) => set({ nearbyMural }),
+  setNearbyRoomExit: (nearbyRoomExit) => set({ nearbyRoomExit }),
 }))

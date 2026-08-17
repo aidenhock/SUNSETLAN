@@ -462,129 +462,139 @@ section per the mirror rule. Files live in `public/`.
 
 ## 13 · The minimap {#minimap}
 
-**Hook:** A little compass-map in the corner remembers everywhere you've been.
+**Hook:** A little map in the corner that keeps you at the centre of the world.
 
-**Plain:** The circular minimap keeps the sunset side at the top like
-a compass, shows the island's grass, beach, and waterline, and starts
-covered in fog — walking reveals it cell by cell, and the reveal is
-remembered between visits. Portals appear as labelled dots once
-you've found their neighborhood. M (or the menu) hides it.
+**Plain:** The circular minimap is a bird's-eye view of the island with
+you always in the middle and whatever you are facing pointing up — walk
+and the island slides under your marker, turn and the map turns with
+you. Everything is on it from the first second: no fog to clear, no
+progress to grind. Portals show as labelled dots. M (or the menu)
+hides it. Step through the rift and the same little window switches to
+a plan of the room you are standing in.
 
-**Technical:** A 2D canvas overlay — deliberately not a second
-three.js scene — redrawn at 10 Hz (5 Hz on low tier) with zero
-per-frame allocations. `projectPolar` maps lat/long to map pixels
-(pole at centre, long 0 up); the player's position derives from the
-live planet quaternion via `poleInPlanetSpace` — the same math the
-world runs — and the facing cone from the established azimuth↔north
-mapping. Exploration is an 8×24 cell grid (`cellIndex` /
-`cellsWithinRange`, 6 m discovery radius, vitest-pinned), eased in
-over 0.4 s (instant under reduced motion), persisted under a
-versioned localStorage key with a no-storage fallback, and resettable
-from the HUD menu.
+**Technical:** A 2D canvas overlay — deliberately not a second three.js
+scene — redrawn every animation frame with zero per-frame allocations,
+so the map tracks continuously instead of catching up when you stop.
+The projection is azimuthal around the PLAYER: `playerFrame` builds the
+tangent frame under the avatar from the live planet quaternion, then
+every target becomes a `rangeTo` (great-circle metres) and a `bearingTo`
+(radians from local north). `cameraHeading` converts the camera's world
+forward into the same frame and `toScreen` subtracts it, so the heading
+points up. The island is drawn by projecting two 64-point latitude
+rings, which stay correct under any rotation; `roomToScreen` does the
+same job for the room's flat rectangle.
 
 **Files:**
-- `src/ui/minimapMath.ts` — `projectPolar`, `cellIndex`, `cellsWithinRange`, `loadExplored`
+- `src/ui/minimapMath.ts` — `playerFrame`, `bearingTo`, `toScreen`
 - `src/ui/Minimap.tsx` — the canvas overlay
-- `src/store/useStore.ts` — `toggleMinimap`, `resetExploration`
+- `src/content/monuments.ts` — where the dots come from
 
 **Decisions:**
-- A second three.js scene for the map was ruled out by the task spec
-  and would have doubled renderer state for a HUD widget; canvas 2D
-  draws the whole thing in one pass.
-- 10 Hz updates instead of per-frame: a minimap doesn't need 60 fps,
-  and the player marker moving at 10 Hz is imperceptible at 130 px.
-- Fog is per-cell wedges over a fully-drawn map rather than masking
-  the draw — simpler, and the eased reveal is just an alpha ramp.
+- A second three.js scene for the map was ruled out and would have
+  doubled renderer state for a HUD widget; canvas 2D draws it in one
+  pass.
+- Exploration fog was built, shipped, and then REMOVED at the owner's
+  call: a portfolio should not ask visitors to grind for its own map.
+  The 8×24 cell grid and its localStorage persistence went with it.
+- North-up was replaced by camera-up with the player pinned at the
+  centre. A fixed-north map is a better compass; a player-centred one
+  is a better answer to "what is near me", which is the question this
+  island actually raises.
 
 ## 14 · The memorial garden {#memorial-garden}
 
-**Hook:** A quiet walled corner of the island where remembrances live.
+**Hook:** A quiet fenced corner of the island where remembrances live.
 
-**Plain:** Just past the terminator on the night-leaning side sits a
-small stone-walled garden with an arched wooden gate, two rows of
-headstones, a bench, and flowers. The front-row stones can be read —
-"E — Remember" opens a quiet card with a name, years, relation, and a
-message. At night the garden holds a faint warm glow and slow
-fireflies; it never gets bright. The same remembrances appear on
-/classic under Memorials. Three placeholder stones ship until Aiden
-writes real ones.
+**Plain:** Past the terminator on the night-leaning side is a walled
+garden: an iron fence on chunky stone posts, a gate you walk in
+through, a stone path, rows of headstones with flowers in front of
+them, a bench, and lanterns. The front row can be read — "E — Remember"
+opens a quiet card with a name, years, relation, and a message. At
+night the garden holds a faint warm glow and slow fireflies; it never
+gets bright. The same remembrances appear on /classic under Memorials.
+Three placeholder stones ship until Aiden writes real ones.
 
-**Technical:** The statics (`buildCemetery`: 14-block wall ring with a
-~70° northern opening, gate posts + lintel, decorative back-row
-stones, bench, flower clusters) are one vertex-tinted merge — one
-draw call — placed via the MAP table; interactable headstones are a
-new `PropKind 'headstone'` reusing the standard prop pipeline with a
-new `ModalKind 'memorial'` reading `src/content/memorials.ts` by
-`contentKey`. Blockers trace the VISIBLE wall (five r-1.15 circles on
-ring bearings that skip the gate, plus two gate-post circles) so the
-interior stays fully walkable — the moai lesson applied. The night
-mood is `<Cemetery/>`: one 12-point fireflies Points pool (blink +
-orbit from seeded params, zero allocations per frame) and two
-PointLights, all scaled by `smoothstep(nightMix, 0.45, 0.8)` and
+**Technical:** The plot is 17 × 13 m — big enough to walk around
+inside, which is far past the ~4 m limit where a flat mesh laid on a
+55 m sphere sags mid-span and buries its corners. So `buildCemetery`
+builds everything flat in local space and then bends it with
+`wrapToSphere`, which maps each vertex through the same geodesic offset
+the walk controller uses; the whole garden stays ONE vertex-tinted
+merge — one draw call, ~5.1k triangles. Blockers are generated from the
+same rectangle at ~1 m pitch, skipping the gate gap, so they trace the
+fence you can see (the moai lesson) and never touch the interior. The
+night mood is `<Cemetery/>`: a 12-point firefly pool and two
+PointLights, both scaled by `smoothstep(nightMix, 0.45, 0.8)` and
 skipped on low tier.
 
 **Files:**
 - `src/content/memorials.ts` — the entries + the consent rule
 - `src/scene/props.ts` — `buildCemetery`, `buildHeadstone`
+- `src/scene/geometryUtils.ts` — `wrapToSphere`
 - `src/scene/Cemetery.tsx` — fireflies + glow
-- `src/ui/modals/MemorialModal.tsx` — the quiet card
 
 **Decisions:**
 - CONSENT RULE recorded in the content file and CONTENT.md: names and
   photos of living people require their explicit okay before shipping
   publicly; pets are Aiden's call. Placeholders ship in the meantime
   and say so in the modal.
-- The glow is deliberately dim (0.35/0.28 peak intensity, distance 4)
-  — the spec said "never bright"; the space should read hushed next
-  to the campfire's warmth, not compete with it.
-- Fireflies are a Points pool like the embers, not meshes — one draw,
-  tier-gated, night-gated, with the same parked-at-9999 idle pattern.
+- The first version was a 3.2 m circular stone ring — too cramped to
+  walk in, and nothing like the Animal Crossing gardens it was meant to
+  echo. Rebuilding it big forced `wrapToSphere`, which is now the
+  general answer to placement rule 2 for anything wider than a few
+  metres.
+- The glow is deliberately dim (0.35 / 0.28 peak, distance 4): the
+  space should read hushed next to the campfire's warmth, not compete
+  with it.
 
-## 15 · The portal room {#matrix-room}
+## 15 · The room through the rift {#matrix-room}
 
-**Hook:** A glitching doorway on the night side opens into the making-of.
+**Hook:** A tear in the air on the night side opens into a room you can
+run around in.
 
-**Plain:** Past the terminator stands a dark stone archway with a
-green pane humming inside it. Stepping through drops you into a black
-room with code rain falling around you, where you can read how every
-part of this island was built — including the real source code, the
-experiments that failed, and why certain things are the way they are.
-E steps back out through the inner portal. The same chapters read as
-plain text on /classic under Build log.
+**Plain:** A shard of broken light hangs over the grass past the
+terminator. Step into it and you are standing in a rectangular room:
+walls of falling ones and zeroes running endlessly above and below a
+glass floor, a framed screenshot of every feature on this island hung
+around you, and the rift itself hovering in the middle. Walk up to any
+picture and press E to read how that piece was built — in plain
+language first, then the real code. Walk back into the rift to come
+home. The minimap comes with you and redraws itself as a plan of the
+room.
 
-**Technical:** The room mounts inside the SAME canvas — never a second
-WebGL context: `openModalId === 'matrix'` flips the planet group and
-avatar to `visible={false}` (the subtree stops drawing) and lazily
-mounts `MatrixRoomScene`, which parks itself at the camera's position
-and yaw. Both halves are code-split, so nothing about the room touches
-the initial payload. The rain uses no new shaders: a procedurally
-generated canvas glyph atlas (`makeGlyphAtlas`, playbook §3's
-generated-tile caveat) is sampled by tall quads whose UVs are baked to
-one atlas column each with a random phase; the columns merge into
-three geometries sharing three materials whose `map.offset.y` scrolls
-at different speeds. Whole room: 13 draw calls, 732 triangles. Chapter
-text and the code excerpts come from `docs/build-log.json`, exported
-from this very file at build time — the room is documentation
-rendering itself.
+**Technical:** The room is a second walkable space, not a dialog, and
+it keeps the island's central invariant: THE AVATAR NEVER MOVES. The
+room group slides underneath it instead (`useRoomController`), so the
+camera rig, jump arc, avatar animation, and footstep hooks all work
+unchanged; only "where am I" changes, and that lives in `roomRuntime`.
+Walls clamp per axis so diagonals slide, and the follow camera marches
+its own ray to the nearest wall so it never ends up outside looking in.
+Entering flips `inRoom`: the planet group and the sky rig stand down
+(the planet's draws stop entirely) and `RoomScene` mounts from a lazy
+chunk. The wallpaper is a generated canvas of 0s and 1s scrolled by
+`map.offset.y` — no new shader, the two-shader rule stands. The mural
+images are the one place this project uses image textures, and they are
+screenshots of itself, captured by `scripts/capture-murals.mjs`.
+Chapter text comes from `docs/build-log.json`, exported from this file
+at build time — the room is documentation rendering itself.
 
 **Files:**
-- `src/scene/matrixAtlas.ts` — `makeGlyphAtlas`
-- `src/scene/MatrixRoomScene.tsx` — `MatrixRoomScene`, `buildRainGroup`
-- `src/ui/modals/MatrixRoom.tsx` — the chapter reader
-- `src/content/buildLog.ts` — `buildLogChapters`
+- `src/controls/useRoomController.ts` — `useRoomController`, `ROOM`
+- `src/scene/RoomScene.tsx` — `RoomScene`
+- `src/content/murals.ts` — which screenshot explains which chapter
+- `src/scene/riftGeometry.ts` — `buildRift`
 
 **Decisions:**
-- A second `<Canvas>` for the room was rejected: two WebGL contexts
-  double renderer state and risk context loss on mobile. Hiding the
-  planet group costs nothing and drops the scene to the room's own 13
-  calls — measured, and pinned by an e2e assertion under 50.
-- Rain as scrolling UV strips instead of per-glyph instances or a
-  custom shader: the two-shader rule (dome + water) stands, and three
-  merged geometries beat 90 instanced quads with per-frame matrix
-  writes.
-- The room reads `build-log.json` rather than duplicating prose in a
-  content file — one source of truth, and the excerpts stay honest
-  because they are captured from the real files at build time.
+- The first version was a MODAL: a reader panel over a static 3D
+  backdrop with the camera parked. It was cheap and it was wrong — the
+  whole promise of a portal is that you go somewhere. Rebuilt as a
+  place you walk in.
+- A second `<Canvas>` was rejected: two WebGL contexts double renderer
+  state and risk context loss on mobile. Hiding the planet costs
+  nothing and drops the scene to the room's own ~23 draw calls.
+- Moving the room instead of the avatar looks like a trick, but it is
+  the same trick the island runs, and it means one camera rig and one
+  animation system serve both spaces.
 
 ## 16 · Making the type real {#self-hosted-fonts}
 
@@ -626,3 +636,46 @@ no-new-dependency trick `optimize-images.mjs` uses.
   a `font-weight: 400 700` range, halving the font payload.
 - Latin subsets only, and `font-display: swap` so text is readable
   immediately in the fallback rather than invisible while fonts load.
+
+## 17 · The world index {#world-index}
+
+**Hook:** Every object on the island now lives at coordinates you can
+edit in one file.
+
+**Plain:** Where the dock is, which way the moai faces, how high the
+rift floats — all of it used to be scattered through the code that
+draws each thing. Now there is a single list, `monuments.json`, with a
+line per object: latitude, longitude, the direction it faces, and how
+far off the ground it sits. Move a number, and the model, its collision,
+its dot on the minimap, and the printed world map all follow. There is
+a readable version of the list at `docs/world-map.md`.
+
+**Technical:** `src/content/monuments.json` is the data (plain JSON so
+node scripts and the app read the same file); `monuments.ts` wraps it
+with types and `monument()` / `monumentPos()` / `monumentYaw()`, which
+throw loudly on an unknown id rather than silently placing something at
+the origin. `planetConfig.MAP` is now DERIVED from it, so every existing
+consumer of MAP inherited the indirection for free, and `interactables.ts`
+takes its rotations from `facingDeg` instead of hardcoded radians.
+`scripts/world-map.mjs` regenerates the docs table. Vitest guards the
+things that silently break a world: duplicate ids, coordinates off the
+island, and interactables whose monument has gone missing.
+
+**Files:**
+- `src/content/monuments.json` — the index itself
+- `src/content/monuments.ts` — `monument`, `monumentPos`, `monumentYaw`
+- `scripts/world-map.mjs` — regenerates `docs/world-map.md`
+- `src/scene/planetConfig.ts` — `MAP`
+
+**Decisions:**
+- JSON, not TypeScript, for the data half. It keeps the file editable
+  by tooling and by hand without a build step, and the typed wrapper
+  gives the app everything it would have gotten from a `.ts` literal.
+- `facingDeg` is measured from local NORTH, not from world axes, because
+  north is the only direction that means anything on a sphere you walk
+  around. It is degrees rather than radians purely because a human edits
+  this file.
+- MAP was kept rather than replaced. Rewriting every `MAP.campfire`
+  call site would have been a large diff with no behaviour change; one
+  derived table costs nothing and keeps the index authoritative.
+

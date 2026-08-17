@@ -47,3 +47,47 @@ export function makeGlyphAtlas(seedRandom: () => number): THREE.CanvasTexture {
   tex.wrapT = THREE.RepeatWrapping
   return tex
 }
+
+/**
+ * The room's wallpaper: columns of 0s and 1s in varying greens on
+ * black, drawn once into a canvas and tiled across the walls (playbook
+ * §3's generated-tile caveat — no image asset, no new shader). Scroll
+ * the material's `map.offset.y` to make it rain.
+ */
+export function makeBinaryWallpaper(seedRandom: () => number): THREE.CanvasTexture {
+  const W = 256
+  const H = 512
+  const COLS = 16
+  const cell = W / COLS
+  const rows = Math.round(H / cell)
+  const canvas = document.createElement('canvas')
+  canvas.width = W
+  canvas.height = H
+  const ctx = canvas.getContext('2d')!
+  ctx.fillStyle = '#020604'
+  ctx.fillRect(0, 0, W, H)
+  ctx.font = `${Math.floor(cell * 0.86)}px monospace`
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  for (let col = 0; col < COLS; col++) {
+    // Each column runs at its own brightness, so the wall reads as
+    // streams rather than a uniform field of noise.
+    const columnLevel = 0.25 + seedRandom() * 0.75
+    for (let row = 0; row < rows; row++) {
+      if (seedRandom() < 0.12) continue // gaps keep it from looking woven
+      const bright = seedRandom() * columnLevel
+      ctx.fillStyle =
+        bright > 0.66
+          ? `rgba(200, 255, 220, ${0.55 + bright * 0.45})`
+          : `rgba(58, 255, 126, ${0.12 + bright * 0.5})`
+      ctx.fillText(seedRandom() < 0.5 ? '0' : '1', (col + 0.5) * cell, (row + 0.5) * cell)
+    }
+  }
+  const tex = new THREE.CanvasTexture(canvas)
+  tex.colorSpace = THREE.SRGBColorSpace
+  tex.magFilter = THREE.NearestFilter
+  tex.minFilter = THREE.LinearMipmapLinearFilter
+  tex.wrapS = THREE.RepeatWrapping
+  tex.wrapT = THREE.RepeatWrapping
+  return tex
+}

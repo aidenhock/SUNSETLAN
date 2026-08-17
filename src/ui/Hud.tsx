@@ -5,6 +5,7 @@ import { controlsRuntime } from '../controls/usePlanetController'
 import { PLANET_RADIUS } from '../scene/planetConfig'
 import { LOG_AXES, LOG_UNITS, SEAT_HALF_SPAN_M } from '../scene/seats'
 import { useStore } from '../store/useStore'
+import { murals } from '../content/murals'
 import { PromptE } from './PromptE'
 
 /** Free-position sit (campfire polish 4): project the camera's aim
@@ -50,6 +51,9 @@ function SitPrompt({ seated, isTouch }: { seated: boolean; isTouch: boolean }) {
 
 export function Hud({ isTouch }: { isTouch: boolean }) {
   const nearbyId = useStore((s) => s.nearbyId)
+  const inRoom = useStore((s) => s.inRoom)
+  const nearbyMural = useStore((s) => s.nearbyMural)
+  const nearbyRoomExit = useStore((s) => s.nearbyRoomExit)
   const nearbyLog = useStore((s) => s.nearbyLog)
   const seatedSeat = useStore((s) => s.seatedSeat)
   const openModalId = useStore((s) => s.openModalId)
@@ -62,7 +66,6 @@ export function Hud({ isTouch }: { isTouch: boolean }) {
   // enough to run under the minimap in the top-left corner.
   const minimapVisible = useStore((s) => s.minimapVisible)
   const toggleMinimap = useStore((s) => s.toggleMinimap)
-  const resetExploration = useStore((s) => s.resetExploration)
   const [menuOpen, setMenuOpen] = useState(false)
 
   // Remember whether the visitor has ever locked, to shorten the hint.
@@ -74,13 +77,19 @@ export function Hud({ isTouch }: { isTouch: boolean }) {
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.repeat) return
-      const { nearbyId, nearbyLog, seatedSeat, openModalId, openModal, standUp } =
-        useStore.getState()
+      const s = useStore.getState()
+      const { nearbyId, nearbyLog, seatedSeat, openModalId, openModal, standUp } = s
       if (e.code === 'KeyM' && !openModalId) {
         useStore.getState().toggleMinimap()
         return
       }
       if (e.code !== 'KeyE' || openModalId) return
+      // Inside the room E reads a mural, or steps back through the rift.
+      if (s.inRoom) {
+        if (s.nearbyRoomExit) s.exitRoom()
+        else if (s.nearbyMural) openModal(`mural:${s.nearbyMural}`)
+        return
+      }
       // Priority: stand up if seated; interactables own E otherwise; the
       // sit prompt takes it only when nothing else wants the key.
       if (seatedSeat) standUp()
@@ -120,7 +129,19 @@ export function Hud({ isTouch }: { isTouch: boolean }) {
             : 'Click to look around · Esc frees your cursor'}
         </p>
       )}
-      {nearby && !openModalId && <PromptE def={nearby} isTouch={isTouch} />}
+      {nearby && !openModalId && !inRoom && <PromptE def={nearby} isTouch={isTouch} />}
+      {/* Room prompts: the rift wins when you are standing in it. */}
+      {inRoom && !openModalId && (nearbyRoomExit || nearbyMural) && (
+        <RoomPrompt
+          label={nearbyRoomExit ? 'Step back through' : (muralCaption(nearbyMural) ?? 'Read')}
+          isTouch={isTouch}
+          onTap={() => {
+            const s = useStore.getState()
+            if (s.nearbyRoomExit) s.exitRoom()
+            else if (s.nearbyMural) s.openModal(`mural:${s.nearbyMural}`)
+          }}
+        />
+      )}
       {/* Sit prompt (3C): only when no interactable wants E. Stand hint
           while seated is quieter — jump also works. */}
       {!nearby && !openModalId && (seatedSeat || nearbyLog !== null) && (
@@ -154,13 +175,6 @@ export function Hud({ isTouch }: { isTouch: boolean }) {
             >
               Minimap: {minimapVisible ? 'on' : 'off'} (M)
             </button>
-            <button
-              type="button"
-              onClick={resetExploration}
-              className="touch-manipulation rounded px-2 py-1 text-left hover:bg-sand/10 focus-visible:outline-2 focus-visible:outline-lagoon"
-            >
-              Reset exploration
-            </button>
             <a
               href="/classic"
               className="rounded px-2 py-1 hover:bg-sand/10 focus-visible:outline-2 focus-visible:outline-lagoon"
@@ -170,6 +184,44 @@ export function Hud({ isTouch }: { isTouch: boolean }) {
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+
+/** Caption of the mural in front of the player, for the E prompt. */
+function muralCaption(id: string | null): string | null {
+  return murals.find((m) => m.id === id)?.caption ?? null
+}
+
+/**
+ * The room's interact prompt. Same shape and thumb-zone rules as
+ * PromptE, but it isn't backed by an interactable definition.
+ */
+function RoomPrompt({
+  label,
+  isTouch,
+  onTap,
+}: {
+  label: string
+  isTouch: boolean
+  onTap: () => void
+}) {
+  if (isTouch) {
+    return (
+      <button
+        type="button"
+        onClick={onTap}
+        className="pointer-events-auto fixed right-6 bottom-8 z-40 flex h-20 w-20 touch-manipulation items-center justify-center rounded-full bg-emerald-400 px-2 text-center font-display text-xs font-bold text-ink shadow-lg active:scale-95"
+      >
+        {label}
+      </button>
+    )
+  }
+  return (
+    <div className="pointer-events-none fixed bottom-10 left-1/2 z-40 -translate-x-1/2 rounded-lg bg-ink/85 px-4 py-2 font-display text-sand shadow-lg">
+      <kbd className="mr-2 rounded border border-sand/40 bg-ink px-1.5 py-0.5 text-sm">E</kbd>
+      {label}
     </div>
   )
 }
