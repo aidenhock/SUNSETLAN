@@ -83,17 +83,21 @@ ships (no entry, no ship):
 
 ## Fonts
 
-Declared in `src/index.css` as the `--font-display` / `--font-body`
-theme tokens (Tailwind v4 `@theme`); loading them (a `<link>`,
-`@font-face`, or a local font file) is not yet wired up in `index.html`
-or elsewhere in the repo, so both currently fall back to the browser's
-`system-ui` font. Credited here so the fallback is a temporary gap, not
-a forgotten source, once loading is added:
+**Self-hosted — no font CDN at runtime.** The latin woff2 subsets live
+in `public/fonts/` and are declared in the generated `src/fonts.css`
+(`@font-face`, `font-display: swap`), imported by `src/index.css`
+alongside the `--font-display` / `--font-body` theme tokens. Refresh
+them with `node scripts/fetch-fonts.mjs`. Bricolage is a variable font,
+so one file covers weights 400–700; 109 KB for all three files.
 
-| Font | Role | Author | License |
-|---|---|---|---|
-| Bricolage Grotesque | `--font-display` (headings, buttons, UI chrome) | Mathieu Triay | SIL Open Font License 1.1 |
-| Atkinson Hyperlegible | `--font-body` (body text) | Braille Institute of America | SIL Open Font License 1.1 |
+| Font | Role | File | Author | License |
+|---|---|---|---|---|
+| Bricolage Grotesque | `--font-display` (headings, buttons, UI chrome) | `bricolage-grotesque-var.woff2` | Mathieu Triay | SIL Open Font License 1.1 |
+| Atkinson Hyperlegible | `--font-body` (body text) | `atkinson-hyperlegible-400/700.woff2` | Braille Institute of America | SIL Open Font License 1.1 |
+
+The Matrix room's falling glyphs are drawn into a canvas at runtime
+(`src/scene/matrixAtlas.ts`) with the viewer's own `monospace` font —
+no glyph assets ship for it.
 
 ## Libraries
 

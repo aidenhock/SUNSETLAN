@@ -1,4 +1,6 @@
 @import 'tailwindcss';
+/* Self-hosted faces (scripts/fetch-fonts.mjs) — no runtime CDN. */
+@import './fonts.css';
 
 @theme {
   --color-sand: #e8d5a3;
