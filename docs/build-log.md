@@ -585,3 +585,44 @@ rendering itself.
 - The room reads `build-log.json` rather than duplicating prose in a
   content file — one source of truth, and the excerpts stay honest
   because they are captured from the real files at build time.
+
+## 16 · Making the type real {#self-hosted-fonts}
+
+**Hook:** The site had specified its typefaces for months and never
+actually loaded them.
+
+**Plain:** Two fonts were named in the stylesheet — Bricolage Grotesque
+for headings, Atkinson Hyperlegible (a typeface designed for low
+vision) for body text — but nothing ever fetched them, so every visitor
+saw their operating system's default. They now ship with the site
+itself rather than being requested from Google, which means no third
+party learns you visited. Alongside that: icons at every size a browser
+or phone launcher asks for, a web manifest, and the canonical link
+search engines want.
+
+**Technical:** `scripts/fetch-fonts.mjs` downloads the latin woff2
+subsets into `public/fonts/` and generates `src/fonts.css` with
+`@font-face` rules and `font-display: swap`; `src/index.css` imports it
+next to the `@theme` tokens that name the families. Latin-only keeps
+the payload at 109 KB — latin-ext, vietnamese, and cyrillic would
+roughly triple it for glyphs this site never renders.
+`scripts/make-favicons.mjs` renders `favicon.svg` at 16/32/192/512 and
+180 (apple-touch) through headless Chromium, the same
+no-new-dependency trick `optimize-images.mjs` uses.
+
+**Files:**
+- `scripts/fetch-fonts.mjs` — the downloader/generator
+- `scripts/make-favicons.mjs` — SVG → PNG icon set
+- `src/fonts.css` — generated `@font-face` rules
+- `public/site.webmanifest` — install metadata
+
+**Decisions:**
+- Self-hosting over a fonts CDN. Nothing else in this project makes an
+  external runtime request, and a CDN font link tells a third party
+  about every visitor for no benefit the local file doesn't give.
+- The first version shipped Bricolage twice. Asking Google for weights
+  400 and 700 of a VARIABLE font returns the same 75 KB file under two
+  URLs — the script now dedupes by content hash and emits one face with
+  a `font-weight: 400 700` range, halving the font payload.
+- Latin subsets only, and `font-display: swap` so text is readable
+  immediately in the fallback rather than invisible while fonts load.

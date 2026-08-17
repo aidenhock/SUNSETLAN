@@ -927,6 +927,52 @@
         "Rain as scrolling UV strips instead of per-glyph instances or a",
         "The room reads `build-log.json` rather than duplicating prose in a"
       ]
+    },
+    {
+      "id": "self-hosted-fonts",
+      "title": "Making the type real",
+      "hook": "The site had specified its typefaces for months and never\nactually loaded them.",
+      "plain": "Two fonts were named in the stylesheet — Bricolage Grotesque for headings, Atkinson Hyperlegible (a typeface designed for low vision) for body text — but nothing ever fetched them, so every visitor saw their operating system's default. They now ship with the site itself rather than being requested from Google, which means no third party learns you visited. Alongside that: icons at every size a browser or phone launcher asks for, a web manifest, and the canonical link search engines want.",
+      "technical": "`scripts/fetch-fonts.mjs` downloads the latin woff2 subsets into `public/fonts/` and generates `src/fonts.css` with `@font-face` rules and `font-display: swap`; `src/index.css` imports it next to the `@theme` tokens that name the families. Latin-only keeps the payload at 109 KB — latin-ext, vietnamese, and cyrillic would roughly triple it for glyphs this site never renders. `scripts/make-favicons.mjs` renders `favicon.svg` at 16/32/192/512 and 180 (apple-touch) through headless Chromium, the same no-new-dependency trick `optimize-images.mjs` uses.",
+      "files": [
+        {
+          "path": "scripts/fetch-fonts.mjs",
+          "symbols": [],
+          "excerpts": [],
+          "note": "the downloader/generator"
+        },
+        {
+          "path": "scripts/make-favicons.mjs",
+          "symbols": [],
+          "excerpts": [],
+          "note": "SVG → PNG icon set"
+        },
+        {
+          "path": "src/fonts.css",
+          "symbols": [
+            "@font-face"
+          ],
+          "excerpts": [
+            {
+              "symbol": "@font-face",
+              "line": 4,
+              "code": "@font-face {\n  font-family: 'Atkinson Hyperlegible';\n  font-style: normal;\n  font-weight: 400;\n  font-display: swap;\n  src: url('/fonts/atkinson-hyperlegible-400.woff2') format('woff2');\n  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;\n}\n\n@font-face {\n  font-family: 'Atkinson Hyperlegible';\n  font-style: normal;\n  font-weight: 700;\n  font-display: swap;"
+            }
+          ],
+          "note": "generated rules"
+        },
+        {
+          "path": "public/site.webmanifest",
+          "symbols": [],
+          "excerpts": [],
+          "note": "install metadata"
+        }
+      ],
+      "decisions": [
+        "Self-hosting over a fonts CDN. Nothing else in this project makes an",
+        "The first version shipped Bricolage twice. Asking Google for weights",
+        "Latin subsets only, and `font-display: swap` so text is readable"
+      ]
     }
   ]
 }

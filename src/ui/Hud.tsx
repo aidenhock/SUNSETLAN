@@ -58,6 +58,8 @@ export function Hud({ isTouch }: { isTouch: boolean }) {
   const pointerLocked = useStore((s) => s.pointerLocked)
   const cameraMode = useStore((s) => s.settings.cameraMode)
   const setCameraMode = useStore((s) => s.setCameraMode)
+  // Also positions the intro hint: on phones the centered bubble is wide
+  // enough to run under the minimap in the top-left corner.
   const minimapVisible = useStore((s) => s.minimapVisible)
   const toggleMinimap = useStore((s) => s.toggleMinimap)
   const resetExploration = useStore((s) => s.resetExploration)
@@ -99,7 +101,11 @@ export function Hud({ isTouch }: { isTouch: boolean }) {
   return (
     <div className="pointer-events-none fixed inset-0 z-30">
       {introDone && !hasMoved && !openModalId && (
-        <p className="fixed top-6 left-1/2 -translate-x-1/2 rounded-lg bg-ink/85 px-4 py-2 text-center font-display text-sm text-sand shadow-lg">
+        <p
+          className={`fixed ${
+            isTouch && minimapVisible ? 'top-36' : 'top-6'
+          } left-1/2 -translate-x-1/2 max-w-[min(24rem,70vw)] rounded-lg bg-ink/85 px-4 py-2 text-center font-display text-sm text-sand shadow-lg`}
+        >
           {isTouch
             ? 'Drag the joystick to move — walk up to things and tap the button.'
             : 'WASD / drag to move — walk up to things and press E.'}
