@@ -91,3 +91,55 @@ export function makeBinaryWallpaper(seedRandom: () => number): THREE.CanvasTextu
   tex.wrapT = THREE.RepeatWrapping
   return tex
 }
+
+/**
+ * Step-number plates for the room's murals: the numbers 1..`count`
+ * drawn once into a grid canvas so every plate can sample one cell of
+ * ONE texture. That keeps all of them in a single merged mesh — one
+ * draw call for the whole numbered sequence — and it is a generated
+ * tile, not an image asset (playbook §3).
+ */
+export const PLATE_COLS = 6
+
+export function makeNumberPlates(count: number): {
+  texture: THREE.CanvasTexture
+  rows: number
+} {
+  const rows = Math.max(1, Math.ceil(count / PLATE_COLS))
+  const CELL = 128
+  const canvas = document.createElement('canvas')
+  canvas.width = PLATE_COLS * CELL
+  canvas.height = rows * CELL
+  const ctx = canvas.getContext('2d')!
+  ctx.clearRect(0, 0, canvas.width, canvas.height)
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  for (let i = 0; i < count; i++) {
+    const col = i % PLATE_COLS
+    const row = Math.floor(i / PLATE_COLS)
+    const cx = (col + 0.5) * CELL
+    const cy = (row + 0.5) * CELL
+    // A dark pill behind the digits: the wall is a field of moving
+    // glyphs, and text alone disappears into it at any distance.
+    const w = CELL * 0.78
+    const h = CELL * 0.46
+    const r = h / 2
+    ctx.beginPath()
+    ctx.roundRect(cx - w / 2, cy - h / 2, w, h, r)
+    ctx.fillStyle = 'rgba(3, 12, 7, 0.88)'
+    ctx.fill()
+    ctx.lineWidth = CELL * 0.035
+    ctx.strokeStyle = 'rgba(158, 247, 192, 0.75)'
+    ctx.stroke()
+    ctx.font = `700 ${Math.floor(CELL * 0.32)}px ui-monospace, monospace`
+    ctx.fillStyle = '#c8ffdd'
+    ctx.fillText(String(i + 1).padStart(2, '0'), cx, cy + CELL * 0.01)
+  }
+  const tex = new THREE.CanvasTexture(canvas)
+  tex.colorSpace = THREE.SRGBColorSpace
+  tex.magFilter = THREE.LinearFilter
+  tex.minFilter = THREE.LinearMipmapLinearFilter
+  tex.wrapS = THREE.ClampToEdgeWrapping
+  tex.wrapT = THREE.ClampToEdgeWrapping
+  return { texture: tex, rows }
+}

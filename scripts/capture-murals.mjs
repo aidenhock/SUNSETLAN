@@ -27,6 +27,10 @@ const SHOTS = {
     { lat: 90, long: 0, az: Math.PI, dist: 9, pitch: 0.3 },
     { lat: 28, long: 180, az: 0, dist: 8, pitch: 0.25, night: true },
   ],
+  'analytic-ground': [
+    { lat: 19, long: 0, az: 0, dist: 7, pitch: 0.35 },
+    { lat: 45, long: 40, az: Math.PI, dist: 6, pitch: 0.3 },
+  ],
   'two-skies': [
     { lat: 30, long: 350, az: Math.PI * 1.4, pitch: 0.05 },
     { lat: 30, long: 170, az: Math.PI * 0.4, pitch: 0.05, night: true },
@@ -57,6 +61,10 @@ const SHOTS = {
     { lat: 45, long: 20, az: 0, hud: true },
     { lat: 34.2, long: 97, az: 0, hud: true, room: { x: -6, z: 6 } },
   ],
+  'content-pipeline': [
+    { lat: 45, long: 20, az: 0, modal: 'photos' },
+    { lat: 45, long: 20, az: 0, path: '/classic', scrollTo: '#projects-h' },
+  ],
   'hedge-stone': [
     { lat: 47, long: 300, az: 0, dist: 6, pitch: 0.25 },
     { lat: 53, long: 300, az: Math.PI, dist: 6, pitch: 0.25 },
@@ -68,6 +76,15 @@ const SHOTS = {
   'bulletin-board': [
     { lat: 42, long: 343, az: 0, dist: 5, pitch: 0.25 },
     { lat: 42, long: 343, az: 0, dist: 5, pitch: 0.25, modal: 'papers' },
+  ],
+  'matrix-room': [
+    { lat: 35.2, long: 97, az: 0, pitch: 0.1, night: true },
+    { lat: 34.2, long: 97, az: 0, pitch: -0.05, room: { x: 0, z: 8 } },
+  ],
+  'self-hosted-fonts': [{ lat: 45, long: 20, az: 0, path: '/classic' }],
+  'world-index': [
+    { lat: 90, long: 0, az: Math.PI, dist: 30, pitch: 0.75 },
+    { lat: 40, long: 60, az: 0, hud: true, dist: 9, pitch: 0.4 },
   ],
   budgets: [
     { lat: 35, long: 180, az: Math.PI, dist: 14, pitch: 0.4, night: true },
@@ -121,6 +138,26 @@ for (const id of ids) {
       document.head.appendChild(style)
     }, shot)
     await page.waitForTimeout(900)
+
+    if (shot.path) {
+      // A shot of another page (the classic site). Go there, frame it,
+      // then come back to the world for whatever follows.
+      await page.goto(`${BASE}${shot.path}`, { waitUntil: 'networkidle' })
+      if (shot.scrollTo) {
+        await page.locator(shot.scrollTo).scrollIntoViewIfNeeded()
+        await page.waitForTimeout(400)
+      }
+      await page.waitForTimeout(600)
+      await page.screenshot({ path: `${OUT}/${id}-${i + 1}.jpg`, type: 'jpeg', quality: 78 })
+      written++
+      console.log(`${id}-${i + 1}.jpg`)
+      await page.goto(`${BASE}/?e2e`, { waitUntil: 'networkidle' })
+      await page.waitForFunction(() => window.__controls !== undefined, undefined, {
+        timeout: 30000,
+      })
+      await page.waitForTimeout(1600)
+      continue
+    }
 
     if (shot.room) {
       await page.evaluate((r) => {

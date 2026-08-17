@@ -6,7 +6,7 @@ import { muralCover, murals } from '../content/murals'
 import { ROOM } from '../controls/useRoomController'
 import { useStore } from '../store/useStore'
 import { mulberry32 } from './geometryUtils'
-import { makeBinaryWallpaper } from './matrixAtlas'
+import { makeBinaryWallpaper, makeNumberPlates, PLATE_COLS } from './matrixAtlas'
 import { normalizeForMerge } from './props'
 import { buildRift } from './riftGeometry'
 
@@ -30,6 +30,9 @@ const CEIL_Y = 8
 const MURAL_W = 3.4
 const MURAL_H = MURAL_W * (9 / 16)
 const MURAL_Y = 2.3
+const PLATE_SIZE = 1.05
+/** Step number sits just above the frame's top edge. */
+const PLATE_Y = MURAL_Y + MURAL_H / 2 + 0.62
 
 /**
  * One wall plane, positioned and turned to face into the room. NOTE:
@@ -54,13 +57,46 @@ function wall(width: number, x: number, z: number, yaw: number): THREE.BufferGeo
   return g
 }
 
+/**
+ * One step-number plate above a frame, UV-mapped to its cell of the
+ * shared number atlas so all the plates merge into a single mesh.
+ */
+function plate(
+  index: number,
+  rows: number,
+  x: number,
+  z: number,
+  yaw: number,
+): THREE.BufferGeometry {
+  const g = new THREE.PlaneGeometry(PLATE_SIZE, PLATE_SIZE).toNonIndexed()
+  const col = index % PLATE_COLS
+  const row = Math.floor(index / PLATE_COLS)
+  const uv = g.attributes.uv as THREE.BufferAttribute
+  for (let i = 0; i < uv.count; i++) {
+    uv.setXY(
+      i,
+      (col + uv.getX(i)) / PLATE_COLS,
+      // Canvas rows run top-down; UV v runs bottom-up.
+      (rows - 1 - row + uv.getY(i)) / rows,
+    )
+  }
+  g.applyMatrix4(
+    new THREE.Matrix4().compose(
+      new THREE.Vector3(x, PLATE_Y, z),
+      new THREE.Quaternion().setFromEuler(new THREE.Euler(0, yaw, 0)),
+      new THREE.Vector3(1, 1, 1),
+    ),
+  )
+  return g
+}
+
 export const RoomScene = forwardRef<THREE.Group>(function RoomScene(_props, ref) {
   const openModal = useStore((s) => s.openModal)
   const nearbyMural = useStore((s) => s.nearbyMural)
   const wallMat = useRef<THREE.MeshBasicMaterial>(null)
   const rift = useRef<THREE.Group>(null)
 
-  const { walls, wallpaper, frames, riftParts, textures } = useMemo(() => {
+  const { walls, wallpaper, frames, plates, numberTex, riftParts, textures } = useMemo(() => {
     const rng = mulberry32(0x0b1a01)
     const paper = makeBinaryWallpaper(rng)
     const w = mergeGeometries([
@@ -86,6 +122,15 @@ export const RoomScene = forwardRef<THREE.Group>(function RoomScene(_props, ref)
     const merged = mergeGeometries(frameGeos)!
     frameGeos.forEach((g) => g.dispose())
 
+    // Step numbers: the murals hang in build-log order, and each frame
+    // says which step it was. One atlas, one merged mesh, one draw.
+    const numbers = makeNumberPlates(Math.max(...murals.map((m) => m.step)))
+    const plateGeos = murals.map((m) =>
+      plate(m.step - 1, numbers.rows, m.at[0], m.at[1], m.faceYaw),
+    )
+    const plates = mergeGeometries(plateGeos)!
+    plateGeos.forEach((g) => g.dispose())
+
     // Screenshots load without suspending: a missing file leaves the
     // frame dark rather than blowing up the whole room.
     const loader = new THREE.TextureLoader()
@@ -101,6 +146,8 @@ export const RoomScene = forwardRef<THREE.Group>(function RoomScene(_props, ref)
       walls: w,
       wallpaper: paper,
       frames: merged,
+      plates,
+      numberTex: numbers.texture,
       riftParts: buildRift(),
       textures: texMap,
     }
@@ -110,14 +157,16 @@ export const RoomScene = forwardRef<THREE.Group>(function RoomScene(_props, ref)
     () => () => {
       walls.dispose()
       frames.dispose()
+      plates.dispose()
       wallpaper.dispose()
+      numberTex.dispose()
       textures.forEach((t) => t.dispose())
       riftParts.forEach((p) => {
         p.geometry.dispose()
         p.material.dispose()
       })
     },
-    [walls, frames, wallpaper, textures, riftParts],
+    [walls, frames, plates, wallpaper, numberTex, textures, riftParts],
   )
 
   useFrame((state, rawDt) => {
@@ -177,6 +226,16 @@ export const RoomScene = forwardRef<THREE.Group>(function RoomScene(_props, ref)
       {/* Frames, then the screenshots themselves a hair proud of them. */}
       <mesh geometry={frames}>
         <meshBasicMaterial color="#0a1f14" fog={false} toneMapped={false} />
+      </mesh>
+      {/* The step number over every frame — walk them in order. */}
+      <mesh geometry={plates} renderOrder={1}>
+        <meshBasicMaterial
+          map={numberTex}
+          transparent
+          depthWrite={false}
+          fog={false}
+          toneMapped={false}
+        />
       </mesh>
       {murals.map((m) => {
         const inward = new THREE.Vector3(Math.sin(m.faceYaw), 0, Math.cos(m.faceYaw))

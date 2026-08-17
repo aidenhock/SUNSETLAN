@@ -2,7 +2,7 @@ import { cards } from '../content/about'
 import { ContactForm } from '../ui/ContactForm'
 import { contact } from '../content/contact'
 import { music } from '../content/music'
-import { buildLogChapters } from '../content/buildLog'
+import { BuildLogSection } from './BuildLogSection'
 import { memorials } from '../content/memorials'
 import { papers } from '../content/papers'
 import { photos } from '../content/photos'
@@ -176,38 +176,7 @@ export default function ClassicPage() {
           </ul>
         </section>
 
-        <section className="mt-12" aria-labelledby="buildlog-h">
-          <h2 id="buildlog-h" className="font-display text-2xl font-bold">
-            Build log
-          </h2>
-          <p className="mt-1 text-sm text-ink/60">
-            How this island was made — the same chapters the portal room renders in 3D.
-          </p>
-          <ul className="mt-4 space-y-3">
-            {buildLogChapters.map((ch) => (
-              <li key={ch.id} className="rounded-xl border border-ink/10 bg-white/60 p-4">
-                <h3 className="font-display text-lg font-semibold">{ch.title}</h3>
-                <p className="mt-1 text-ink/70">{ch.hook}</p>
-                <details className="mt-2">
-                  <summary className="cursor-pointer text-sm text-ink/60">Read the chapter</summary>
-                  <p className="mt-2 whitespace-pre-line leading-relaxed text-ink/80">{ch.plain}</p>
-                  <p className="mt-3 whitespace-pre-line leading-relaxed text-sm text-ink/60">
-                    {ch.technical}
-                  </p>
-                  {ch.decisions.length > 0 && (
-                    <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-ink/70">
-                      {ch.decisions.map((d, i) => (
-                        <li key={i} className="whitespace-pre-line">
-                          {d}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </details>
-              </li>
-            ))}
-          </ul>
-        </section>
+        <BuildLogSection />
 
         <section className="mt-12" aria-labelledby="memorials-h">
           <h2 id="memorials-h" className="font-display text-2xl font-bold">

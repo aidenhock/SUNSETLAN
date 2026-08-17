@@ -233,8 +233,10 @@ test('desktop: rift room — walk in, read a mural, walk back out', async ({ pag
 
   // Stand in front of a mural: the prompt names it, E opens the chapter.
   await page.evaluate(() => {
-    window.__room!.x = -13
-    window.__room!.z = -8.5
+    // Step 01 hangs at the north wall's west end (murals are laid out
+    // clockwise in build-log order, so this is always the first one).
+    window.__room!.x = -14.5
+    window.__room!.z = -9.5
   })
   await page.waitForTimeout(500)
   await expect(page.getByText('The world turns, you do not')).toBeVisible()

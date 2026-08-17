@@ -134,8 +134,15 @@ a lazy chunk, and `useRoomController` takes over.
   read as endless, and the rift hovering at the centre as the way out.
   The wallpaper is a GENERATED canvas tile scrolled by `map.offset.y` —
   the two-shader rule (dome + water) still stands, no new shaders.
-- **Murals**: a framed screenshot per feature on the walls, each tied
-  to a build-log chapter (`content/murals.ts`). "E — <caption>" opens
+- **Murals are the build log, in order**: one framed screenshot set per
+  CHAPTER, hung clockwise starting at the north wall's west end (the
+  wall you face on arrival) with its STEP NUMBER on a plate above it.
+  Order and number both derive from the chapter's position in
+  `docs/build-log.md` (`step` in the exported JSON) — never hand-placed;
+  `murals.ts` deals wall slots by largest-remainder over wall length, so
+  adding a chapter re-flows the room. The number plates share one
+  generated canvas atlas and merge into a single draw call.
+- **Murals**: each is tied to a build-log chapter (`content/murals.ts`). "E — <caption>" opens
   that chapter: plain language, then how it works, then the real
   build-time code excerpt. A mural may carry SEVERAL shots (`shots[]`,
   files `<id>-<n>.jpg`, one caption each) when a single frame can't

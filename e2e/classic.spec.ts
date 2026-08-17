@@ -32,3 +32,34 @@ test('/classic renders every section without loading any three.js modules', asyn
 
   expect(realErrors(errors)).toEqual([])
 })
+
+test('/classic build log dropdown steps through numbered chapters with murals', async ({ page }) => {
+  const errors = collectErrors(page)
+  await page.goto('/classic', { waitUntil: 'networkidle' })
+
+  const select = page.getByLabel('Jump to a chapter')
+  await expect(select).toBeVisible()
+
+  const options = await select.locator('option').allTextContents()
+  expect(options[0]).toMatch(/^01 · /)
+  const steps = options.map((o) => parseInt(o, 10))
+  for (let i = 1; i < steps.length; i++) {
+    expect(steps[i]).toBeGreaterThan(steps[i - 1])
+  }
+
+  const target = options.find((o) => o.startsWith('13'))
+  expect(target).toBeTruthy()
+  await select.selectOption({ label: target! })
+
+  const article = page.locator('article[aria-live="polite"]')
+  await expect(article.locator('h3')).toHaveText(target!)
+  const muralImgs = article.locator('img[src*="/murals/"]')
+  expect(await muralImgs.count()).toBeGreaterThan(0)
+  await expect(muralImgs.first()).toBeVisible()
+
+  const before = await article.locator('h3').textContent()
+  await page.getByRole('button', { name: 'Next ›' }).click()
+  await expect(article.locator('h3')).not.toHaveText(before!)
+
+  expect(realErrors(errors)).toEqual([])
+})

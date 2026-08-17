@@ -30,7 +30,7 @@ const chapterBlocks = src.split(/^## /m).slice(1)
 if (chapterBlocks.length === 0) throw new Error('no chapters found')
 
 const REQUIRED = ['hook', 'plain', 'technical', 'files', 'decisions']
-const chapters = chapterBlocks.map((block) => {
+const chapters = chapterBlocks.map((block, index) => {
   const [headingLine, ...rest] = block.split('\n')
   const heading = headingLine.trim()
   const idMatch = heading.match(/\{#([a-z0-9-]+)\}\s*$/)
@@ -80,6 +80,9 @@ const chapters = chapterBlocks.map((block) => {
 
   return {
     id,
+    // Chapters appear in this file in the order the work happened, so
+    // the position IS the implementation step the room numbers by.
+    step: index + 1,
     title,
     hook: section('hook'),
     plain: section('plain').replace(/\n(?!\n)/g, ' ').replace(/\n\n/g, '\n'),

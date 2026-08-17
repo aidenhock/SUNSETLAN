@@ -556,13 +556,16 @@ run around in.
 terminator. Step into it and you are standing in a rectangular room:
 walls of falling ones and zeroes running endlessly above and below a
 glass floor, a framed screenshot of every feature on this island hung
-around you, and the rift itself hovering in the middle. Walk up to any
-picture and press E to read how that piece was built — in plain
+around you, and the rift itself hovering in the middle. The pictures
+hang IN THE ORDER THE WORK HAPPENED, each with its step number over it:
+01 is at the left of the wall you arrive facing, and the sequence runs
+clockwise, so walking the room walks the history of the island. Walk up
+to any picture and press E to read how that piece was built — in plain
 language first, then the real code. Some features need more than one
 frame to show (the two skies, the sun's arc, the map inside and outside
-this room), so those pictures come as a small set you click through
-with arrows. Walk back into the rift to come home. The minimap comes
-with you and redraws itself as a plan of the room.
+this room), so those come as a small set you click through with arrows.
+Walk back into the rift to come home. The minimap comes with you and
+redraws itself as a plan of the room.
 
 **Technical:** The room is a second walkable space, not a dialog, and
 it keeps the island's central invariant: THE AVATAR NEVER MOVES. The
@@ -579,7 +582,11 @@ images are the one place this project uses image textures, and they are
 screenshots of itself, captured by `scripts/capture-murals.mjs`; each
 mural declares an ordered `shots[]` and the wall hangs the first, so
 the room still costs one texture per frame no matter how many pictures
-a feature carries.
+a feature carries. Placement is derived, not authored: each chapter's
+`step` (its position in this file) sets both the number on the plate
+and the wall slot, dealt clockwise by largest-remainder over wall
+length — add a chapter and the whole room re-flows. The plates share
+one generated number atlas and merge into a single draw call.
 Chapter text comes from `docs/build-log.json`, exported from this file
 at build time — the room is documentation rendering itself.
 
@@ -600,6 +607,10 @@ at build time — the room is documentation rendering itself.
 - Moving the room instead of the avatar looks like a trick, but it is
   the same trick the island runs, and it means one camera rig and one
   animation system serve both spaces.
+- The room's running order is the build log's own order rather than a
+  hand-placed layout. Hanging pictures by hand would have drifted from
+  the chapters within a session; deriving both the number and the slot
+  from `step` means the room can only ever tell the true story.
 - Multi-shot murals are declared in content and captured by script,
   and vitest compares the two lists in BOTH directions. A mural naming
   a file nobody captured used to hang a silent black frame on the wall;

@@ -1,24 +1,26 @@
 import { buildLogChapters, type BuildLogChapter } from './buildLog'
 
 /**
- * The room's walls: a framed screenshot per feature, each tied to a
- * chapter of the build log. Walking up to a mural and pressing E opens
- * that chapter — the screenshot is the hook, the chapter is the answer.
+ * The room's walls: one framed screenshot set per chapter of the build
+ * log, hung in the order the work actually happened. Step 1 is the
+ * first thing to the left on the wall you face when you arrive, and the
+ * sequence runs clockwise around the room from there, so walking the
+ * perimeter walks the history. Each frame carries its step number.
+ *
+ * The ORDER IS NOT EDITABLE HERE: it comes from the chapter's position
+ * in docs/build-log.md, which is the record of what was built when.
+ * Reorder that file and the room re-hangs itself.
  *
  * A mural can carry SEVERAL shots when one frame can't show the whole
  * feature (the two skies, the sun's arc, the map inside and outside the
  * room). The wall shows the first; the modal pages through the rest
  * with arrows, each with its own caption.
  *
- * Room space is metres, origin at the rift in the centre, +X east,
- * +Z toward the entrance (south). Walls stand at x = ±18, z = ±12.
- * `at` is the mural's position ON the wall; `faceYaw` turns it inward.
- *
  * Screenshots live in `public/murals/` and are captured by
  * `node scripts/capture-murals.mjs` — rerun it when the world's look
- * changes, and the room updates itself. File names here must match what
- * that script writes (`<id>-<n>.jpg`); a vitest case checks that every
- * declared shot exists on disk, so a missing capture fails the suite
+ * changes, and the room updates itself. File names must match what that
+ * script writes (`<id>-<n>.jpg`); vitest checks declared shots against
+ * the folder in BOTH directions, so a missing capture fails the suite
  * instead of hanging an empty frame on the wall.
  */
 
@@ -29,29 +31,27 @@ export interface MuralShot {
   caption: string
 }
 
-export interface Mural {
+/** What an author writes: the pictures and which chapter they explain. */
+interface MuralDef {
   id: string
-  /** Wall position [x, z] in room metres. */
-  at: [number, number]
-  /** Yaw so the image faces into the room. */
-  faceYaw: number
-  /** Chapter this mural explains. */
   chapterId: string
-  /** Short title, used by the E prompt. */
+  /** Short title, used by the E prompt and under the frame. */
   caption: string
   shots: MuralShot[]
 }
 
-const NORTH = 0 // wall at z = -12, faces +z
-const SOUTH = Math.PI // wall at z = +12, faces -z
-const EAST = -Math.PI / 2 // wall at x = +18, faces -x
-const WEST = Math.PI / 2 // wall at x = -18, faces +x
+export interface Mural extends MuralDef {
+  /** Implementation step — the chapter's position in the build log. */
+  step: number
+  /** Wall position [x, z] in room metres, derived from `step`. */
+  at: [number, number]
+  /** Yaw so the image faces into the room. */
+  faceYaw: number
+}
 
-export const murals: Mural[] = [
+const DEFS: MuralDef[] = [
   {
     id: 'fixed-pole',
-    at: [-13, -12],
-    faceYaw: NORTH,
     chapterId: 'fixed-pole',
     caption: 'The world turns, you do not',
     shots: [
@@ -60,9 +60,25 @@ export const murals: Mural[] = [
     ],
   },
   {
+    id: 'analytic-ground',
+    chapterId: 'analytic-ground',
+    caption: 'Ground without physics',
+    shots: [
+      { file: 'analytic-ground-1.jpg', caption: 'The dock: a walkable strip, solved not simulated' },
+      { file: 'analytic-ground-2.jpg', caption: 'Every prop sits exactly on the ground it computes' },
+    ],
+  },
+  {
+    id: 'one-terrain',
+    chapterId: 'one-terrain',
+    caption: 'One continuous terrain',
+    shots: [
+      { file: 'one-terrain-1.jpg', caption: 'Grass to sand to sea, no seam' },
+      { file: 'one-terrain-2.jpg', caption: 'Wading — the slope keeps going under water' },
+    ],
+  },
+  {
     id: 'two-skies',
-    at: [-4.5, -12],
-    faceYaw: NORTH,
     chapterId: 'two-skies',
     caption: 'Two skies on one planet',
     shots: [
@@ -73,8 +89,6 @@ export const murals: Mural[] = [
   },
   {
     id: 'celestial-arc',
-    at: [4.5, -12],
-    faceYaw: NORTH,
     chapterId: 'celestial-arc',
     caption: 'The sun actually sets',
     shots: [
@@ -84,8 +98,6 @@ export const murals: Mural[] = [
   },
   {
     id: 'glitter',
-    at: [13, -12],
-    faceYaw: NORTH,
     chapterId: 'glitter',
     caption: 'A glitter path that follows you',
     shots: [
@@ -95,8 +107,6 @@ export const murals: Mural[] = [
   },
   {
     id: 'character-rig',
-    at: [-18, -6],
-    faceYaw: WEST,
     chapterId: 'character-rig',
     caption: 'A villager from spheres and math',
     shots: [
@@ -106,8 +116,6 @@ export const murals: Mural[] = [
   },
   {
     id: 'audio',
-    at: [-18, 6],
-    faceYaw: WEST,
     chapterId: 'audio',
     caption: 'Sound that starts from silence',
     shots: [
@@ -116,9 +124,52 @@ export const murals: Mural[] = [
     ],
   },
   {
+    id: 'budgets',
+    chapterId: 'budgets',
+    caption: 'Why draw calls beat triangles',
+    shots: [
+      { file: 'budgets-1.jpg', caption: 'The night side, well under the draw budget' },
+      { file: 'budgets-2.jpg', caption: 'The whole island from out over the water' },
+    ],
+  },
+  {
+    id: 'content-pipeline',
+    chapterId: 'content-pipeline',
+    caption: 'Content without touching the scene',
+    shots: [
+      { file: 'content-pipeline-1.jpg', caption: 'The photo gallery, straight from a content file' },
+      { file: 'content-pipeline-2.jpg', caption: 'The same content on the classic site' },
+    ],
+  },
+  {
+    id: 'hedge-stone',
+    chapterId: 'hedge-stone',
+    caption: 'The moai',
+    shots: [
+      { file: 'hedge-stone-1.jpg', caption: 'Face on' },
+      { file: 'hedge-stone-2.jpg', caption: 'From behind — you can walk all the way round' },
+    ],
+  },
+  {
+    id: 'bulletin-board',
+    chapterId: 'bulletin-board',
+    caption: 'The bulletin board',
+    shots: [
+      { file: 'bulletin-board-1.jpg', caption: 'The board on the grass' },
+      { file: 'bulletin-board-2.jpg', caption: 'What it opens' },
+    ],
+  },
+  {
+    id: 'minimap',
+    chapterId: 'minimap',
+    caption: 'The minimap',
+    shots: [
+      { file: 'minimap-1.jpg', caption: 'The island, centred on you' },
+      { file: 'minimap-2.jpg', caption: 'The same window, inside this room' },
+    ],
+  },
+  {
     id: 'memorial-garden',
-    at: [18, -6],
-    faceYaw: EAST,
     chapterId: 'memorial-garden',
     caption: 'The memorial garden',
     shots: [
@@ -128,61 +179,102 @@ export const murals: Mural[] = [
     ],
   },
   {
-    id: 'minimap',
-    at: [18, 6],
-    faceYaw: EAST,
-    chapterId: 'minimap',
-    caption: 'The minimap',
+    id: 'matrix-room',
+    chapterId: 'matrix-room',
+    caption: 'This room',
     shots: [
-      { file: 'minimap-1.jpg', caption: 'The island, centred on you' },
-      { file: 'minimap-2.jpg', caption: 'The same window, inside this room' },
+      { file: 'matrix-room-1.jpg', caption: 'The rift, out on the night-side grass' },
+      { file: 'matrix-room-2.jpg', caption: 'Where you are standing right now' },
     ],
   },
   {
-    id: 'hedge-stone',
-    at: [-13, 12],
-    faceYaw: SOUTH,
-    chapterId: 'hedge-stone',
-    caption: 'The moai',
+    id: 'self-hosted-fonts',
+    chapterId: 'self-hosted-fonts',
+    caption: 'Making the type real',
     shots: [
-      { file: 'hedge-stone-1.jpg', caption: 'Face on' },
-      { file: 'hedge-stone-2.jpg', caption: 'From behind — you can walk all the way round' },
+      { file: 'self-hosted-fonts-1.jpg', caption: 'The classic site, in its actual typefaces' },
     ],
   },
   {
-    id: 'one-terrain',
-    at: [-4.5, 12],
-    faceYaw: SOUTH,
-    chapterId: 'one-terrain',
-    caption: 'One continuous terrain',
+    id: 'world-index',
+    chapterId: 'world-index',
+    caption: 'The world index',
     shots: [
-      { file: 'one-terrain-1.jpg', caption: 'Grass to sand to sea, no seam' },
-      { file: 'one-terrain-2.jpg', caption: 'Wading — the slope keeps going under water' },
-    ],
-  },
-  {
-    id: 'bulletin-board',
-    at: [4.5, 12],
-    faceYaw: SOUTH,
-    chapterId: 'bulletin-board',
-    caption: 'The bulletin board',
-    shots: [
-      { file: 'bulletin-board-1.jpg', caption: 'The board on the grass' },
-      { file: 'bulletin-board-2.jpg', caption: 'What it opens' },
-    ],
-  },
-  {
-    id: 'budgets',
-    at: [13, 12],
-    faceYaw: SOUTH,
-    chapterId: 'budgets',
-    caption: 'Why draw calls beat triangles',
-    shots: [
-      { file: 'budgets-1.jpg', caption: 'The night side, well under the draw budget' },
-      { file: 'budgets-2.jpg', caption: 'The whole island from out over the water' },
+      { file: 'world-index-1.jpg', caption: 'Everything on the island, from above' },
+      { file: 'world-index-2.jpg', caption: 'Every monument, labelled on the map' },
     ],
   },
 ]
+
+/**
+ * Where each mural hangs. Slots are dealt clockwise starting at the
+ * north wall's west end — the wall you face when you arrive — so the
+ * step order reads left to right, then round the room. Walls take
+ * murals in proportion to their length (largest-remainder), which means
+ * adding a chapter re-flows the whole room instead of overflowing one
+ * wall.
+ */
+const HALF_X = 18
+const HALF_Z = 12
+const EDGE_MARGIN = 3.5
+
+const NORTH = 0 // wall at z = -12, faces +z
+const SOUTH = Math.PI // wall at z = +12, faces -z
+const EAST = -Math.PI / 2 // wall at x = +18, faces -x
+const WEST = Math.PI / 2 // wall at x = -18, faces +x
+
+/** Clockwise from the north wall; `along` walks the wall's own axis. */
+const WALLS = [
+  { faceYaw: NORTH, length: HALF_X * 2, at: (t: number): [number, number] => [t, -HALF_Z] },
+  { faceYaw: EAST, length: HALF_Z * 2, at: (t: number): [number, number] => [HALF_X, t] },
+  { faceYaw: SOUTH, length: HALF_X * 2, at: (t: number): [number, number] => [-t, HALF_Z] },
+  { faceYaw: WEST, length: HALF_Z * 2, at: (t: number): [number, number] => [-HALF_X, -t] },
+]
+
+/** Split `count` murals across the walls, longest walls first. */
+function share(count: number): number[] {
+  const total = WALLS.reduce((s, w) => s + w.length, 0)
+  const exact = WALLS.map((w) => (w.length / total) * count)
+  const taken = exact.map(Math.floor)
+  let left = count - taken.reduce((a, b) => a + b, 0)
+  const byRemainder = exact
+    .map((e, i) => ({ i, r: e - Math.floor(e) }))
+    .sort((a, b) => b.r - a.r || a.i - b.i)
+  for (const { i } of byRemainder) {
+    if (left <= 0) break
+    taken[i]++
+    left--
+  }
+  return taken
+}
+
+function layout(count: number): Array<{ at: [number, number]; faceYaw: number }> {
+  const perWall = share(count)
+  const slots: Array<{ at: [number, number]; faceYaw: number }> = []
+  WALLS.forEach((wall, wi) => {
+    const n = perWall[wi]
+    const usable = wall.length - EDGE_MARGIN * 2
+    for (let i = 0; i < n; i++) {
+      // One mural centres; more spread evenly across the usable span.
+      const t = n === 1 ? 0 : -usable / 2 + (usable / (n - 1)) * i
+      slots.push({ at: wall.at(t), faceYaw: wall.faceYaw })
+    }
+  })
+  return slots
+}
+
+const chapterStep = (chapterId: string) =>
+  buildLogChapters.find((c) => c.id === chapterId)?.step ?? Number.MAX_SAFE_INTEGER
+
+const ordered = [...DEFS].sort((a, b) => chapterStep(a.chapterId) - chapterStep(b.chapterId))
+const SLOTS = layout(ordered.length)
+
+export const murals: Mural[] = ordered.map((def, i) => ({
+  ...def,
+  step: chapterStep(def.chapterId),
+  at: SLOTS[i].at,
+  faceYaw: SLOTS[i].faceYaw,
+}))
 
 export const muralImage = (file: string) => `/murals/${file}`
 
@@ -193,3 +285,5 @@ export function muralChapter(id: string): BuildLogChapter | undefined {
   const m = murals.find((x) => x.id === id)
   return m && buildLogChapters.find((c) => c.id === m.chapterId)
 }
+
+export const muralForChapter = (chapterId: string) => murals.find((m) => m.chapterId === chapterId)

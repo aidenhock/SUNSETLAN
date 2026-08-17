@@ -370,7 +370,14 @@ npx vitest run                 # catches typos, duplicates, off-island coords
 ## The room's murals — `src/content/murals.ts`
 
 The screenshots hanging in the rift room, each tied to a build-log
-chapter. To refresh them after the world's look changes:
+chapter. **The order and the numbers are not set here**: a mural takes
+its step number and its place on the wall from where its chapter sits
+in `docs/build-log.md`. Step 01 hangs at the left of the wall you face
+when you arrive and the sequence runs clockwise, so walking the room
+walks the history. Reorder the chapters in the build log and the room
+re-hangs itself; adding one re-flows every wall.
+
+To refresh the pictures after the world's look changes:
 
 ```
 npm run build && npx vite preview --port 4173

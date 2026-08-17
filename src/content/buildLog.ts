@@ -22,6 +22,8 @@ export interface BuildLogFile {
 
 export interface BuildLogChapter {
   id: string
+  /** Implementation step: this chapter's position in the build log. */
+  step: number
   title: string
   hook: string
   plain: string
