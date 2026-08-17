@@ -539,3 +539,49 @@ skipped on low tier.
   to the campfire's warmth, not compete with it.
 - Fireflies are a Points pool like the embers, not meshes — one draw,
   tier-gated, night-gated, with the same parked-at-9999 idle pattern.
+
+## 15 · The portal room {#matrix-room}
+
+**Hook:** A glitching doorway on the night side opens into the making-of.
+
+**Plain:** Past the terminator stands a dark stone archway with a
+green pane humming inside it. Stepping through drops you into a black
+room with code rain falling around you, where you can read how every
+part of this island was built — including the real source code, the
+experiments that failed, and why certain things are the way they are.
+E steps back out through the inner portal. The same chapters read as
+plain text on /classic under Build log.
+
+**Technical:** The room mounts inside the SAME canvas — never a second
+WebGL context: `openModalId === 'matrix'` flips the planet group and
+avatar to `visible={false}` (the subtree stops drawing) and lazily
+mounts `MatrixRoomScene`, which parks itself at the camera's position
+and yaw. Both halves are code-split, so nothing about the room touches
+the initial payload. The rain uses no new shaders: a procedurally
+generated canvas glyph atlas (`makeGlyphAtlas`, playbook §3's
+generated-tile caveat) is sampled by tall quads whose UVs are baked to
+one atlas column each with a random phase; the columns merge into
+three geometries sharing three materials whose `map.offset.y` scrolls
+at different speeds. Whole room: 13 draw calls, 732 triangles. Chapter
+text and the code excerpts come from `docs/build-log.json`, exported
+from this very file at build time — the room is documentation
+rendering itself.
+
+**Files:**
+- `src/scene/matrixAtlas.ts` — `makeGlyphAtlas`
+- `src/scene/MatrixRoomScene.tsx` — `MatrixRoomScene`, `buildRainGroup`
+- `src/ui/modals/MatrixRoom.tsx` — the chapter reader
+- `src/content/buildLog.ts` — `buildLogChapters`
+
+**Decisions:**
+- A second `<Canvas>` for the room was rejected: two WebGL contexts
+  double renderer state and risk context loss on mobile. Hiding the
+  planet group costs nothing and drops the scene to the room's own 13
+  calls — measured, and pinned by an e2e assertion under 50.
+- Rain as scrolling UV strips instead of per-glyph instances or a
+  custom shader: the two-shader rule (dome + water) stands, and three
+  merged geometries beat 90 instanced quads with per-frame matrix
+  writes.
+- The room reads `build-log.json` rather than duplicating prose in a
+  content file — one source of truth, and the excerpts stay honest
+  because they are captured from the real files at build time.

@@ -344,6 +344,15 @@ Drop photos through `scripts/optimize-images.mjs` like everything else.
 their explicit okay before shipping publicly; pets are Aiden's call.**
 The three placeholder stones ship until real entries replace them.
 
+## Build log — `docs/build-log.md` (no content file)
+
+The portal room and the /classic Build log section render the chapters
+in `docs/build-log.md`, exported to JSON by
+`node scripts/export-build-log.mjs` (which also captures the real code
+excerpts). Write chapters for visitors first, developers second — and
+put failed experiments in `Decisions:`, they're the best part. There
+is nothing to fill in here beyond writing chapters.
+
 ## Aiden's gathering checklist
 
 **Photos** (`src/content/photos.ts`)

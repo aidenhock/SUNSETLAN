@@ -187,3 +187,53 @@ test('desktop: minimap — visible by default, M toggles, menu toggles, marker c
   await expect(map).toBeVisible()
   expect(realErrors(errors)).toEqual([])
 })
+
+test('desktop: matrix portal — prompt, room renders real build-log code, E exits, budget holds', async ({
+  page,
+}) => {
+  const errors = collectErrors(page)
+  await gotoWorld(page)
+  await page.waitForTimeout(800)
+
+  // Walk up to the portal (lat 32 / long 97): the prompt fires.
+  await page.evaluate(() => {
+    window.__controls!.poseOverride = { lat: 34.4, long: 97 }
+    window.__controls!.azimuthOverride = Math.PI
+  })
+  await page.waitForTimeout(700)
+  await expect(page.getByText('Step through')).toBeVisible()
+
+  // E steps through into the room.
+  await page.keyboard.press('KeyE')
+  const room = page.getByRole('dialog', { name: 'Build log' })
+  await expect(room).toBeVisible({ timeout: 5000 })
+  await expect(page.getByRole('heading', { name: 'The world that turns beneath you' })).toBeVisible()
+
+  // The room renders REAL build-time code excerpts, not prose about code.
+  await page.getByText('src/controls/planetMath.ts').click()
+  await expect(page.locator('pre', { hasText: 'export function rotationStep' }).first()).toBeVisible()
+
+  // Chapters page with the arrows; the planet is not being drawn in here.
+  await page.keyboard.press('ArrowRight')
+  await expect(page.getByRole('heading', { name: 'The world that turns beneath you' })).toBeHidden()
+  await page.waitForTimeout(600)
+  const calls = await page.evaluate(() => (window as unknown as {
+    __renderInfo?: () => { calls: number }
+  }).__renderInfo!().calls)
+  expect(calls, 'the room must stay well inside the mobile draw budget').toBeLessThan(50)
+
+  // E steps back out through the portal; the world comes back.
+  await page.keyboard.press('KeyE')
+  await expect(room).toBeHidden({ timeout: 3000 })
+  await page.waitForTimeout(400)
+  const polar = await page.evaluate(() => window.__controls!.surfPolarDeg)
+  await page.keyboard.down('KeyW')
+  await page.waitForTimeout(400)
+  await page.keyboard.up('KeyW')
+  expect(
+    Math.abs((await page.evaluate(() => window.__controls!.surfPolarDeg)) - polar),
+    'movement must resume after leaving the room',
+  ).toBeGreaterThan(0.1)
+
+  expect(realErrors(errors)).toEqual([])
+})

@@ -323,6 +323,56 @@ export function buildPalapa(): PropPart[] {
  * decorative headstones, a small bench, and scattered flowers. The
  * three INTERACTABLE headstones are separate `buildHeadstone` bodies.
  * ONE vertex-tinted merge; wall blockers trace the visible wall. */
+/**
+ * The Matrix glitch portal (TASK 4): a chunky obsidian archway standing
+ * on the night-leaning grass, its inner void a flat green pane that
+ * glows at night (PropBody ramps `userData.glow` parts with nightMix).
+ * Displaced "glitch" chunks float just off the frame — the same blocks
+ * the frame is built from, nudged and rolled, so the silhouette reads
+ * as a doorway coming apart rather than a clean gate.
+ */
+export function buildMatrixPortal(): PropPart[] {
+  const tinted = (g: THREE.BufferGeometry, color: string, pos: [number, number, number], rot: [number, number, number] = [0, 0, 0]) => {
+    const n = tintGeometry(normalizeForMerge(g), color)
+    g.dispose()
+    n.applyMatrix4(
+      new THREE.Matrix4().compose(
+        new THREE.Vector3(...pos),
+        new THREE.Quaternion().setFromEuler(new THREE.Euler(...rot)),
+        new THREE.Vector3(1, 1, 1),
+      ),
+    )
+    return n
+  }
+  const STONE = '#22262f'
+  const STONE_LIT = '#2f3542'
+  const frame: THREE.BufferGeometry[] = [
+    // Posts, lintel, and a stepped base slab.
+    tinted(new THREE.BoxGeometry(0.34, 2.5, 0.36), STONE, [-0.92, 1.25, 0]),
+    tinted(new THREE.BoxGeometry(0.34, 2.5, 0.36), STONE, [0.92, 1.25, 0]),
+    tinted(new THREE.BoxGeometry(2.5, 0.36, 0.4), STONE_LIT, [0, 2.62, 0]),
+    tinted(new THREE.BoxGeometry(2.7, 0.22, 0.6), STONE_LIT, [0, 0.11, 0]),
+    // Glitch chunks: frame pieces displaced off-axis, slightly rolled.
+    tinted(new THREE.BoxGeometry(0.34, 0.42, 0.36), STONE_LIT, [-1.12, 2.0, 0.16], [0, 0, 0.22]),
+    tinted(new THREE.BoxGeometry(0.34, 0.3, 0.36), STONE, [1.14, 0.95, -0.14], [0, 0, -0.18]),
+    tinted(new THREE.BoxGeometry(0.5, 0.22, 0.3), STONE_LIT, [0.42, 2.86, 0.1], [0, 0.3, 0.1]),
+  ]
+  const merged = mergeGeometries(frame)
+  for (const g of frame) g.dispose()
+  // The void pane, its own part so it can glow independently of light.
+  const paneGeo = normalizeForMerge(new THREE.BoxGeometry(1.5, 2.16, 0.08))
+  paneGeo.translate(0, 1.3, 0)
+  const paneMat = new THREE.MeshLambertMaterial({ color: '#0a2a18', flatShading: true })
+  paneMat.emissive.set('#3aff7e')
+  paneMat.emissiveIntensity = 0.35
+  paneMat.toneMapped = false
+  paneMat.userData.glow = true
+  return [
+    { geometry: merged, material: new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }) },
+    { geometry: paneGeo, material: paneMat },
+  ]
+}
+
 export function buildCemetery(): PropPart[] {
   const tinted = (g: THREE.BufferGeometry, color: string, pos: [number, number, number], rot: [number, number, number] = [0, 0, 0], scale: [number, number, number] = [1, 1, 1]) => {
     const n = tintGeometry(normalizeForMerge(g), color)

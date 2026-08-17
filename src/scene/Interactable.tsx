@@ -4,7 +4,7 @@ import * as THREE from 'three'
 import { meridianYaw, surfaceQuaternion } from '../controls/planetMath'
 import type { InteractableDef, PropKind } from '../content/interactables'
 import { useStore } from '../store/useStore'
-import { buildBulletinBoard, buildHeadstone, buildHedgeStone, buildMailbox, buildMusicStereo, buildTripod, type PropPart } from './props'
+import { buildBulletinBoard, buildHeadstone, buildMatrixPortal, buildHedgeStone, buildMailbox, buildMusicStereo, buildTripod, type PropPart } from './props'
 import { skyRuntime } from './useSkyState'
 
 const PROP_BUILDERS: Record<PropKind, () => PropPart[]> = {
@@ -14,6 +14,7 @@ const PROP_BUILDERS: Record<PropKind, () => PropPart[]> = {
   hedgestone: buildHedgeStone,
   bulletin: buildBulletinBoard,
   headstone: buildHeadstone,
+  portal: buildMatrixPortal,
 }
 
 /**
@@ -145,6 +146,9 @@ function PropBody({
     // their color in the GEOMETRY (material.color is white — copying it
     // washed the merged uke to paper); those get a warm-wood lift.
     for (const p of parts) {
+      // Glow parts (the portal's void pane) own their emissive — the
+      // frame loop below ramps it with nightMix like the CRT.
+      if (p.material.userData.glow) continue
       if (!isNearby) p.material.emissive.set('#000000')
       else if (p.material.vertexColors) p.material.emissive.set('#7a5f3d')
       else p.material.emissive.copy(p.material.color)
@@ -153,7 +157,17 @@ function PropBody({
   // Night-scaled: after dark the same lift reads much stronger.
   useFrame(() => {
     const intensity = (isNearby ? 0.3 : 0) * (1 - 0.6 * skyRuntime.nightMix)
-    for (const p of parts) p.material.emissiveIntensity = intensity
+    const t = performance.now() / 1000
+    for (const p of parts) {
+      if (p.material.userData.glow) {
+        // Failing-sign flicker, brighter after dark, lifted when near.
+        const flick = 0.82 + 0.18 * Math.sin(t * 8.3) * Math.sin(t * 2.9 + 0.7)
+        p.material.emissiveIntensity =
+          (0.3 + 0.7 * skyRuntime.nightMix) * flick * (isNearby ? 1.25 : 1)
+        continue
+      }
+      p.material.emissiveIntensity = intensity
+    }
   })
 
   return (

@@ -11,9 +11,10 @@ export type ModalKind =
   | 'card'
   | 'papers'
   | 'memorial'
+  | 'matrix'
 
 /** Chunky primitive prop bodies built in scene/props.ts. */
-export type PropKind = 'tripod' | 'mailbox' | 'stereo' | 'hedgestone' | 'bulletin' | 'headstone'
+export type PropKind = 'tripod' | 'mailbox' | 'stereo' | 'hedgestone' | 'bulletin' | 'headstone' | 'portal'
 
 export interface InteractableDef {
   id: string
@@ -99,6 +100,19 @@ export const interactables: InteractableDef[] = [
     modal: 'memorial' as const,
     contentKey: id,
   })),
+  {
+    id: 'matrix',
+    // The HUD prompt shows `label` (PromptE), so it carries the verb.
+    label: 'Step through',
+    prompt: 'Step through the portal',
+    // The archway IS the interactable; blocker traces the frame span.
+    prop: 'portal',
+    blockRadius: 1.2,
+    position: place(MAP.matrixPortal.lat, MAP.matrixPortal.long),
+    rotation: [0, 0, 0],
+    modal: 'matrix',
+    contentKey: 'buildLog',
+  },
   {
     id: 'projects',
     label: 'Projects',

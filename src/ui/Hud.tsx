@@ -98,7 +98,7 @@ export function Hud({ isTouch }: { isTouch: boolean }) {
 
   return (
     <div className="pointer-events-none fixed inset-0 z-30">
-      {introDone && !hasMoved && (
+      {introDone && !hasMoved && !openModalId && (
         <p className="fixed top-6 left-1/2 -translate-x-1/2 rounded-lg bg-ink/85 px-4 py-2 text-center font-display text-sm text-sand shadow-lg">
           {isTouch
             ? 'Drag the joystick to move — walk up to things and tap the button.'

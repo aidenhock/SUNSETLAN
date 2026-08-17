@@ -260,12 +260,12 @@
           "excerpts": [
             {
               "symbol": "CELESTIAL_ELEVATION_INLAND_DEG",
-              "line": 183,
+              "line": 184,
               "code": "export const CELESTIAL_ELEVATION_INLAND_DEG = 45\r\n/** v3.8 TRUE SET: elevations are horizontal-relative; the sea horizon sits\r\n * at ≈ −16.6° from eye height. −15.8° puts the disc center 0.75° above the\r\n * sea line → ~40% of the sun disc (3.7° radius) submerged at the waterline;\r\n * the ocean geometry physically occludes the rest. */\r\nexport const CELESTIAL_ELEVATION_WATERLINE_DEG = -15.8\r\n/** v3.9 set floor: wading sinks it only slightly more, clamped so NEITHER\r\n * disc ever exceeds ~45% submerged (sun ρ 3.7° → 44%; moon ρ 2.74° → 43%)\r\n * — the disc and its glitter lane stay clearly visible at full set. */\r\nexport const CELESTIAL_ELEVATION_WADING_MIN_DEG = -16.2\r\nexport const CELESTIAL = { sunLongDeg: 0, moonLongDeg: 180 } as const\r\n\r\n/** Glitter corridor tuning (v3.14): the corridor centerline is the great\r\n * circle from the disc's base through the character; half-widths are\r"
             },
             {
               "symbol": "CELESTIAL_ELEVATION_WATERLINE_DEG",
-              "line": 188,
+              "line": 189,
               "code": "export const CELESTIAL_ELEVATION_WATERLINE_DEG = -15.8\r\n/** v3.9 set floor: wading sinks it only slightly more, clamped so NEITHER\r\n * disc ever exceeds ~45% submerged (sun ρ 3.7° → 44%; moon ρ 2.74° → 43%)\r\n * — the disc and its glitter lane stay clearly visible at full set. */\r\nexport const CELESTIAL_ELEVATION_WADING_MIN_DEG = -16.2\r\nexport const CELESTIAL = { sunLongDeg: 0, moonLongDeg: 180 } as const\r\n\r\n/** Glitter corridor tuning (v3.14): the corridor centerline is the great\r\n * circle from the disc's base through the character; half-widths are\r\n * perpendicular arc METERS (an azimuth cone pinches to a point at the\r\n * viewer's nadir — banned). Endpoint widths derive from the disc's\r\n * apparent width at reference distances: the limb distance (far) and\r\n * `nearRefM` (near, held at the shore). Rising scales both endpoints up\r\n * and eases opacity down to a floor; submergence is the only kill. */\r"
             }
           ]
@@ -311,7 +311,7 @@
           "excerpts": [
             {
               "symbol": "GLITTER",
-              "line": 202,
+              "line": 203,
               "code": "export const GLITTER = {\r\n  /** Corridor width at the disc base, in apparent disc widths. */\r\n  farWidthDisc: 0.65,\r\n  /** Corridor width held at the shoreline, in apparent disc widths… */\r\n  nearWidthDisc: 3.75,\r\n  /** …as seen from this reference distance (m) — the near width is a\r\n   * stable physical width, not a per-frame shore solve. */\r\n  nearRefM: 3,\r\n  /** Both endpoint widths scale up to this at inland-high. */\r\n  highWidthScale: 1.8,\r\n  /** Lane opacity at set (the vivid column)… */\r\n  opacityLow: 0.95,\r\n  /** …easing down to this floor at inland-high — never invisible. */\r\n  opacityFloor: 0.45,\r"
             }
           ]
@@ -651,7 +651,7 @@
           "excerpts": [
             {
               "symbol": "buildHedgeStone",
-              "line": 480,
+              "line": 530,
               "code": "export function buildHedgeStone(): PropPart[] {\r\n  const tinted = (g: THREE.BufferGeometry, color: string, pos: [number, number, number], rot: [number, number, number] = [0, 0, 0], scale: [number, number, number] = [1, 1, 1]) => {\r\n    const n = tintGeometry(normalizeForMerge(g), color)\r\n    g.dispose()\r\n    n.applyMatrix4(\r\n      new THREE.Matrix4().compose(\r\n        new THREE.Vector3(...pos),\r\n        new THREE.Quaternion().setFromEuler(new THREE.Euler(...rot)),\r\n        new THREE.Vector3(...scale),\r\n      ),\r\n    )\r\n    return n\r\n  }\r\n  const STONE = '#8a9484'\r"
             }
           ]
@@ -665,12 +665,12 @@
           "excerpts": [
             {
               "symbol": "prop: 'hedgestone'",
-              "line": 119,
+              "line": 133,
               "code": "    prop: 'hedgestone',\r\n    blockRadius: 1.1,\r\n    position: place(MAP.hedgeStone.lat, MAP.hedgeStone.long),\r\n    rotation: [0, 0, 0],\r\n    modal: 'card',\r\n    contentKey: 'about',\r\n  },\r\n  {\r\n    id: 'videos',\r\n    label: 'Videos',\r\n    prompt: 'Turn on the TV',\r\n    // \"CRT TV on crate\": the cube sits on the crate top (0.7 + sink back).\r\n    position: place(MAP.tv.lat, MAP.tv.long + 0.8, 0.8),\r\n    rotation: [0, Math.PI / 3, 0],\r"
             },
             {
               "symbol": "blockRadius",
-              "line": 44,
+              "line": 45,
               "code": "    blockRadius: 0.8,\r\n    position: place(MAP.musicUkulele.lat, MAP.musicUkulele.long),\r\n    rotation: [0, Math.PI / 6, 0],\r\n    modal: 'music',\r\n    contentKey: 'music',\r\n  },\r\n  {\r\n    id: 'photos',\r\n    label: 'Photos',\r\n    prompt: 'Look through the camera',\r\n    prop: 'tripod',\r\n    blockRadius: 0.7,\r\n    position: place(MAP.tripod.lat, MAP.tripod.long),\r\n    rotation: [0, Math.PI, 0], // faces the sun, out over the water\r"
             }
           ],
@@ -685,7 +685,7 @@
             {
               "symbol": "PROP_BUILDERS",
               "line": 10,
-              "code": "const PROP_BUILDERS: Record<PropKind, () => PropPart[]> = {\r\n  tripod: buildTripod,\r\n  mailbox: buildMailbox,\r\n  stereo: buildMusicStereo,\r\n  hedgestone: buildHedgeStone,\r\n  bulletin: buildBulletinBoard,\r\n  headstone: buildHeadstone,\r\n}\r\n\r\n/**\r\n * An interactable, oriented to stand on the sphere with meridian-aligned yaw\r\n * (rotation[1] is relative to local north, like every SurfaceGroup prop).\r\n * Renders its chunky primitive prop when `prop` is set (see props.ts), else\r\n * the placeholder box. Proximity is angular distance, computed centrally in\r"
+              "code": "const PROP_BUILDERS: Record<PropKind, () => PropPart[]> = {\r\n  tripod: buildTripod,\r\n  mailbox: buildMailbox,\r\n  stereo: buildMusicStereo,\r\n  hedgestone: buildHedgeStone,\r\n  bulletin: buildBulletinBoard,\r\n  headstone: buildHeadstone,\r\n  portal: buildMatrixPortal,\r\n}\r\n\r\n/**\r\n * An interactable, oriented to stand on the sphere with meridian-aligned yaw\r\n * (rotation[1] is relative to local north, like every SurfaceGroup prop).\r\n * Renders its chunky primitive prop when `prop` is set (see props.ts), else\r"
             }
           ]
         }
@@ -711,7 +711,7 @@
           "excerpts": [
             {
               "symbol": "buildBulletinBoard",
-              "line": 419,
+              "line": 469,
               "code": "export function buildBulletinBoard(): PropPart[] {\r\n  const tinted = (g: THREE.BufferGeometry, color: string, pos: [number, number, number], rot: [number, number, number] = [0, 0, 0], scale: [number, number, number] = [1, 1, 1]) => {\r\n    const n = tintGeometry(normalizeForMerge(g), color)\r\n    g.dispose()\r\n    n.applyMatrix4(\r\n      new THREE.Matrix4().compose(\r\n        new THREE.Vector3(...pos),\r\n        new THREE.Quaternion().setFromEuler(new THREE.Euler(...rot)),\r\n        new THREE.Vector3(...scale),\r\n      ),\r\n    )\r\n    return n\r\n  }\r\n  const FRAME = '#7f9578'\r"
             }
           ]
@@ -834,12 +834,12 @@
           "excerpts": [
             {
               "symbol": "buildCemetery",
-              "line": 326,
+              "line": 376,
               "code": "export function buildCemetery(): PropPart[] {\r\n  const tinted = (g: THREE.BufferGeometry, color: string, pos: [number, number, number], rot: [number, number, number] = [0, 0, 0], scale: [number, number, number] = [1, 1, 1]) => {\r\n    const n = tintGeometry(normalizeForMerge(g), color)\r\n    g.dispose()\r\n    n.applyMatrix4(\r\n      new THREE.Matrix4().compose(\r\n        new THREE.Vector3(...pos),\r\n        new THREE.Quaternion().setFromEuler(new THREE.Euler(...rot)),\r\n        new THREE.Vector3(...scale),\r\n      ),\r\n    )\r\n    return n\r\n  }\r\n  const WALL = '#a8a294'\r"
             },
             {
               "symbol": "buildHeadstone",
-              "line": 390,
+              "line": 440,
               "code": "export function buildHeadstone(): PropPart[] {\r\n  const tinted = (g: THREE.BufferGeometry, color: string, pos: [number, number, number], rot: [number, number, number] = [0, 0, 0]) => {\r\n    const n = tintGeometry(normalizeForMerge(g), color)\r\n    g.dispose()\r\n    n.applyMatrix4(\r\n      new THREE.Matrix4().compose(\r\n        new THREE.Vector3(...pos),\r\n        new THREE.Quaternion().setFromEuler(new THREE.Euler(...rot)),\r\n        new THREE.Vector3(1, 1, 1),\r\n      ),\r\n    )\r\n    return n\r\n  }\r\n  const parts = [\r"
             }
           ]
@@ -861,6 +861,71 @@
         "CONSENT RULE recorded in the content file and CONTENT.md: names and",
         "The glow is deliberately dim (0.35/0.28 peak intensity, distance 4)",
         "Fireflies are a Points pool like the embers, not meshes — one draw,"
+      ]
+    },
+    {
+      "id": "matrix-room",
+      "title": "The portal room",
+      "hook": "A glitching doorway on the night side opens into the making-of.",
+      "plain": "Past the terminator stands a dark stone archway with a green pane humming inside it. Stepping through drops you into a black room with code rain falling around you, where you can read how every part of this island was built — including the real source code, the experiments that failed, and why certain things are the way they are. E steps back out through the inner portal. The same chapters read as plain text on /classic under Build log.",
+      "technical": "The room mounts inside the SAME canvas — never a second WebGL context: `openModalId === 'matrix'` flips the planet group and avatar to `visible={false}` (the subtree stops drawing) and lazily mounts `MatrixRoomScene`, which parks itself at the camera's position and yaw. Both halves are code-split, so nothing about the room touches the initial payload. The rain uses no new shaders: a procedurally generated canvas glyph atlas (`makeGlyphAtlas`, playbook §3's generated-tile caveat) is sampled by tall quads whose UVs are baked to one atlas column each with a random phase; the columns merge into three geometries sharing three materials whose `map.offset.y` scrolls at different speeds. Whole room: 13 draw calls, 732 triangles. Chapter text and the code excerpts come from `docs/build-log.json`, exported from this very file at build time — the room is documentation rendering itself.",
+      "files": [
+        {
+          "path": "src/scene/matrixAtlas.ts",
+          "symbols": [
+            "makeGlyphAtlas"
+          ],
+          "excerpts": [
+            {
+              "symbol": "makeGlyphAtlas",
+              "line": 19,
+              "code": "export function makeGlyphAtlas(seedRandom: () => number): THREE.CanvasTexture {\n  const SIZE = 512\n  const cell = SIZE / ATLAS_COLS\n  const canvas = document.createElement('canvas')\n  canvas.width = SIZE\n  canvas.height = SIZE\n  const ctx = canvas.getContext('2d')!\n  ctx.clearRect(0, 0, SIZE, SIZE)\n  ctx.font = `${Math.floor(cell * 0.82)}px monospace`\n  ctx.textAlign = 'center'\n  ctx.textBaseline = 'middle'\n  for (let col = 0; col < ATLAS_COLS; col++) {\n    for (let row = 0; row < ATLAS_ROWS; row++) {\n      const glyph = GLYPHS[Math.floor(seedRandom() * GLYPHS.length)]"
+            }
+          ]
+        },
+        {
+          "path": "src/scene/MatrixRoomScene.tsx",
+          "symbols": [
+            "MatrixRoomScene",
+            "buildRainGroup"
+          ],
+          "excerpts": [
+            {
+              "symbol": "MatrixRoomScene",
+              "line": 62,
+              "code": "export function MatrixRoomScene() {\n  const { camera } = useThree()\n  const root = useRef<THREE.Group>(null)\n  const rain = useRef<THREE.Group>(null)\n  const glow = useRef<THREE.Mesh>(null)\n\n  const { rainGeos, rainMats, portal } = useMemo(() => {\n    const rng = mulberry32(0x3a7f1c)\n    const atlas = makeGlyphAtlas(rng)\n    const geos = SPEEDS.map(() => buildRainGroup(rng, 30, [8.5, 13]))\n    const mats = SPEEDS.map(() => {\n      const tex = atlas.clone()\n      tex.needsUpdate = true\n      return new THREE.MeshBasicMaterial({"
+            },
+            {
+              "symbol": "buildRainGroup",
+              "line": 26,
+              "code": "function buildRainGroup(rng: () => number, columns: number, radii: [number, number]): THREE.BufferGeometry {\n  const quads: THREE.BufferGeometry[] = []\n  for (let i = 0; i < columns; i++) {\n    const az = rng() * Math.PI * 2\n    const r = radii[0] + rng() * (radii[1] - radii[0])\n    const g = new THREE.PlaneGeometry(0.55, COL_H).toNonIndexed()\n    // Bake this quad's atlas column + phase into its UVs.\n    const col = Math.floor(rng() * ATLAS_COLS)\n    const phase = rng() * V_REPEAT\n    const uv = g.attributes.uv as THREE.BufferAttribute\n    for (let v = 0; v < uv.count; v++) {\n      uv.setXY(v, (col + uv.getX(v)) / ATLAS_COLS, uv.getY(v) * V_REPEAT + phase)\n    }\n    // Far columns dim for depth (vertex color, still one material)."
+            }
+          ]
+        },
+        {
+          "path": "src/ui/modals/MatrixRoom.tsx",
+          "symbols": [],
+          "excerpts": [],
+          "note": "the chapter reader"
+        },
+        {
+          "path": "src/content/buildLog.ts",
+          "symbols": [
+            "buildLogChapters"
+          ],
+          "excerpts": [
+            {
+              "symbol": "buildLogChapters",
+              "line": 33,
+              "code": "export const buildLogChapters: BuildLogChapter[] = data.chapters\n"
+            }
+          ]
+        }
+      ],
+      "decisions": [
+        "A second `<Canvas>` for the room was rejected: two WebGL contexts",
+        "Rain as scrolling UV strips instead of per-glyph instances or a",
+        "The room reads `build-log.json` rather than duplicating prose in a"
       ]
     }
   ]

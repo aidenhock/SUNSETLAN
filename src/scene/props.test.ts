@@ -7,6 +7,7 @@ import {
   buildCemetery,
   buildHeadstone,
   buildHedgeStone,
+  buildMatrixPortal,
   buildMusicStereo,
   buildCrate,
   buildLogBench,
@@ -40,6 +41,7 @@ const BUILDERS: Record<string, () => PropPart[]> = {
   bulletinBoard: buildBulletinBoard,
   cemetery: buildCemetery,
   headstone: buildHeadstone,
+  matrixPortal: buildMatrixPortal,
 }
 
 describe('prop builders merge cleanly', () => {

@@ -56,6 +56,9 @@ const _pole = new THREE.Vector3()
 
 export function Minimap({ isTouch }: { isTouch: boolean }) {
   const visible = useStore((s) => s.minimapVisible)
+  // The portal room replaces the world view entirely — no island HUD
+  // floating over it (other modals are cards, and keep their context).
+  const inRoom = useStore((s) => s.openModalId === 'matrix')
   const resetCount = useStore((s) => s.minimapResetCount)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const explored = useRef<Set<number>>(loadExplored(typeof localStorage !== 'undefined' ? localStorage : null))
@@ -213,7 +216,7 @@ export function Minimap({ isTouch }: { isTouch: boolean }) {
     return () => clearInterval(iv)
   }, [visible, size, reduced, resetCount])
 
-  if (!visible) return null
+  if (!visible || inRoom) return null
   return (
     <canvas
       ref={canvasRef}

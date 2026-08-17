@@ -1,8 +1,11 @@
+import { lazy, Suspense } from 'react'
 import { interactables } from '../content/interactables'
 import { useStore } from '../store/useStore'
 import { CardModal } from './modals/CardModal'
 import { ContactModal } from './modals/ContactModal'
 import { GalleryModal } from './modals/GalleryModal'
+/** The build-log reader — code-split with its scene half. */
+const MatrixRoom = lazy(() => import('./modals/MatrixRoom'))
 import { MemorialModal } from './modals/MemorialModal'
 import { MusicModal } from './modals/MusicModal'
 import { PapersModal } from './modals/PapersModal'
@@ -31,5 +34,11 @@ export function ModalRoot() {
       return <PapersModal />
     case 'memorial':
       return <MemorialModal def={def} />
+    case 'matrix':
+      return (
+        <Suspense fallback={null}>
+          <MatrixRoom />
+        </Suspense>
+      )
   }
 }

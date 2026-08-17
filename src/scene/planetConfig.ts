@@ -132,6 +132,7 @@ export const MAP = {
   ukulelePlayer: { lat: 18, long: 359.05 },
   palapa: { lat: 40, long: 40 }, // Projects — day-leaning side
   bulletinBoard: { lat: 45, long: 343 }, // Papers — grass, sunset side, inland from the mailbox
+  matrixPortal: { lat: 32, long: 97 }, // Build log room — just past the terminator
   cemetery: { lat: 47, long: 107 }, // Memorial garden — just past the terminator, night-leaning
   hedgeStone: { lat: 50, long: 300 }, // About — the moai in its hedge clearing, dusk boundary west
   campfire: { lat: 22, long: 180 }, // night beach
