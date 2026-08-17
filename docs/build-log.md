@@ -558,9 +558,11 @@ walls of falling ones and zeroes running endlessly above and below a
 glass floor, a framed screenshot of every feature on this island hung
 around you, and the rift itself hovering in the middle. Walk up to any
 picture and press E to read how that piece was built — in plain
-language first, then the real code. Walk back into the rift to come
-home. The minimap comes with you and redraws itself as a plan of the
-room.
+language first, then the real code. Some features need more than one
+frame to show (the two skies, the sun's arc, the map inside and outside
+this room), so those pictures come as a small set you click through
+with arrows. Walk back into the rift to come home. The minimap comes
+with you and redraws itself as a plan of the room.
 
 **Technical:** The room is a second walkable space, not a dialog, and
 it keeps the island's central invariant: THE AVATAR NEVER MOVES. The
@@ -574,7 +576,10 @@ Entering flips `inRoom`: the planet group and the sky rig stand down
 chunk. The wallpaper is a generated canvas of 0s and 1s scrolled by
 `map.offset.y` — no new shader, the two-shader rule stands. The mural
 images are the one place this project uses image textures, and they are
-screenshots of itself, captured by `scripts/capture-murals.mjs`.
+screenshots of itself, captured by `scripts/capture-murals.mjs`; each
+mural declares an ordered `shots[]` and the wall hangs the first, so
+the room still costs one texture per frame no matter how many pictures
+a feature carries.
 Chapter text comes from `docs/build-log.json`, exported from this file
 at build time — the room is documentation rendering itself.
 
@@ -595,6 +600,10 @@ at build time — the room is documentation rendering itself.
 - Moving the room instead of the avatar looks like a trick, but it is
   the same trick the island runs, and it means one camera rig and one
   animation system serve both spaces.
+- Multi-shot murals are declared in content and captured by script,
+  and vitest compares the two lists in BOTH directions. A mural naming
+  a file nobody captured used to hang a silent black frame on the wall;
+  an orphaned capture is just as wrong, so both now fail the suite.
 
 ## 16 · Making the type real {#self-hosted-fonts}
 

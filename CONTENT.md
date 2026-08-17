@@ -377,10 +377,26 @@ npm run build && npx vite preview --port 4173
 node scripts/capture-murals.mjs
 ```
 
-To add one: capture a shot into `public/murals/<id>.jpg`, then add an
-entry with a free wall position (`at`), the wall's `faceYaw`, the
-`chapterId` it explains, and a caption (the caption is what the E
-prompt says).
+A mural can hold SEVERAL shots when one frame can't show the whole
+feature — the modal pages through them with arrows, each with its own
+caption; the wall hangs the first. Add poses to that mural's list in
+`scripts/capture-murals.mjs`, then declare them in order:
+
+```ts
+shots: [
+  { file: 'two-skies-1.jpg', caption: 'The sunset side, longitude 0' },
+  { file: 'two-skies-2.jpg', caption: 'The night side, longitude 180' },
+]
+```
+
+File names must be `<id>-<n>.jpg` in declaration order — vitest checks
+that every declared shot exists and that no captured file is orphaned,
+so a missed capture fails the suite instead of hanging an empty black
+frame on the wall.
+
+To add a whole mural: pick a free wall position (`at`), the wall's
+`faceYaw`, the `chapterId` it explains, and a caption (that caption is
+what the E prompt says).
 
 ## Aiden's gathering checklist
 

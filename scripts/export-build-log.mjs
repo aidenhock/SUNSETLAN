@@ -64,9 +64,16 @@ const chapters = chapterBlocks.map((block) => {
   })
   if (files.length === 0) throw new Error(`chapter "${id}" has no parseable Files lines`)
 
-  const decisions = [...section('decisions').matchAll(/^- ([\s\S]*?)(?=\n- |$)/gm)].map(([, d]) =>
-    d.replace(/\n\s+/g, ' ').trim(),
-  )
+  // Split on bullet starts rather than matching to `$`: with the `m`
+  // flag `$` ends at the first LINE break, which silently truncated
+  // every multi-line decision mid-sentence in the room and on /classic.
+  // Continuation lines are indented, so they can't be mistaken for
+  // new bullets.
+  const decisions = section('decisions')
+    .split(/^- /m)
+    .slice(1)
+    .map((d) => d.replace(/\s*\n\s+/g, ' ').trim())
+    .filter(Boolean)
   if (decisions.length === 0) throw new Error(`chapter "${id}" has no Decisions bullets`)
 
   for (const r of REQUIRED) section(r) // presence check for all five

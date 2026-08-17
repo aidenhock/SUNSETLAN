@@ -54,9 +54,9 @@
         }
       ],
       "decisions": [
-        "A moving avatar on a static planet was rejected up front: the camera",
-        "Slide-along blockers decompose a blocked diagonal step into its",
-        "Sitting (the campfire logs) is a quaternion TWEEN to put the seat"
+        "A moving avatar on a static planet was rejected up front: the camera rig, gravity alignment, and floating-point behavior all get worse as you leave the origin. The fixed pole keeps every hot computation in a numerically tiny neighborhood.",
+        "Slide-along blockers decompose a blocked diagonal step into its camera axes and retry each — walking into a wall at an angle glides instead of freezing.",
+        "Sitting (the campfire logs) is a quaternion TWEEN to put the seat under the pole, deliberately not a step, so blockers can't interfere mid-sit."
       ]
     },
     {
@@ -130,9 +130,9 @@
         }
       ],
       "decisions": [
-        "A physics engine was rejected in the spec: determinism, bundle size,",
-        "Raycasting the terrain mesh was rejected too — it's slower and lets",
-        "The hard-won corollary (Koa's floating seat): anything ON a built"
+        "A physics engine was rejected in the spec: determinism, bundle size, and the fact that a sphere-cap island needs exactly one height query.",
+        "Raycasting the terrain mesh was rejected too — it's slower and lets feet disagree with the math when jitter/tint bakes touch the mesh.",
+        "The hard-won corollary (Koa's floating seat): anything ON a built structure derives altitude from THAT structure's strip, never the terrain band under the overhang."
       ]
     },
     {
@@ -188,8 +188,8 @@
         }
       ],
       "decisions": [
-        "Three stacked shells (grass cap, sand ring, underwater apron) were",
-        "A separate painted foam ring mesh was rejected with them — foam now"
+        "Three stacked shells (grass cap, sand ring, underwater apron) were rejected after shipping briefly: exposed rims and visible undersides at grazing angles, and feet/visual disagreements at seams.",
+        "A separate painted foam ring mesh was rejected with them — foam now comes from the water shader comparing its LIVE displaced surface against the same terrain profile, so it can never detach or gap."
       ]
     },
     {
@@ -233,9 +233,9 @@
         }
       ],
       "decisions": [
-        "A banded, quantized sky gradient was tried and DELETED: shallow",
-        "The great white-out hunt: the ACES tone mapper was silently",
-        "Warm sunset colors mixed into blue in plain RGB pass through gray —"
+        "A banded, quantized sky gradient was tried and DELETED: shallow gradients band on 8-bit displays, and quantizing made it worse. The replacement is per-fragment smooth math plus a ~±1/255 hash dither.",
+        "The great white-out hunt: the ACES tone mapper was silently compressing saturated sky golds toward white. The fix wasn't more saturation — it was exempting the whole sky from tone mapping.",
+        "Warm sunset colors mixed into blue in plain RGB pass through gray — the transition routes through a saturated pink/peach bridge tone instead."
       ]
     },
     {
@@ -278,8 +278,8 @@
         }
       ],
       "decisions": [
-        "An input-dial elevation floor was rejected: it couldn't guarantee",
-        "The floor applies only within ±35° of the body's meridian, so the"
+        "An input-dial elevation floor was rejected: it couldn't guarantee the on-screen result, because the rendered framing composes the disc solve, world rotation, AND near-limb occlusion. The floor moved to \"fraction of disc visible\", measured the way the player sees it.",
+        "The floor applies only within ±35° of the body's meridian, so the walking-away set stays fully emergent — the sun still sets behind you mid-crossing."
       ]
     },
     {
@@ -324,9 +324,9 @@
         }
       ],
       "decisions": [
-        "A fixed-azimuth painted band was the first version — rejected, it",
-        "Camera-eye specular was rejected: orbiting swung the entire lane,",
-        "An azimuth-cone corridor from the eye was rejected because it"
+        "A fixed-azimuth painted band was the first version — rejected, it ignored both bodies and the player.",
+        "Camera-eye specular was rejected: orbiting swung the entire lane, which reads as a rendering artifact in third person.",
+        "An azimuth-cone corridor from the eye was rejected because it pinches to an arrow point at the viewer's nadir — the corridor's half-width is perpendicular arc distance in METERS instead."
       ]
     },
     {
@@ -396,10 +396,10 @@
         }
       ],
       "decisions": [
-        "An imported CC0 glTF avatar (plus Draco decoding) shipped briefly",
-        "Skeletons and `AnimationMixer` were rejected: pivot groups plus",
-        "The first blocky rig was rebuilt ROUNDED (v3.15): flattened-sphere",
-        "Koa's uke taught two rules the hard way: held props mount in TORSO"
+        "An imported CC0 glTF avatar (plus Draco decoding) shipped briefly and was fully reversed in the style reset — the look fought the world, and the pipeline cost wasn't buying anything primitives couldn't do.",
+        "Skeletons and `AnimationMixer` were rejected: pivot groups plus procedural math are smaller, deterministic, and testable.",
+        "The first blocky rig was rebuilt ROUNDED (v3.15): flattened-sphere head, teardrop torso — smooth-shaded characters on a flat-faceted world is Animal Crossing's own move.",
+        "Koa's uke taught two rules the hard way: held props mount in TORSO space with named landmarks (root-space anchors detach), and prop orientation comes from explicit basis vectors — Euler guessing in the wrong basis is what turned the uke sideways."
       ]
     },
     {
@@ -518,10 +518,10 @@
         }
       ],
       "decisions": [
-        "Howler and Tone were rejected — three.js's own audio nodes cover it,",
-        "The silent-uke bug: strums scheduled onto a PositionalAudio's panner",
-        "The gulls went through a \"one distance authority\" reform: a designed",
-        "The tab-return blast: catch-up scheduling replayed every missed"
+        "Howler and Tone were rejected — three.js's own audio nodes cover it, and the bundle stays clean.",
+        "The silent-uke bug: strums scheduled onto a PositionalAudio's panner never moved with the world, because three only updates panners while `isPlaying`. Custom-source nodes now sync every frame.",
+        "The gulls went through a \"one distance authority\" reform: a designed launch-gain curve stacked on a tight panner rolloff multiplied cries to near-zero; the curve is now the single authority with the panner relaxed beneath it.",
+        "The tab-return blast: catch-up scheduling replayed every missed strum at once. Suspend-on-hide (a frozen clock has nothing to catch up to) + baseline resets + skip-forward guards + voice caps, each a separate layer because each failure mode showed up separately."
       ]
     },
     {
@@ -583,9 +583,9 @@
         }
       ],
       "decisions": [
-        "Triangle-first optimization was explicitly rejected in the spec:",
-        "The budget has teeth in practice: the music prop merged from three",
-        "A blanket quality-tier gate on the fire's particles was replaced"
+        "Triangle-first optimization was explicitly rejected in the spec: the island's ~36k triangles are nowhere near any limit, but 50+ draw calls on mobile is.",
+        "The budget has teeth in practice: the music prop merged from three materials to one vertex-tinted mesh the day spawn hit exactly 50, and the fire's teepee and stones merged when a fix pass nudged it again.",
+        "A blanket quality-tier gate on the fire's particles was replaced with a reduced-pool floor — degradation should thin a scene, never delete its life."
       ]
     },
     {
@@ -629,11 +629,11 @@
         }
       ],
       "decisions": [
-        "A CMS or MDX layer was never on the table — six typed arrays are",
-        "`sharp` (the standard image library) was rejected under the",
-        "WebP-only output, no JPEG fallback: every supported browser decodes",
-        "The photos taught a provenance rule now written into the spec: only",
-        "The mirror rule (the owner's principle): everything in the world is"
+        "A CMS or MDX layer was never on the table — six typed arrays are the right amount of infrastructure for one person's portfolio.",
+        "`sharp` (the standard image library) was rejected under the no-new-deps rule; Playwright was already installed for testing, so image processing runs through a real browser canvas instead.",
+        "WebP-only output, no JPEG fallback: every supported browser decodes WebP, and a fallback would double the asset set for zero users.",
+        "The photos taught a provenance rule now written into the spec: only what the owner deliberately stages ships — an agent must never source content from personal folders or exports, even helpfully.",
+        "The mirror rule (the owner's principle): everything in the world is also on /classic — same content files, one is playable. Shared components enforce it where logic is involved: the Formspree contact form is ONE component rendered by both the mailbox modal and the classic page, so the two can never drift."
       ]
     },
     {
@@ -691,9 +691,9 @@
         }
       ],
       "decisions": [
-        "The big tree + rings (and the placeholder cube beside the trunk)",
-        "v1 was a waist-high slab in a small hedge ring; the owner asked for",
-        "The hedge ring and its three invisible arc-guard blockers were CUT:"
+        "The big tree + rings (and the placeholder cube beside the trunk) were removed outright rather than kept as scenery — two objects meaning one thing confused the read.",
+        "v1 was a waist-high slab in a small hedge ring; the owner asked for the moai (Easter Island references). Kept across versions: the vertex-tinted single-merge pattern, the grey-green palette, the face-the-approach rule.",
+        "The hedge ring and its three invisible arc-guard blockers were CUT: circular blockers approximating a ring left seams and outer reaches that stopped players on empty grass — \"I get stuck on nothing\" is a worse bug than any hedge is worth. The lesson generalizes: colliders must trace something the player can SEE. Verified by walking full laps in both directions (zero stuck steps) and four-sided walk-ins stopping only at the visible statue."
       ]
     },
     {
@@ -738,8 +738,8 @@
         }
       ],
       "decisions": [
-        "An embedded PDF iframe viewer was rejected: it fetches on modal",
-        "The resume shipped as a marked PLACEHOLDER: the real file's header"
+        "An embedded PDF iframe viewer was rejected: it fetches on modal open, styles inconsistently across browsers, and the browser's own tab viewer is strictly better at its one job.",
+        "The resume shipped as a marked PLACEHOLDER: the real file's header carries a phone number, and the standing privacy rule says no version with a phone or home address ever ships — the owner strips it and swaps the file, no code change needed."
       ]
     },
     {
@@ -788,9 +788,9 @@
         }
       ],
       "decisions": [
-        "A second three.js scene for the map was ruled out and would have",
-        "Exploration fog was built, shipped, and then REMOVED at the owner's",
-        "North-up was replaced by camera-up with the player pinned at the"
+        "A second three.js scene for the map was ruled out and would have doubled renderer state for a HUD widget; canvas 2D draws it in one pass.",
+        "Exploration fog was built, shipped, and then REMOVED at the owner's call: a portfolio should not ask visitors to grind for its own map. The 8×24 cell grid and its localStorage persistence went with it.",
+        "North-up was replaced by camera-up with the player pinned at the centre. A fixed-north map is a better compass; a player-centred one is a better answer to \"what is near me\", which is the question this island actually raises."
       ]
     },
     {
@@ -846,17 +846,17 @@
         }
       ],
       "decisions": [
-        "CONSENT RULE recorded in the content file and CONTENT.md: names and",
-        "The first version was a 3.2 m circular stone ring — too cramped to",
-        "The glow is deliberately dim (0.35 / 0.28 peak, distance 4): the"
+        "CONSENT RULE recorded in the content file and CONTENT.md: names and photos of living people require their explicit okay before shipping publicly; pets are Aiden's call. Placeholders ship in the meantime and say so in the modal.",
+        "The first version was a 3.2 m circular stone ring — too cramped to walk in, and nothing like the Animal Crossing gardens it was meant to echo. Rebuilding it big forced `wrapToSphere`, which is now the general answer to placement rule 2 for anything wider than a few metres.",
+        "The glow is deliberately dim (0.35 / 0.28 peak, distance 4): the space should read hushed next to the campfire's warmth, not compete with it."
       ]
     },
     {
       "id": "matrix-room",
       "title": "The room through the rift",
       "hook": "A tear in the air on the night side opens into a room you can\r\nrun around in.",
-      "plain": "A shard of broken light hangs over the grass past the\r terminator. Step into it and you are standing in a rectangular room:\r walls of falling ones and zeroes running endlessly above and below a\r glass floor, a framed screenshot of every feature on this island hung\r around you, and the rift itself hovering in the middle. Walk up to any\r picture and press E to read how that piece was built — in plain\r language first, then the real code. Walk back into the rift to come\r home. The minimap comes with you and redraws itself as a plan of the\r room.",
-      "technical": "The room is a second walkable space, not a dialog, and\r it keeps the island's central invariant: THE AVATAR NEVER MOVES. The\r room group slides underneath it instead (`useRoomController`), so the\r camera rig, jump arc, avatar animation, and footstep hooks all work\r unchanged; only \"where am I\" changes, and that lives in `roomRuntime`.\r Walls clamp per axis so diagonals slide, and the follow camera marches\r its own ray to the nearest wall so it never ends up outside looking in.\r Entering flips `inRoom`: the planet group and the sky rig stand down\r (the planet's draws stop entirely) and `RoomScene` mounts from a lazy\r chunk. The wallpaper is a generated canvas of 0s and 1s scrolled by\r `map.offset.y` — no new shader, the two-shader rule stands. The mural\r images are the one place this project uses image textures, and they are\r screenshots of itself, captured by `scripts/capture-murals.mjs`.\r Chapter text comes from `docs/build-log.json`, exported from this file\r at build time — the room is documentation rendering itself.",
+      "plain": "A shard of broken light hangs over the grass past the\r terminator. Step into it and you are standing in a rectangular room:\r walls of falling ones and zeroes running endlessly above and below a\r glass floor, a framed screenshot of every feature on this island hung\r around you, and the rift itself hovering in the middle. Walk up to any\r picture and press E to read how that piece was built — in plain\r language first, then the real code. Some features need more than one\r frame to show (the two skies, the sun's arc, the map inside and outside\r this room), so those pictures come as a small set you click through\r with arrows. Walk back into the rift to come home. The minimap comes\r with you and redraws itself as a plan of the room.",
+      "technical": "The room is a second walkable space, not a dialog, and\r it keeps the island's central invariant: THE AVATAR NEVER MOVES. The\r room group slides underneath it instead (`useRoomController`), so the\r camera rig, jump arc, avatar animation, and footstep hooks all work\r unchanged; only \"where am I\" changes, and that lives in `roomRuntime`.\r Walls clamp per axis so diagonals slide, and the follow camera marches\r its own ray to the nearest wall so it never ends up outside looking in.\r Entering flips `inRoom`: the planet group and the sky rig stand down\r (the planet's draws stop entirely) and `RoomScene` mounts from a lazy\r chunk. The wallpaper is a generated canvas of 0s and 1s scrolled by\r `map.offset.y` — no new shader, the two-shader rule stands. The mural\r images are the one place this project uses image textures, and they are\r screenshots of itself, captured by `scripts/capture-murals.mjs`; each\r mural declares an ordered `shots[]` and the wall hangs the first, so\r the room still costs one texture per frame no matter how many pictures\r a feature carries.\r Chapter text comes from `docs/build-log.json`, exported from this file\r at build time — the room is documentation rendering itself.",
       "files": [
         {
           "path": "src/controls/useRoomController.ts",
@@ -911,9 +911,10 @@
         }
       ],
       "decisions": [
-        "The first version was a MODAL: a reader panel over a static 3D",
-        "A second `<Canvas>` was rejected: two WebGL contexts double renderer",
-        "Moving the room instead of the avatar looks like a trick, but it is"
+        "The first version was a MODAL: a reader panel over a static 3D backdrop with the camera parked. It was cheap and it was wrong — the whole promise of a portal is that you go somewhere. Rebuilt as a place you walk in.",
+        "A second `<Canvas>` was rejected: two WebGL contexts double renderer state and risk context loss on mobile. Hiding the planet costs nothing and drops the scene to the room's own ~23 draw calls.",
+        "Moving the room instead of the avatar looks like a trick, but it is the same trick the island runs, and it means one camera rig and one animation system serve both spaces.",
+        "Multi-shot murals are declared in content and captured by script, and vitest compares the two lists in BOTH directions. A mural naming a file nobody captured used to hang a silent black frame on the wall; an orphaned capture is just as wrong, so both now fail the suite."
       ]
     },
     {
@@ -957,9 +958,9 @@
         }
       ],
       "decisions": [
-        "Self-hosting over a fonts CDN. Nothing else in this project makes an",
-        "The first version shipped Bricolage twice. Asking Google for weights",
-        "Latin subsets only, and `font-display: swap` so text is readable"
+        "Self-hosting over a fonts CDN. Nothing else in this project makes an external runtime request, and a CDN font link tells a third party about every visitor for no benefit the local file doesn't give.",
+        "The first version shipped Bricolage twice. Asking Google for weights 400 and 700 of a VARIABLE font returns the same 75 KB file under two URLs — the script now dedupes by content hash and emits one face with a `font-weight: 400 700` range, halving the font payload.",
+        "Latin subsets only, and `font-display: swap` so text is readable immediately in the fallback rather than invisible while fonts load."
       ]
     },
     {
@@ -1029,9 +1030,9 @@
         }
       ],
       "decisions": [
-        "JSON, not TypeScript, for the data half. It keeps the file editable",
-        "`facingDeg` is measured from local NORTH, not from world axes, because",
-        "MAP was kept rather than replaced. Rewriting every `MAP.campfire`"
+        "JSON, not TypeScript, for the data half. It keeps the file editable by tooling and by hand without a build step, and the typed wrapper gives the app everything it would have gotten from a `.ts` literal.",
+        "`facingDeg` is measured from local NORTH, not from world axes, because north is the only direction that means anything on a sphere you walk around. It is degrees rather than radians purely because a human edits this file.",
+        "MAP was kept rather than replaced. Rewriting every `MAP.campfire` call site would have been a large diff with no behaviour change; one derived table costs nothing and keeps the index authoritative."
       ]
     }
   ]

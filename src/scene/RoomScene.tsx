@@ -2,7 +2,7 @@ import { useFrame } from '@react-three/fiber'
 import { forwardRef, useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
-import { murals, muralImage } from '../content/murals'
+import { muralCover, murals } from '../content/murals'
 import { ROOM } from '../controls/useRoomController'
 import { useStore } from '../store/useStore'
 import { mulberry32 } from './geometryUtils'
@@ -91,7 +91,9 @@ export const RoomScene = forwardRef<THREE.Group>(function RoomScene(_props, ref)
     const loader = new THREE.TextureLoader()
     const texMap = new Map<string, THREE.Texture>()
     for (const m of murals) {
-      const tex = loader.load(muralImage(m.id))
+      // The wall hangs the mural's FIRST shot; the rest live in the
+      // modal's carousel, so the room still costs one texture per frame.
+      const tex = loader.load(muralCover(m))
       tex.colorSpace = THREE.SRGBColorSpace
       texMap.set(m.id, tex)
     }

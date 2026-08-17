@@ -247,6 +247,17 @@ test('desktop: rift room — walk in, read a mural, walk back out', async ({ pag
   // It renders the REAL build-time code excerpt, not prose about code.
   await page.getByText('How it works').click()
   await expect(page.locator('pre', { hasText: 'export function rotationStep' }).first()).toBeVisible()
+
+  // Murals with several shots page through them and wrap at the ends.
+  const caption = page.locator('figcaption span').first()
+  await expect(page.getByText('1 of 2')).toBeVisible()
+  const first = await caption.textContent()
+  await page.getByRole('button', { name: 'Next picture' }).click()
+  await expect(page.getByText('2 of 2')).toBeVisible()
+  expect(await caption.textContent()).not.toBe(first)
+  await page.keyboard.press('ArrowRight') // wraps back to the first
+  await expect(page.getByText('1 of 2')).toBeVisible()
+  expect(await caption.textContent()).toBe(first)
   await page.keyboard.press('Escape')
   await expect(dialog).toBeHidden()
 

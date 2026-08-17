@@ -134,10 +134,14 @@ a lazy chunk, and `useRoomController` takes over.
   read as endless, and the rift hovering at the centre as the way out.
   The wallpaper is a GENERATED canvas tile scrolled by `map.offset.y` —
   the two-shader rule (dome + water) still stands, no new shaders.
-- **Murals**: one framed screenshot per feature on the walls, each tied
+- **Murals**: a framed screenshot per feature on the walls, each tied
   to a build-log chapter (`content/murals.ts`). "E — <caption>" opens
   that chapter: plain language, then how it works, then the real
-  build-time code excerpt. **This is the ONE place image textures are
+  build-time code excerpt. A mural may carry SEVERAL shots (`shots[]`,
+  files `<id>-<n>.jpg`, one caption each) when a single frame can't
+  show the feature — the wall hangs the first, the modal pages the rest
+  with arrows/←→ and wraps at both ends. Vitest pins declared shots
+  against the files on disk in BOTH directions. **This is the ONE place image textures are
   allowed** (the ban still holds everywhere on the island) — and they
   are screenshots of this project, captured by
   `scripts/capture-murals.mjs`; rerun it when the world's look changes.
