@@ -1,6 +1,8 @@
-import { useId, useState } from 'react'
+import { useCallback, useEffect, useId, useState } from 'react'
 import { buildLogChapters } from '../content/buildLog'
-import { muralForChapter, muralImage } from '../content/murals'
+import { muralForChapter } from '../content/murals'
+import { PictureCarousel } from '../ui/PictureCarousel'
+import { StepDots } from '../ui/StepDots'
 
 /** "01 · Title" — zero-padded step + a middle dot, shared by the select options and the article heading. */
 function chapterLabel(ch: { step: number; title: string }): string {
@@ -15,7 +17,25 @@ function chapterLabel(ch: { step: number; title: string }): string {
 export function BuildLogSection() {
   const selectId = useId()
   const [index, setIndex] = useState(0)
+  // Chapters you've read this visit. Session only, by design: the log
+  // is a story to walk through, not progress to grind for.
+  const [seen, setSeen] = useState<boolean[]>(() =>
+    buildLogChapters.map((_, i) => i === 0),
+  )
   const chapter = buildLogChapters[index]
+
+  const goTo = useCallback((next: number) => {
+    setIndex(Math.max(0, Math.min(buildLogChapters.length - 1, next)))
+  }, [])
+
+  useEffect(() => {
+    setSeen((prev) => {
+      if (prev[index]) return prev
+      const copy = [...prev]
+      copy[index] = true
+      return copy
+    })
+  }, [index])
 
   if (!chapter) {
     return (
@@ -59,10 +79,20 @@ export function BuildLogSection() {
         </select>
       </div>
 
-      <div className="mt-3 flex gap-3">
+      {/* The chapters you've been through light up, left to right. */}
+      <StepDots
+        count={buildLogChapters.length}
+        current={index}
+        seen={seen}
+        onSelect={goTo}
+        label="Build log progress"
+        itemLabel={(i) => chapterLabel(buildLogChapters[i])}
+      />
+
+      <div className="mt-1 flex gap-3">
         <button
           type="button"
-          onClick={() => setIndex((i) => Math.max(0, i - 1))}
+          onClick={() => goTo(index - 1)}
           disabled={atStart}
           className="rounded-lg border border-ink/20 bg-white px-3 py-1.5 text-sm font-semibold text-deepwater disabled:cursor-not-allowed disabled:opacity-40"
         >
@@ -70,7 +100,7 @@ export function BuildLogSection() {
         </button>
         <button
           type="button"
-          onClick={() => setIndex((i) => Math.min(buildLogChapters.length - 1, i + 1))}
+          onClick={() => goTo(index + 1)}
           disabled={atEnd}
           className="rounded-lg border border-ink/20 bg-white px-3 py-1.5 text-sm font-semibold text-deepwater disabled:cursor-not-allowed disabled:opacity-40"
         >
@@ -84,18 +114,9 @@ export function BuildLogSection() {
         <p className="mt-3 whitespace-pre-line leading-relaxed text-ink/70">{chapter.plain}</p>
 
         {mural && mural.shots.length > 0 && (
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            {mural.shots.map((shot) => (
-              <figure key={shot.file} className="overflow-hidden rounded-lg border border-ink/10 bg-white">
-                <img
-                  src={muralImage(shot.file)}
-                  alt={shot.caption}
-                  loading="lazy"
-                  className="aspect-[4/3] w-full object-cover"
-                />
-                <figcaption className="p-2 text-xs text-ink/60">{shot.caption}</figcaption>
-              </figure>
-            ))}
+          <div className="mt-4">
+            {/* Same viewer the room's murals use — arrows, captions, dots. */}
+            <PictureCarousel key={mural.id} shots={mural.shots} />
           </div>
         )}
 

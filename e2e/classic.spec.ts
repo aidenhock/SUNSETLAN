@@ -63,3 +63,37 @@ test('/classic build log dropdown steps through numbered chapters with murals', 
 
   expect(realErrors(errors)).toEqual([])
 })
+
+test('/classic build log: pictures page with arrows, and progress dots light up', async ({
+  page,
+}) => {
+  await page.goto('/classic', { waitUntil: 'networkidle' })
+  const rail = page.locator('[aria-label="Build log progress"]')
+  await expect(rail).toBeVisible()
+  const lit = rail.locator('[data-seen]')
+  // Only the chapter you land on is lit to begin with.
+  await expect(lit).toHaveCount(1)
+
+  // Each Next lights one more, left to right.
+  await page.getByRole('button', { name: 'Next ›' }).click()
+  await expect(lit).toHaveCount(2)
+  await page.getByRole('button', { name: 'Next ›' }).click()
+  await expect(lit).toHaveCount(3)
+  // Stepping BACK must not un-light what you have already read.
+  await page.getByRole('button', { name: '‹ Previous' }).click()
+  await expect(lit).toHaveCount(3)
+
+  // A dot jumps straight to its chapter.
+  await rail.getByRole('button').nth(8).click()
+  await expect(page.getByRole('heading', { name: /^09 · / })).toBeVisible()
+
+  // The chapter's pictures page with arrows and wrap.
+  const caption = page.locator('article figcaption span').first()
+  const first = await caption.textContent()
+  await page.getByRole('button', { name: 'Next picture' }).click()
+  await expect(page.getByText('2 of 2')).toBeVisible()
+  expect(await caption.textContent()).not.toBe(first)
+  await page.getByRole('button', { name: 'Next picture' }).click()
+  await expect(page.getByText('1 of 2')).toBeVisible()
+  expect(await caption.textContent()).toBe(first)
+})

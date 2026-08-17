@@ -563,9 +563,14 @@ clockwise, so walking the room walks the history of the island. Walk up
 to any picture and press E to read how that piece was built — in plain
 language first, then the real code. Some features need more than one
 frame to show (the two skies, the sun's arc, the map inside and outside
-this room), so those come as a small set you click through with arrows.
-Walk back into the rift to come home. The minimap comes with you and
-redraws itself as a plan of the room.
+this room), so those come as a small set you click through with arrows,
+with dots underneath that light up as you look at each one. Walk back
+into the rift to come home. The minimap comes with you and redraws
+itself as a plan of the room.
+
+The same chapters, pictures, and arrows are on the classic site under
+Build log, as a numbered dropdown you can step through — with its own
+row of dots that fills in as you read your way along.
 
 **Technical:** The room is a second walkable space, not a dialog, and
 it keeps the island's central invariant: THE AVATAR NEVER MOVES. The
@@ -586,7 +591,11 @@ a feature carries. Placement is derived, not authored: each chapter's
 `step` (its position in this file) sets both the number on the plate
 and the wall slot, dealt clockwise by largest-remainder over wall
 length — add a chapter and the whole room re-flows. The plates share
-one generated number atlas and merge into a single draw call.
+one generated number atlas and merge into a single draw call. The
+picture viewer itself (`PictureCarousel`) and the glowing progress rail
+(`StepDots`) are shared components: the room's mural modal and the
+classic site's build log render the same code, the way `ContactForm`
+already serves both surfaces.
 Chapter text comes from `docs/build-log.json`, exported from this file
 at build time — the room is documentation rendering itself.
 
@@ -607,6 +616,12 @@ at build time — the room is documentation rendering itself.
 - Moving the room instead of the avatar looks like a trick, but it is
   the same trick the island runs, and it means one camera rig and one
   animation system serve both spaces.
+- Progress dots track this VISIT only, with no localStorage. The same
+  question came up for the minimap's exploration fog and got the same
+  answer: a portfolio shouldn't ask anyone to grind through it, and a
+  returning visitor shouldn't be told what they already read.
+- The rail fills to the FURTHEST chapter reached, not the current one —
+  stepping back to re-read something must not un-light it.
 - The room's running order is the build log's own order rather than a
   hand-placed layout. Hanging pictures by hand would have drifted from
   the chapters within a session; deriving both the number and the slot

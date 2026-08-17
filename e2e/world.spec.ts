@@ -243,9 +243,7 @@ test('desktop: rift room — walk in, read a mural, walk back out', async ({ pag
   await page.keyboard.press('KeyE')
   const dialog = page.getByRole('dialog')
   await expect(dialog).toBeVisible({ timeout: 3000 })
-  await expect(
-    page.getByRole('heading', { name: 'The world that turns beneath you' }),
-  ).toBeVisible()
+  await expect(page.getByRole('heading', { name: /The world that turns beneath you/ })).toBeVisible()
   // It renders the REAL build-time code excerpt, not prose about code.
   await page.getByText('How it works').click()
   await expect(page.locator('pre', { hasText: 'export function rotationStep' }).first()).toBeVisible()
