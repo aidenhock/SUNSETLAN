@@ -759,8 +759,8 @@
       "step": 13,
       "title": "The minimap",
       "hook": "A little map in the corner that keeps you at the centre of the world.",
-      "plain": "The circular minimap is a bird's-eye view of the island with\r you always in the middle and whatever you are facing pointing up — walk\r and the island slides under your marker, turn and the map turns with\r you. Everything is on it from the first second: no fog to clear, no\r progress to grind. Portals show as labelled dots. M (or the menu)\r hides it. Step through the rift and the same little window switches to\r a plan of the room you are standing in.",
-      "technical": "A 2D canvas overlay — deliberately not a second three.js\r scene — redrawn every animation frame with zero per-frame allocations,\r so the map tracks continuously instead of catching up when you stop.\r The projection is azimuthal around the PLAYER: `playerFrame` builds the\r tangent frame under the avatar from the live planet quaternion, then\r every target becomes a `rangeTo` (great-circle metres) and a `bearingTo`\r (radians from local north). `cameraHeading` converts the camera's world\r forward into the same frame and `toScreen` subtracts it, so the heading\r points up. The island is drawn by projecting two 64-point latitude\r rings, which stay correct under any rotation; `roomToScreen` does the\r same job for the room's flat rectangle.",
+      "plain": "The circular minimap is a bird's-eye view of the island with\r you always in the middle and whatever you are facing pointing up — walk\r and the island slides under your marker, turn and the map turns with\r you. Everything is on it from the first second: no fog to clear, no\r progress to grind.\r \r It reads like a map of a real place rather than a list of pins. Grass\r is green and the beach is sand; palms are green blobs and rocks grey\r ones; every landmark is its own colour, and the two big things are\r drawn as the shape you actually walk — the cemetery as its walled plot,\r the dock as the strip running out over the water. Nothing is labelled;\r you learn the island by its shapes. The sea carries the island's two\r moods, warm blue toward the sunset meridian and deep night-blue toward\r the other, with the sun and moon marked out on the water where they\r really hang — and pinned to the rim when they fall off the edge, so the\r map always tells you which way each side is.\r \r M (or the menu) hides it. Step through the rift and the same little\r window switches to a plan of the room you are standing in.",
+      "technical": "A 2D canvas overlay — deliberately not a second three.js\r scene — redrawn every animation frame with zero per-frame allocations,\r so the map tracks continuously instead of catching up when you stop.\r The projection is azimuthal around the PLAYER: `playerFrame` builds the\r tangent frame under the avatar from the live planet quaternion, then\r every target becomes a `rangeTo` (great-circle metres) and a `bearingTo`\r (radians from local north). `cameraHeading` converts the camera's world\r forward into the same frame and `toScreen` subtracts it, so the heading\r points up. The island is drawn by projecting two 64-point latitude\r rings, which stay correct under any rotation; `roomToScreen` does the\r same job for the room's flat rectangle.\r \r Everything on it comes from the world index, so moving a monument moves\r its icon: `mapIcons.ts` holds appearance only (colour, shape, size) and\r derives positions from `monuments.json` and `scatterProps`. Footprints\r are real geometry — the cemetery's four corners come from its recorded\r `size` and facing, each converted at ITS OWN latitude. The sea gradient\r runs along the projected sun→moon axis, so it rotates with the map.",
       "files": [
         {
           "path": "src/ui/minimapMath.ts",
@@ -794,15 +794,42 @@
           "note": "the canvas overlay"
         },
         {
+          "path": "src/ui/mapIcons.ts",
+          "symbols": [
+            "MARKERS",
+            "CEMETERY_FOOTPRINT",
+            "SUN_UNIT"
+          ],
+          "excerpts": [
+            {
+              "symbol": "MARKERS",
+              "line": 61,
+              "code": "export const MARKERS: MapMarker[] = monuments\r\n  .filter((m) => m.kind !== 'seat' && m.id !== 'cemetery' && m.id !== 'dock')\r\n  .map((m) => ({\r\n    unit: latLongToUnit(m.lat, m.long),\r\n    icon: BY_ID[m.id] ?? BY_KIND[m.kind] ?? BY_KIND.prop,\r\n  }))\r\n\r\n/** Scattered nature: palms read as green blobs, rocks as grey ones. */\r\nexport const SCATTER: MapMarker[] = scatterProps\r\n  .filter((p) => p.kind !== 'shell') // too small to read at this scale\r\n  .map((p) => ({\r\n    unit: latLongToUnit(p.lat, p.long),\r\n    icon:\r\n      p.kind === 'palm'\r"
+            },
+            {
+              "symbol": "CEMETERY_FOOTPRINT",
+              "line": 93,
+              "code": "export const CEMETERY_FOOTPRINT: THREE.Vector3[] = (() => {\r\n  const plot = monument('cemetery')\r\n  const w = (plot.size?.widthM ?? 12) / 2\r\n  const d = (plot.size?.depthM ?? 10) / 2\r\n  const yaw = (plot.facingDeg * Math.PI) / 180\r\n  const cos = Math.cos(yaw)\r\n  const sin = Math.sin(yaw)\r\n  const corners: Array<[number, number]> = [\r\n    [-w, d],\r\n    [w, d],\r\n    [w, -d],\r\n    [-w, -d],\r\n  ]\r\n  return corners.map(([east, north]) => {\r"
+            },
+            {
+              "symbol": "SUN_UNIT",
+              "line": 128,
+              "code": "export const SUN_UNIT = latLongToUnit(4, 0)\r\nexport const MOON_UNIT = latLongToUnit(4, 180)\r\n"
+            }
+          ]
+        },
+        {
           "path": "src/content/monuments.ts",
           "symbols": [],
           "excerpts": [],
-          "note": "where the dots come from"
+          "note": "where everything on it stands"
         }
       ],
       "decisions": [
         "A second three.js scene for the map was ruled out and would have doubled renderer state for a HUD widget; canvas 2D draws it in one pass.",
         "Exploration fog was built, shipped, and then REMOVED at the owner's call: a portfolio should not ask visitors to grind for its own map. The 8×24 cell grid and its localStorage persistence went with it.",
+        "Labels came off. Twelve names on a 130 px disc was most of the map's ink, and it read as a legend rather than a place; colour and shape carry it now, the way a Minecraft map does.",
+        "The cemetery's corners each convert at their own latitude. Using the plot's centre for all four — the obvious version — drew its north edge 2.4 m short of the fence you can walk, because a degree of longitude shrinks as you go north. A test pins the real size.",
         "North-up was replaced by camera-up with the player pinned at the centre. A fixed-north map is a better compass; a player-centred one is a better answer to \"what is near me\", which is the question this island actually raises."
       ]
     },

@@ -468,9 +468,21 @@ section per the mirror rule. Files live in `public/`.
 you always in the middle and whatever you are facing pointing up — walk
 and the island slides under your marker, turn and the map turns with
 you. Everything is on it from the first second: no fog to clear, no
-progress to grind. Portals show as labelled dots. M (or the menu)
-hides it. Step through the rift and the same little window switches to
-a plan of the room you are standing in.
+progress to grind.
+
+It reads like a map of a real place rather than a list of pins. Grass
+is green and the beach is sand; palms are green blobs and rocks grey
+ones; every landmark is its own colour, and the two big things are
+drawn as the shape you actually walk — the cemetery as its walled plot,
+the dock as the strip running out over the water. Nothing is labelled;
+you learn the island by its shapes. The sea carries the island's two
+moods, warm blue toward the sunset meridian and deep night-blue toward
+the other, with the sun and moon marked out on the water where they
+really hang — and pinned to the rim when they fall off the edge, so the
+map always tells you which way each side is.
+
+M (or the menu) hides it. Step through the rift and the same little
+window switches to a plan of the room you are standing in.
 
 **Technical:** A 2D canvas overlay — deliberately not a second three.js
 scene — redrawn every animation frame with zero per-frame allocations,
@@ -484,10 +496,18 @@ points up. The island is drawn by projecting two 64-point latitude
 rings, which stay correct under any rotation; `roomToScreen` does the
 same job for the room's flat rectangle.
 
+Everything on it comes from the world index, so moving a monument moves
+its icon: `mapIcons.ts` holds appearance only (colour, shape, size) and
+derives positions from `monuments.json` and `scatterProps`. Footprints
+are real geometry — the cemetery's four corners come from its recorded
+`size` and facing, each converted at ITS OWN latitude. The sea gradient
+runs along the projected sun→moon axis, so it rotates with the map.
+
 **Files:**
 - `src/ui/minimapMath.ts` — `playerFrame`, `bearingTo`, `toScreen`
 - `src/ui/Minimap.tsx` — the canvas overlay
-- `src/content/monuments.ts` — where the dots come from
+- `src/ui/mapIcons.ts` — `MARKERS`, `CEMETERY_FOOTPRINT`, `SUN_UNIT`
+- `src/content/monuments.ts` — where everything on it stands
 
 **Decisions:**
 - A second three.js scene for the map was ruled out and would have
@@ -496,6 +516,13 @@ same job for the room's flat rectangle.
 - Exploration fog was built, shipped, and then REMOVED at the owner's
   call: a portfolio should not ask visitors to grind for its own map.
   The 8×24 cell grid and its localStorage persistence went with it.
+- Labels came off. Twelve names on a 130 px disc was most of the map's
+  ink, and it read as a legend rather than a place; colour and shape
+  carry it now, the way a Minecraft map does.
+- The cemetery's corners each convert at their own latitude. Using the
+  plot's centre for all four — the obvious version — drew its north
+  edge 2.4 m short of the fence you can walk, because a degree of
+  longitude shrinks as you go north. A test pins the real size.
 - North-up was replaced by camera-up with the player pinned at the
   centre. A fixed-north map is a better compass; a player-centred one
   is a better answer to "what is near me", which is the question this
