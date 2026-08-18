@@ -3,7 +3,8 @@ import { useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { mulberry32 } from '../audio/procedural'
 import { useStore } from '../store/useStore'
-import { MAP } from './planetConfig'
+import { placement } from '../content/placements'
+import { usePlacementRuntime } from './placementRuntime'
 import { skyRuntime } from './useSkyState'
 import { SurfaceGroup } from './SurfaceGroup'
 
@@ -19,6 +20,9 @@ const COUNT = 12
 const AREA = 2.4 // fireflies wander a soft disc inside the walls
 
 export function Cemetery() {
+  // Follows its placement, so the dev editor can move it.
+  const plot = usePlacementRuntime((st) => st.list.find((p) => p.id === 'cemetery')) ?? placement('cemetery')
+
   const points = useRef<THREE.Points>(null)
   const lightA = useRef<THREE.PointLight>(null)
   const lightB = useRef<THREE.PointLight>(null)
@@ -79,7 +83,7 @@ export function Cemetery() {
   })
 
   return (
-    <SurfaceGroup lat={MAP.cemetery.lat} long={MAP.cemetery.long}>
+    <SurfaceGroup lat={plot.lat} long={plot.long}>
       <points ref={points} geometry={geo} material={mat} renderOrder={2} />
       <pointLight ref={lightA} position={[-0.8, 0.5, -1.4]} distance={4} decay={1.4} color="#ffca8a" />
       <pointLight ref={lightB} position={[1.0, 0.5, -1.2]} distance={4} decay={1.4} color="#ffca8a" />

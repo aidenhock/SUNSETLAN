@@ -6,7 +6,8 @@ import { latLongToUnit, meridianYaw, surfaceQuaternion } from '../controls/plane
 import { useStore } from '../store/useStore'
 import { WIND_AXIS } from './Clouds'
 import { bakeWarmTintToward } from './geometryUtils'
-import { MAP } from './planetConfig'
+import { placement } from '../content/placements'
+import { usePlacementRuntime } from './placementRuntime'
 import { skyRuntime } from './useSkyState'
 import { SurfaceGroup } from './SurfaceGroup'
 
@@ -84,12 +85,15 @@ const LARGE_COUNT = 3 // second Points (size 0.16)
  * velocity direction, pulled back through the same surfaceQuaternion +
  * meridianYaw the SurfaceGroup applies. Ash shares the sky's weather. */
 const WIND = (() => {
-  const unit = latLongToUnit(MAP.campfire.lat, MAP.campfire.long)
+  // Baked at import from the FILE's placement: an editor nudge of a few
+  // metres cannot meaningfully change which way the ash drifts.
+  const home = placement('campfire')
+  const unit = latLongToUnit(home.lat, home.long)
   const vel = new THREE.Vector3().crossVectors(WIND_AXIS, unit).normalize().multiplyScalar(0.2)
   const frame = surfaceQuaternion(unit).multiply(
     new THREE.Quaternion().setFromAxisAngle(
       new THREE.Vector3(0, 1, 0),
-      meridianYaw(MAP.campfire.lat, MAP.campfire.long),
+      meridianYaw(home.lat, home.long),
     ),
   )
   return vel.applyQuaternion(frame.invert())
@@ -215,6 +219,9 @@ function mergeParts(parts: THREE.BufferGeometry[]): THREE.BufferGeometry {
 }
 
 export function Fire() {
+  // Follows its placement, so the dev editor can move it.
+  const firePos = usePlacementRuntime((st) => st.list.find((p) => p.id === 'campfire')) ?? placement('campfire')
+
   const tongues = useRef<THREE.InstancedMesh>(null)
   const light = useRef<THREE.PointLight>(null)
   const smallPts = useRef<THREE.Points>(null)
@@ -398,7 +405,7 @@ export function Fire() {
   })
 
   return (
-    <SurfaceGroup lat={MAP.campfire.lat} long={MAP.campfire.long}>
+    <SurfaceGroup lat={firePos.lat} long={firePos.long}>
       {/* The lit base — world-scale (outside the flame's 1.4× group),
           opaque, normal render order: terrain rules apply. */}
       <mesh geometry={base.geo} material={base.mat} />

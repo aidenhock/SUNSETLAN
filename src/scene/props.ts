@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js'
 import { tintGeometry, wrapToSphere } from './geometryUtils'
-import { placement, placementYaw } from '../content/placements'
+import { placement } from '../content/placements'
 import { groundAltitudeAt } from '../controls/terrain'
 import { PLANET_RADIUS, SINK_M } from './planetConfig'
 
@@ -348,7 +348,12 @@ export function buildPalapa(): PropPart[] {
  * builder in this file: render it with NO placement transform. ONE
  * vertex-tinted merge (one draw call).
  */
-export function buildCemetery(): PropPart[] {
+export function buildCemetery(plot: {
+  lat: number
+  long: number
+  yawDeg: number
+  size?: { widthM: number; depthM: number }
+} = placement('cemetery')): PropPart[] {
   const tinted = (g: THREE.BufferGeometry, color: string, pos: [number, number, number], rot: [number, number, number] = [0, 0, 0], scale: [number, number, number] = [1, 1, 1]) => {
     const n = tintGeometry(normalizeForMerge(g), color)
     g.dispose()
@@ -362,7 +367,7 @@ export function buildCemetery(): PropPart[] {
     return n
   }
 
-  const cem = placement('cemetery')
+  const cem = plot
   const HW = (cem.size?.widthM ?? 17) / 2
   const HD = (cem.size?.depthM ?? 13) / 2
   const GATE_HALF = 1.5 // ~3 m opening, centered on the south (downhill) edge
@@ -505,7 +510,7 @@ export function buildCemetery(): PropPart[] {
     lat: cem.lat,
     long: cem.long,
     radius: PLANET_RADIUS,
-    yawRad: placementYaw('cemetery'),
+    yawRad: (cem.yawDeg * Math.PI) / 180,
     baseAlt: groundAltitudeAt(cem.lat, cem.long) - SINK_M,
   })
   flat.dispose()

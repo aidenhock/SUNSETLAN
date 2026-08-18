@@ -3,6 +3,7 @@ import { placementsHeader, placements as fileP, type Placement } from '../conten
 import { latLongToUnit } from '../controls/planetMath'
 import { blockers, fenceBlockersFor, PLANET_RADIUS } from './planetConfig'
 import { groundAltitudeAt } from '../controls/terrain'
+import { autoBlockerRadius } from './propFootprints'
 
 /**
  * The world's live placement list.
@@ -46,6 +47,9 @@ interface PlacementRuntime {
   drawCalls: number
   /** Prop type armed for placing; the next ground click spends it. */
   brush: string | null
+  /** True between pointer-down and pointer-up on a move. Structures that
+   *  are expensive to rebuild (the cemetery) wait for the drop. */
+  isDragging: boolean
 
   select: (id: string | null) => void
   /** A drag is ONE undo step: startMove snapshots, moveTo streams. */
@@ -54,7 +58,13 @@ interface PlacementRuntime {
   moveTo: (id: string, lat: number, long: number) => void
   nudge: (id: string, east: number, north: number) => void
   rotate: (id: string, deltaDeg: number) => void
+  /** Turn just this one, leaving any parts where they are. */
+  rotateOnly: (id: string, deltaDeg: number) => void
   setField: (id: string, patch: Partial<Placement>) => void
+  /** Scale, taking the blocker with it — collision follows the mesh. */
+  setScale: (id: string, scale: number) => void
+  /** Reset the blocker to the prop's measured footprint. */
+  autoBlocker: (id: string) => void
   add: (type: string, lat: number, long: number) => string
   remove: (id: string) => void
   duplicate: (id: string) => string | null
@@ -81,6 +91,38 @@ function rebuildBlockers(list: Placement[]) {
   }))
   blockers.length = 0
   blockers.push(...fromPlacements, ...fence)
+}
+
+/**
+ * Moving a monument moves its parts. Children are stored in absolute
+ * lat/long like everything else, so a parent's move applies the same
+ * delta to them, and a parent's TURN swings them around it — their
+ * offset is rotated in the local east/north frame, which is the same
+ * approximation the fence and footprint maths already use.
+ */
+function withChildren(
+  list: Placement[],
+  parent: Placement,
+  next: { lat: number; long: number; yawDeg: number },
+): Placement[] {
+  const dYaw = ((next.yawDeg - parent.yawDeg) * Math.PI) / 180
+  const cos = Math.cos(dYaw)
+  const sin = Math.sin(dYaw)
+  return list.map((p) => {
+    if (p.parentId !== parent.id) return p
+    // Offset in metres, so a rotation is a rotation and not a shear.
+    const east = (p.long - parent.long) / degPerMetreLong(parent.lat)
+    const north = (p.lat - parent.lat) / degPerMetreLat
+    const e = east * cos + north * sin
+    const n = -east * sin + north * cos
+    const lat = next.lat + n * degPerMetreLat
+    return {
+      ...p,
+      lat,
+      long: next.long + e * degPerMetreLong(lat),
+      yawDeg: Math.round((p.yawDeg + (next.yawDeg - parent.yawDeg)) * 100) / 100,
+    }
+  })
 }
 
 /** A fresh id that can't collide with an existing one. */
@@ -117,31 +159,52 @@ export const usePlacementRuntime = create<PlacementRuntime>((set, get) => {
     future: [],
     drawCalls: 0,
     brush: null,
+    isDragging: false,
 
     select: (selectedId) => set({ selectedId }),
 
     startMove: () => {
       // One snapshot up front, then the drag streams into it.
-      set((s) => ({ past: [...s.past, s.list].slice(-100), future: [] }))
+      set((s) => ({ past: [...s.past, s.list].slice(-100), future: [], isDragging: true }))
       coalescing = true
     },
     endMove: () => {
       coalescing = false
+      set({ isDragging: false })
     },
 
     moveTo: (id, lat, long) =>
-      commit((list) => list.map((p) => (p.id === id ? { ...p, lat, long } : p))),
+      commit((list) => {
+        const parent = list.find((p) => p.id === id)
+        if (!parent) return list
+        const moved = withChildren(list, parent, { lat, long, yawDeg: parent.yawDeg })
+        return moved.map((p) => (p.id === id ? { ...p, lat, long } : p))
+      }),
 
     nudge: (id, east, north) =>
-      commit((list) =>
-        list.map((p) => {
-          if (p.id !== id) return p
-          const lat = p.lat + north * degPerMetreLat
-          return { ...p, lat, long: p.long + east * degPerMetreLong(lat) }
-        }),
-      ),
+      commit((list) => {
+        const parent = list.find((p) => p.id === id)
+        if (!parent) return list
+        const lat = parent.lat + north * degPerMetreLat
+        const long = parent.long + east * degPerMetreLong(lat)
+        const moved = withChildren(list, parent, { lat, long, yawDeg: parent.yawDeg })
+        return moved.map((p) => (p.id === id ? { ...p, lat, long } : p))
+      }),
 
     rotate: (id, deltaDeg) =>
+      commit((list) => {
+        const parent = list.find((p) => p.id === id)
+        if (!parent) return list
+        const yawDeg = Math.round(((parent.yawDeg + deltaDeg) % 360) * 100) / 100
+        const turned = withChildren(list, parent, {
+          lat: parent.lat,
+          long: parent.long,
+          yawDeg,
+        })
+        return turned.map((p) => (p.id === id ? { ...p, yawDeg } : p))
+      }),
+
+    rotateOnly: (id, deltaDeg) =>
       commit((list) =>
         list.map((p) =>
           // 2 dp to match the file's own precision: rounding harder here
@@ -152,6 +215,33 @@ export const usePlacementRuntime = create<PlacementRuntime>((set, get) => {
 
     setField: (id, patch) =>
       commit((list) => list.map((p) => (p.id === id ? { ...p, ...patch } : p))),
+
+    setScale: (id, scale) =>
+      commit((list) =>
+        list.map((p) => {
+          if (p.id !== id) return p
+          // A prop's collision is a property of how big it is, so scaling
+          // it scales the blocker by the same factor. Hand-tuned radii
+          // keep their proportion rather than being overwritten.
+          const ratio = p.scale > 0 ? scale / p.scale : 1
+          return {
+            ...p,
+            scale,
+            ...(p.blockerRadiusM === undefined
+              ? {}
+              : { blockerRadiusM: Math.round(p.blockerRadiusM * ratio * 100) / 100 }),
+          }
+        }),
+      ),
+
+    autoBlocker: (id) =>
+      commit((list) =>
+        list.map((p) => {
+          if (p.id !== id) return p
+          const auto = autoBlockerRadius(p.type, p.scale)
+          return auto === null ? p : { ...p, blockerRadiusM: auto }
+        }),
+      ),
 
     add: (type, lat, long) => {
       const id = newId(get().list, type)
@@ -166,7 +256,8 @@ export const usePlacementRuntime = create<PlacementRuntime>((set, get) => {
           long,
           yawDeg: 0,
           scale: 1,
-          blockerRadiusM: 1,
+          // Sized from the prop's own geometry, not a guess.
+          blockerRadiusM: autoBlockerRadius(type, 1) ?? 1,
         },
       ])
       set({ selectedId: id })

@@ -67,11 +67,23 @@ export function Island() {
   // Every registered prop type, built once. Which of them appear and
   // where comes from the placement list below, not from this map.
   const props = useMemo<Record<string, PropPart[]>>(
-    () => ({
-      ...Object.fromEntries(Object.entries(PROP_REGISTRY).map(([k, build]) => [k, build()])),
-      cemetery: buildCemetery(),
-    }),
+    () => Object.fromEntries(Object.entries(PROP_REGISTRY).map(([k, build]) => [k, build()])),
     [],
+  )
+
+  // The cemetery is a whole structure wrapped onto the sphere, so it is
+  // rebuilt from wherever its placement now sits rather than placed by
+  // a matrix. Keyed on the plot's own numbers: it re-merges when the
+  // editor drops it somewhere new, not every frame of the drag.
+  const cemPlot = usePlacementRuntime((s) => s.list.find((p) => p.id === 'cemetery'))
+  const dragging = usePlacementRuntime((s) => s.isDragging)
+  const cemKey = dragging
+    ? 'dragging'
+    : `${cemPlot?.lat},${cemPlot?.long},${cemPlot?.yawDeg},${cemPlot?.size?.widthM},${cemPlot?.size?.depthM}`
+  const cemetery = useMemo(
+    () => (cemPlot ? buildCemetery(cemPlot) : []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [cemKey],
   )
 
   // Placements, grouped by type into one instanced draw each. Reading
@@ -205,7 +217,7 @@ export function Island() {
           buildCemetery returns ONE part already wrapped onto the sphere
           (placement rule 2 — a 17 m fence sags as a flat mesh), so it
           renders as a plain mesh with no placement transform. */}
-      <mesh geometry={props.cemetery[0].geometry} material={props.cemetery[0].material} />
+      <mesh geometry={cemetery[0].geometry} material={cemetery[0].material} />
 
       {/* CRT crate + beached rowboat. */}
 

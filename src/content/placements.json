@@ -13,6 +13,8 @@
     "liftM: extra height (things on furniture, or the floating rift).",
     "",
     "ALTITUDE IS NEVER STORED: every placement sits at",
+    "parentId: this entry is part of that monument — moving or turning",
+    "  the parent carries it along, keeping the arrangement intact.",
     "groundAltitudeAt(lat, long) - SINK_M + (liftM ?? 0)."
   ],
   "placements": [
@@ -85,7 +87,8 @@
       "yawDeg": 30,
       "scale": 1,
       "blockerRadiusM": 0.8,
-      "notes": "By the campfire."
+      "notes": "By the campfire.",
+      "parentId": "campfire"
     },
     {
       "id": "videos",
@@ -122,7 +125,8 @@
       "long": 104.4,
       "yawDeg": 180,
       "scale": 1,
-      "blockerRadiusM": 0.5
+      "blockerRadiusM": 0.5,
+      "parentId": "cemetery"
     },
     {
       "id": "memorial-2",
@@ -133,7 +137,8 @@
       "long": 107,
       "yawDeg": 180,
       "scale": 1,
-      "blockerRadiusM": 0.5
+      "blockerRadiusM": 0.5,
+      "parentId": "cemetery"
     },
     {
       "id": "memorial-3",
@@ -144,7 +149,8 @@
       "long": 109.6,
       "yawDeg": 180,
       "scale": 1,
-      "blockerRadiusM": 0.5
+      "blockerRadiusM": 0.5,
+      "parentId": "cemetery"
     },
     {
       "id": "cemetery",
@@ -192,7 +198,8 @@
       "long": 180,
       "yawDeg": 0,
       "scale": 1,
-      "blockerRadiusM": 0.9
+      "blockerRadiusM": 0.9,
+      "parentId": "campfire"
     },
     {
       "id": "log-west",
@@ -203,7 +210,8 @@
       "long": 176.7,
       "yawDeg": 54.4,
       "scale": 1,
-      "blockerRadiusM": 0.9
+      "blockerRadiusM": 0.9,
+      "parentId": "campfire"
     },
     {
       "id": "log-east",
@@ -214,7 +222,8 @@
       "long": 183.3,
       "yawDeg": -54.4,
       "scale": 1,
-      "blockerRadiusM": 0.9
+      "blockerRadiusM": 0.9,
+      "parentId": "campfire"
     },
     {
       "id": "koa",

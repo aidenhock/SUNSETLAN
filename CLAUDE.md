@@ -208,6 +208,20 @@ click away. The minimap rings the selection.
 
 - **Altitude is never editable.** Every placement sits at
   `groundAltitudeAt − SINK_M + (liftM ?? 0)`, always (placement rule 1).
+- **Rotation**: Q/E step 5°, the panel adds a 0–359° slider, ±5/±15/±90
+  buttons and a snap-to-15° button, and the selection ring carries a
+  wedge pointing where the prop faces — rotation you can see, not just a
+  number.
+- **Blockers size themselves**: a new placement's radius is measured
+  from the prop's own geometry (`scene/propFootprints.ts`, largest
+  horizontal extent + 0.25 m clearance), scaling a prop scales its
+  blocker with it, and "auto" re-derives it from the mesh at any time.
+- **Monuments move whole.** A placement may name a `parentId`; moving or
+  turning the parent carries its parts along (the cemetery's headstones,
+  the fire's log ring and stereo), rotating their offsets around it so
+  the arrangement survives. The cemetery's fence mesh itself is rebuilt
+  from wherever the plot lands — on drop, not per drag frame, since it
+  is a ~5k-triangle merge.
 - **Export**: "Copy placements" to the clipboard, or "Write placements"
   to save straight to `src/content/placements.json` through a dev-server
   endpoint (`scripts/write-placements-plugin.mjs`, `apply: 'serve'`, so

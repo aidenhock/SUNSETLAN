@@ -42,6 +42,9 @@ export interface Placement {
   liftM?: number
   /** Footprint for structures (the cemetery's fenced plot). */
   size?: { widthM: number; depthM: number }
+  /** Part of a bigger monument: moving or turning the parent carries
+   *  this along, so a garden stays a garden. */
+  parentId?: string
   notes?: string
 }
 

@@ -26,6 +26,9 @@ export function EditorOverlay() {
   const brush = usePlacementRuntime((s) => s.brush)
   const setBrush = usePlacementRuntime((s) => s.setBrush)
   const setField = usePlacementRuntime((s) => s.setField)
+  const setScale = usePlacementRuntime((s) => s.setScale)
+  const autoBlocker = usePlacementRuntime((s) => s.autoBlocker)
+  const rotate = usePlacementRuntime((s) => s.rotate)
   const remove = usePlacementRuntime((s) => s.remove)
   const duplicate = usePlacementRuntime((s) => s.duplicate)
   const undo = usePlacementRuntime((s) => s.undo)
@@ -141,9 +144,43 @@ export function EditorOverlay() {
             lat {selected.lat.toFixed(2)} · long {selected.long.toFixed(2)} ·{' '}
             <span className="text-lagoon">{BAND(selected.lat)}</span>
           </p>
-          <p className="tabular-nums text-sand/80">
-            yaw {selected.yawDeg.toFixed(1)}° <span className="text-sand/50">(Q / E)</span>
-          </p>
+          {/* Rotation: the slider for a sweep, the buttons for exact
+              steps, Q/E for the same without leaving the world. */}
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="tabular-nums">yaw {selected.yawDeg.toFixed(1)}°</span>
+              <span className="text-sand/50">Q / E</span>
+              <button
+                type="button"
+                onClick={() => setField(selected.id, { yawDeg: Math.round(selected.yawDeg / 15) * 15 })}
+                className="ml-auto rounded bg-sand/10 px-1.5 py-0.5 hover:bg-sand/20"
+                title="Snap to the nearest 15°"
+              >
+                snap 15°
+              </button>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={359}
+              step={1}
+              value={((selected.yawDeg % 360) + 360) % 360}
+              onChange={(e) => setField(selected.id, { yawDeg: Number(e.target.value) })}
+              className="w-full"
+            />
+            <div className="flex gap-1">
+              {[-90, -15, -5, 5, 15, 90].map((d) => (
+                <button
+                  key={d}
+                  type="button"
+                  onClick={() => rotate(selected.id, d)}
+                  className="flex-1 rounded bg-sand/10 py-0.5 hover:bg-sand/20"
+                >
+                  {d > 0 ? `+${d}` : d}
+                </button>
+              ))}
+            </div>
+          </div>
           <label className="block">
             scale {selected.scale.toFixed(2)}
             <input
@@ -152,15 +189,29 @@ export function EditorOverlay() {
               max={2.5}
               step={0.05}
               value={selected.scale}
-              onChange={(e) => setField(selected.id, { scale: Number(e.target.value) })}
+              onChange={(e) => setScale(selected.id, Number(e.target.value))}
               className="w-full"
             />
           </label>
           <label className="block">
-            blocker{' '}
-            {selected.blockerRadiusM === undefined
-              ? 'none'
-              : `${selected.blockerRadiusM.toFixed(2)} m`}
+            <span className="flex items-center gap-2">
+              <span>
+                blocker{' '}
+                {selected.blockerRadiusM === undefined
+                  ? 'none'
+                  : `${selected.blockerRadiusM.toFixed(2)} m`}
+              </span>
+              <button
+                type="button"
+                onClick={() => autoBlocker(selected.id)}
+                className="ml-auto rounded bg-sand/10 px-1.5 py-0.5 hover:bg-sand/20"
+                title="Size it from the prop's own geometry"
+              >
+                auto
+              </button>
+            </span>
+            <span className="hidden">
+            </span>
             <input
               type="range"
               min={0}

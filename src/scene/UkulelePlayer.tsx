@@ -1,6 +1,8 @@
 import { useFrame, useThree } from '@react-three/fiber'
 import { useMemo, useRef } from 'react'
 import * as THREE from 'three'
+import { placement } from '../content/placements'
+import { usePlacementRuntime } from './placementRuntime'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { audioRuntime, onArmed, onAudioResume, registerVoice, routeToBus, syncPanner } from '../audio/core'
 import { makeStrumBuffer, mulberry32 } from '../audio/procedural'
@@ -9,7 +11,7 @@ import { groundAltitudeAt } from '../controls/terrain'
 import { useStore } from '../store/useStore'
 import { BlockyCharacter, type MotionState } from './BlockyCharacter'
 import { tintGeometry } from './geometryUtils'
-import { DOCK, MAP } from './planetConfig'
+import { DOCK } from './planetConfig'
 import { normalizeForMerge } from './props'
 import { SurfaceGroup } from './SurfaceGroup'
 
@@ -114,7 +116,9 @@ export function ukeLandmarkTorso(local: THREE.Vector3): THREE.Vector3 {
 export const KOA_SEAT = {
   seatBiteM: 0.02,
   seatToRootM: 0.12,
-  deckTopAlt: groundAltitudeAt(MAP.ukulelePlayer.lat, DOCK.longDeg),
+  // The dock's deck height at his authored latitude — a constant, not
+  // a live read: KOA_SEAT is consumed at import by the pose math.
+  deckTopAlt: groundAltitudeAt(placement('koa').lat, DOCK.longDeg),
   get altitude(): number {
     return this.deckTopAlt - this.seatBiteM - this.seatToRootM
   },
@@ -134,6 +138,9 @@ interface Strum {
 }
 
 export function UkulelePlayer() {
+  // Follows its placement, so the dev editor can move it.
+  const koaPos = usePlacementRuntime((st) => st.list.find((p) => p.id === 'koa')) ?? placement('koa')
+
   const { camera } = useThree()
   const rigGroup = useRef<THREE.Group>(null)
   const notesRef = useRef<THREE.Points>(null)
@@ -375,8 +382,8 @@ export function UkulelePlayer() {
   // The uke: tiny primitive assembly, ONE merged-material mesh group.
   return (
     <SurfaceGroup
-      lat={MAP.ukulelePlayer.lat}
-      long={MAP.ukulelePlayer.long}
+      lat={koaPos.lat}
+      long={koaPos.long}
       altitude={KOA_SEAT.altitude}
       yaw={-Math.PI / 2 - 0.45}
     >

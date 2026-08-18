@@ -88,7 +88,9 @@ export function EditorScene({ planetRef }: { planetRef: React.RefObject<THREE.Gr
     }
     const ring = ringRef.current
     if (ring && selected) {
-      placementMatrix(selected.lat, selected.long, 0, 1, 0.02, ring.matrix)
+      // The ring carries the placement's YAW, so the arrow on it points
+      // where the prop faces — rotation you can see, not just a number.
+      placementMatrix(selected.lat, selected.long, selected.yawDeg, 1, 0.02, ring.matrix)
       ring.matrix.decompose(ring.position, ring.quaternion, ring.scale)
     }
   })
@@ -195,6 +197,17 @@ export function EditorScene({ planetRef }: { planetRef: React.RefObject<THREE.Gr
               transparent
               opacity={0.95}
               side={THREE.DoubleSide}
+              depthTest={false}
+              toneMapped={false}
+            />
+          </mesh>
+          {/* Which way it faces: a wedge pointing along local +Z. */}
+          <mesh position={[0, 0.01, 1.15]} rotation={[-Math.PI / 2, 0, 0]}>
+            <coneGeometry args={[0.28, 0.7, 3]} />
+            <meshBasicMaterial
+              color="#ffd166"
+              transparent
+              opacity={0.95}
               depthTest={false}
               toneMapped={false}
             />
