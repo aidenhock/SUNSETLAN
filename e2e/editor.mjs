@@ -100,6 +100,26 @@ if ((await count()) !== before + 1) fail('redo did not replay')
 else ok('redo replays')
 await store('s.undo(); return 1')
 
+// KEYS: the bindings, not just the store. Select something and drive it
+// the way a person would.
+await store("s.select('rock-01'); return 1")
+const rockBefore = await store("return s.list.find((p) => p.id === 'rock-01')")
+await page.keyboard.press('ArrowUp')
+await page.keyboard.press('KeyE')
+await page.waitForTimeout(150)
+const rockAfter = await store("return s.list.find((p) => p.id === 'rock-01')")
+if (!(rockAfter.lat > rockBefore.lat)) fail('ArrowUp did not nudge north')
+else ok('ArrowUp nudges')
+if (Math.abs(rockAfter.yawDeg - rockBefore.yawDeg - 5) > 0.01) fail('E did not rotate 5°')
+else ok('E rotates')
+await page.keyboard.press('Control+z')
+await page.keyboard.press('Control+z')
+await page.waitForTimeout(150)
+const rockUndone = await store("return s.list.find((p) => p.id === 'rock-01')")
+if (Math.abs(rockUndone.lat - rockBefore.lat) > 1e-9) fail('Ctrl+Z did not undo the nudge')
+else ok('Ctrl+Z undoes')
+await store('s.select(null); return 1')
+
 // ROUND-TRIP: what the editor would write must equal what it read.
 const written = await store('return window.__serializePlacements(s.list)')
 if (written !== onDisk) {

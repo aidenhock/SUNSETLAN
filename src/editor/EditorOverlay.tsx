@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { controlsRuntime } from '../controls/usePlanetController'
 import { PROP_REGISTRY } from '../scene/propRegistry'
 import { serialize, usePlacementRuntime, warningsFor } from '../scene/placementRuntime'
+import { useEditorInput } from './useEditorInput'
 
 /**
  * The editor's panel: a palette to place from, a form for whatever is
@@ -17,6 +18,8 @@ const BAND = (lat: number) =>
   lat >= 66 ? 'plateau' : lat >= 24 ? 'grass' : lat >= 15 ? 'sand' : 'water'
 
 export function EditorOverlay() {
+  // Arrows nudge, Q/E rotate, Delete removes, Ctrl+Z walks the stack.
+  useEditorInput()
   const list = usePlacementRuntime((s) => s.list)
   const selectedId = usePlacementRuntime((s) => s.selectedId)
   const brush = usePlacementRuntime((s) => s.brush)

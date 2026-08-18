@@ -127,7 +127,9 @@ export const usePlacementRuntime = create<PlacementRuntime>((set, get) => {
     rotate: (id, deltaDeg) =>
       commit((list) =>
         list.map((p) =>
-          p.id === id ? { ...p, yawDeg: Math.round(((p.yawDeg + deltaDeg) % 360) * 10) / 10 } : p,
+          // 2 dp to match the file's own precision: rounding harder here
+          // re-rounds a baked yaw and churns the file on the next write.
+          p.id === id ? { ...p, yawDeg: Math.round(((p.yawDeg + deltaDeg) % 360) * 100) / 100 } : p,
         ),
       ),
 
