@@ -2,7 +2,8 @@ import { useKeyboardControls } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
 import { useMemo, useRef } from 'react'
 import * as THREE from 'three'
-import { interactables } from '../content/interactables'
+import { useLiveInteractables } from '../content/liveInteractables'
+import { usePlacementRuntime } from '../scene/placementRuntime'
 import { jumpTaps } from '../audio/footsteps'
 import {
   blockers,
@@ -132,13 +133,18 @@ export function usePlanetController({ planetRef, avatarRef }: ControllerRefs) {
   // dry; initializing wet would fire a phantom ripple on the first frame.
   const lastWet = useRef(false)
 
+  // Placements can move under us in the dev editor, and the trigger
+  // points and blockers have to move WITH them — on the drop, not on a
+  // reload. `version` bumps on every edit; in production it never does.
+  const version = usePlacementRuntime((s) => s.version)
+  const interactables = useLiveInteractables()
   const interactableUnits = useMemo(
     () =>
       interactables.map((def) => ({
         id: def.id,
         unit: new THREE.Vector3(...def.position).normalize(),
       })),
-    [],
+    [interactables],
   )
   // The placeholder cubes themselves block movement (walking straight at one
   // must not pass it through the avatar). Radius < trigger arc, so prompts
@@ -151,7 +157,10 @@ export function usePlanetController({ planetRef, avatarRef }: ControllerRefs) {
         radius: interactables[i].blockRadius ?? 1.2,
       })),
     ],
-    [interactableUnits],
+    // `blockers` is rebuilt in place by the placement store, so the
+    // version is what tells us this snapshot went stale.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [interactableUnits, version],
   )
 
   useFrame((state, rawDt) => {

@@ -154,6 +154,40 @@ if (Math.abs(rockUndone.lat - rockBefore.lat) > 1e-9) fail('Ctrl+Z did not undo 
 else ok('Ctrl+Z undoes')
 await store('s.select(null); return 1')
 
+// MONUMENTS MOVE WHOLE, and their boundaries move on the DROP — not on
+// a reload, and not on the write. Move the cemetery and check its
+// headstone came along, that walking to the new spot triggers it, and
+// that the old spot is empty.
+const stoneAt = () =>
+  store("const p = s.list.find((x) => x.id === 'memorial-2'); return [p.lat, p.long]")
+const stoneBefore = await stoneAt()
+await store("s.select('cemetery'); s.startMove(); s.moveTo('cemetery', 47, 115); s.endMove(); return 1")
+const stoneAfter = await stoneAt()
+if (Math.abs(stoneAfter[1] - stoneBefore[1] - 8) > 0.2)
+  fail(`headstone did not travel with its monument (${stoneBefore} -> ${stoneAfter})`)
+else ok('a monument carries its parts')
+
+const nearbyAt = async (lat, long) => {
+  await page.evaluate(
+    ([la, lo]) => {
+      window.__controls.poseOverride = { lat: la, long: lo }
+    },
+    [lat, long],
+  )
+  await page.waitForTimeout(900)
+  return page.evaluate(() => window.__store.getState().nearbyId)
+}
+if ((await nearbyAt(stoneAfter[0] + 1.5, stoneAfter[1])) !== 'memorial-2')
+  fail('the moved headstone does not trigger at its new spot')
+else ok('triggers follow the move immediately')
+if ((await nearbyAt(stoneBefore[0] + 1.5, stoneBefore[1])) !== null)
+  fail('something is still triggering at the old spot')
+else ok('nothing is left behind')
+
+// Put it back so the round-trip below compares like for like.
+for (let i = 0; i < 3; i++) await store('s.undo(); return 1')
+await store('s.select(null); return 1')
+
 // ROUND-TRIP: what the editor would write must equal what it read.
 const written = await store('return window.__serializePlacements(s.list)')
 if (written !== onDisk) {

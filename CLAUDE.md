@@ -216,10 +216,14 @@ click away. The minimap rings the selection.
   from the prop's own geometry (`scene/propFootprints.ts`, largest
   horizontal extent + 0.25 m clearance), scaling a prop scales its
   blocker with it, and "auto" re-derives it from the mesh at any time.
-- **Monuments move whole.** A placement may name a `parentId`; moving or
-  turning the parent carries its parts along (the cemetery's headstones,
-  the fire's log ring and stereo), rotating their offsets around it so
-  the arrangement survives. The cemetery's fence mesh itself is rebuilt
+- **Monuments move whole, and everything follows on the DROP.** A
+  placement may name a `parentId`; moving or turning the parent carries
+  its parts (the cemetery's headstones, the fire's log ring and stereo),
+  rotating their offsets around it. Interactables render through
+  `content/liveInteractables.ts` and the controller re-derives its
+  trigger points and blocker list from the placement `version`, so the
+  prop, its prompt and its collision all move the moment you let go —
+  never on a reload or a write. The cemetery's fence mesh itself is rebuilt
   from wherever the plot lands — on drop, not per drag frame, since it
   is a ~5k-triangle merge.
 - **Export**: "Copy placements" to the clipboard, or "Write placements"

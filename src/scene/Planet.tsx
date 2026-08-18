@@ -5,7 +5,7 @@ import { useIntroSwoop } from '../controls/useIntroSwoop'
 import { usePlanetController } from '../controls/usePlanetController'
 import { useRoomController } from '../controls/useRoomController'
 import { usePointerLockCamera } from '../controls/usePointerLockCamera'
-import { interactables } from '../content/interactables'
+import { useLiveInteractables } from '../content/liveInteractables'
 import { useStore } from '../store/useStore'
 import { useMusicMix, WorldEmitters } from './AudioEmitters'
 import { Avatar } from './Avatar'
@@ -60,6 +60,8 @@ export function PlanetScene({
   // skips the subtree) — the room draws against black, so the scene's
   // draw calls drop to the room's own handful instead of stacking.
   const inRoom = useStore((s) => s.inRoom)
+
+  const interactables = useLiveInteractables()
 
   usePlanetController({ planetRef, avatarRef })
   useRoomController({ roomRef, avatarRef })
