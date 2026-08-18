@@ -78,7 +78,28 @@ The sun, moon, stars, and sky gradient are **children of the rotating planet gro
 - **Clouds** (playbook §4 recipe — binding): hand-built clusters of 3–6 white rounded boxes per cloud group (Aviator pattern), instanced when numerous, slow planet-local drift in `useFrame`. Never drei `<Cloud>`/`<Clouds>` (billboard sprites needing a cloud texture). Warm-tinted and plentiful on the sunset side, sparse on the night side.
 - **Lighting** (playbook §4 recipe — base rig ships before 3B): `HemisphereLight(skyPastel, groundPastel)` + one soft `DirectionalLight` + gentle ambient, `MeshLambertMaterial` everywhere. Cozy brightness comes from light intensity and saturated-but-light palette colors — never bloom/postprocessing. 3B's `useSkyState` lerps this same rig (hemisphere sky/ground colors, directional color/intensity) with `nightMix`.
 
-## World map (the INDEX is the source of truth)
+## World map (the PLACEMENT FILE is the source of truth)
+
+**`src/content/placements.json` is where the world lives.** Every placed
+thing — interactables, props, NPCs, seats, structures, and the scattered
+palms/rocks/shells — carries `id`, `type`, `kind`, `lat`, `long`,
+`yawDeg` (degrees from local NORTH, positive east), `scale`, and
+optional `blockerRadiusM` / `liftM` / `size` there. The scene builds
+from it, `planetConfig.MAP` and `scatterProps` derive from it, and
+**blockers regenerate from it** — a placement with a `blockerRadiusM`
+collides, one without does not. `interactables.ts` takes its positions,
+rotations and block radii from it too.
+
+**ALTITUDE IS NEVER STORED**: everything sits at
+`groundAltitudeAt(lat, long) − SINK_M + (liftM ?? 0)` (placement rule 1).
+
+Two ways to edit: by hand, or open the world with **`?editor`** in dev
+(see below), drag things around, and write the file back out. After a
+hand edit run `node scripts/world-map.mjs` (regenerates the readable
+table at `docs/world-map.md`). `scene/worldParity.test.ts` digests every
+blocker and interactable and fails if the world shifts — if you MEANT to
+move something, update the digest in the same commit so it shows up in
+review. The table below is the design intent; the JSON is the truth.
 
 **`src/content/monuments.json` is where coordinates live.** Every placed
 thing — interactables, props, NPCs, seats, structures — carries `lat`,

@@ -1,7 +1,7 @@
 # World map
 
-Generated from `src/content/monuments.json` by `node scripts/world-map.mjs`.
-Edit the JSON to move something; every consumer (scene placement,
+Generated from `src/content/placements.json` by `node scripts/world-map.mjs`.
+Edit the JSON (or use `?editor` in dev) to move something; every consumer (scene placement,
 blockers, the minimap, `planetConfig.MAP`) follows from it.
 
 - **lat** 90 is the pole where you spawn; grass ends around 66, sand runs
@@ -41,6 +41,8 @@ blockers, the minimap, `planetConfig.MAP`) follows from it.
 |---|---|---|---|---|---|---|
 | `campfire` | Campfire | 22 | 180 | 0° N | — |  |
 | `rowboat` | Beached rowboat | 18 | 210 | 0° N | — |  |
+| `palapa-desk` | Palapa desk (collider only) | 40 | 38 | 0° N | — | Traces the desk built into the palapa; nothing renders from this entry. |
+| `tv-crate` | CRT crate | 21 | 150.8 | 0° N | — | The TV stands on this; the TV entry carries the liftM that puts it on top. |
 
 ## Npcs
 
@@ -56,12 +58,37 @@ blockers, the minimap, `planetConfig.MAP`) follows from it.
 | `log-west` | Log — west flank | 23.4 | 176.7 | 54.4° NE | — |  |
 | `log-east` | Log — east flank | 23.4 | 183.3 | -54.4° NW | — |  |
 
+## Scatters
+
+| id | what | lat | long | facing | lift | notes |
+|---|---|---|---|---|---|---|
+| `palm-01` | Palm 1 | 30 | 25 | 0° N | — |  |
+| `palm-02` | Palm 2 | 28 | 70 | 0° N | — |  |
+| `palm-03` | Palm 3 | 33 | 110 | 0° N | — |  |
+| `palm-04` | Palm 4 | 29 | 162 | 0° N | — |  |
+| `palm-05` | Palm 5 | 31 | 198 | 0° N | — |  |
+| `palm-06` | Palm 6 | 27 | 250 | 0° N | — |  |
+| `palm-07` | Palm 7 | 32 | 288 | 0° N | — |  |
+| `palm-08` | Palm 8 | 29 | 335 | 0° N | — |  |
+| `palm-09` | Palm 9 | 55 | 120 | 0° N | — |  |
+| `palm-10` | Palm 10 | 62 | 230 | 0° N | — |  |
+| `rock-01` | Rock 1 | 19 | 60 | 0° N | — |  |
+| `rock-02` | Rock 2 | 17 | 132 | 0° N | — |  |
+| `rock-03` | Rock 3 | 22 | 148 | 0° N | — |  |
+| `rock-04` | Rock 4 | 20 | 262 | 0° N | — |  |
+| `rock-05` | Rock 5 | 26 | 315 | 0° N | — |  |
+| `shell-01` | Shell 1 | 18 | 30 | 0° N | — |  |
+| `shell-02` | Shell 2 | 16.5 | 95 | 0° N | — |  |
+| `shell-03` | Shell 3 | 19 | 168 | 0° N | — |  |
+| `shell-04` | Shell 4 | 17 | 228 | 0° N | — |  |
+| `shell-05` | Shell 5 | 18.5 | 296 | 0° N | — |  |
+
 ## Moving something
 
-1. Edit its `lat` / `long` / `facingDeg` in `src/content/monuments.json`.
+1. Edit its `lat` / `long` / `yawDeg` in `src/content/placements.json`.
 2. Run `node scripts/world-map.mjs` to refresh this page.
 3. Run `npx vitest run` — the index tests catch duplicate ids, out-of-range
-   coordinates, and interactables whose monument went missing.
+   coordinates, and interactables whose placement went missing.
 
 Blockers, prompts, and minimap dots all derive from these numbers, so
-nothing else needs editing to relocate a monument.
+nothing else needs editing to relocate anything.

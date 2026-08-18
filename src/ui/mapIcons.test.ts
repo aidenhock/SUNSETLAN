@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { monument, monuments } from '../content/monuments'
+import { placement, placements } from '../content/placements'
 import { PLANET_RADIUS } from '../scene/planetConfig'
 import { CEMETERY_FOOTPRINT, DOCK_LINE, MARKERS, MOON_UNIT, SCATTER, SUN_UNIT } from './mapIcons'
 
@@ -14,7 +14,7 @@ const metresApart = (a: { angleTo: (b: never) => number }, b: unknown) =>
 
 describe('map footprints', () => {
   it('draws the cemetery at its real size', () => {
-    const plot = monument('cemetery')
+    const plot = placement('cemetery')
     expect(CEMETERY_FOOTPRINT).toHaveLength(4)
     const width = metresApart(CEMETERY_FOOTPRINT[0], CEMETERY_FOOTPRINT[1])
     const depth = metresApart(CEMETERY_FOOTPRINT[1], CEMETERY_FOOTPRINT[2])
@@ -40,9 +40,19 @@ describe('map markers', () => {
     }
   })
 
-  it('leaves the footprint monuments out of the pin list', () => {
-    const drawn = MARKERS.length + 2 /* cemetery + dock */
-    expect(drawn).toBe(monuments.filter((m) => m.kind !== 'seat').length)
+  it('leaves the footprint monuments and the scatter out of the pin list', () => {
+    // MARKERS is the pin layer: named things only. The cemetery and the
+    // dock are drawn as footprints, palms and rocks as nature, and a
+    // collider-only entry has nothing to draw at all.
+    const pinnable = placements.filter(
+      (m) =>
+        m.kind !== 'seat' &&
+        m.kind !== 'scatter' &&
+        m.type !== 'collider' &&
+        m.id !== 'cemetery' &&
+        m.id !== 'dock',
+    )
+    expect(MARKERS.length).toBe(pinnable.length)
   })
 
   it('draws the scattered nature, minus the shells', () => {

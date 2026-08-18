@@ -1,5 +1,5 @@
 /**
- * Regenerates docs/world-map.md from src/content/monuments.json — the
+ * Regenerates docs/world-map.md from src/content/placements.json — the
  * readable index of where everything on the island stands and which way
  * it faces. Run it after moving anything:
  *
@@ -10,9 +10,9 @@
 import { readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
-const { monuments } = JSON.parse(readFileSync(resolve('src/content/monuments.json'), 'utf8'))
+const { placements: monuments } = JSON.parse(readFileSync(resolve('src/content/placements.json'), 'utf8'))
 
-const KIND_ORDER = ['interactable', 'structure', 'prop', 'npc', 'seat']
+const KIND_ORDER = ['interactable', 'structure', 'prop', 'npc', 'seat', 'scatter']
 const compass = (deg) => {
   const names = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW']
   const idx = Math.round((((deg % 360) + 360) % 360) / 45) % 8
@@ -21,8 +21,8 @@ const compass = (deg) => {
 
 let out = `# World map
 
-Generated from \`src/content/monuments.json\` by \`node scripts/world-map.mjs\`.
-Edit the JSON to move something; every consumer (scene placement,
+Generated from \`src/content/placements.json\` by \`node scripts/world-map.mjs\`.
+Edit the JSON (or use \`?editor\` in dev) to move something; every consumer (scene placement,
 blockers, the minimap, \`planetConfig.MAP\`) follows from it.
 
 - **lat** 90 is the pole where you spawn; grass ends around 66, sand runs
@@ -42,7 +42,7 @@ for (const kind of KIND_ORDER) {
   out += '| id | what | lat | long | facing | lift | notes |\n'
   out += '|---|---|---|---|---|---|---|\n'
   for (const m of rows) {
-    const facing = `${m.facingDeg}° ${compass(m.facingDeg)}`
+    const facing = `${m.yawDeg}° ${compass(m.yawDeg)}`
     const lift = m.liftM ? `${m.liftM} m` : '—'
     const size = m.size ? `${m.size.widthM} × ${m.size.depthM} m. ` : ''
     out += `| \`${m.id}\` | ${m.label} | ${m.lat} | ${m.long} | ${facing} | ${lift} | ${size}${m.notes ?? ''} |\n`
@@ -52,13 +52,13 @@ for (const kind of KIND_ORDER) {
 
 out += `## Moving something
 
-1. Edit its \`lat\` / \`long\` / \`facingDeg\` in \`src/content/monuments.json\`.
+1. Edit its \`lat\` / \`long\` / \`yawDeg\` in \`src/content/placements.json\`.
 2. Run \`node scripts/world-map.mjs\` to refresh this page.
 3. Run \`npx vitest run\` — the index tests catch duplicate ids, out-of-range
-   coordinates, and interactables whose monument went missing.
+   coordinates, and interactables whose placement went missing.
 
 Blockers, prompts, and minimap dots all derive from these numbers, so
-nothing else needs editing to relocate a monument.
+nothing else needs editing to relocate anything.
 `
 
 writeFileSync(resolve('docs/world-map.md'), out)

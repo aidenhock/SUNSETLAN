@@ -1,7 +1,7 @@
 import * as THREE from 'three'
-import { monument, monuments } from '../content/monuments'
+import { placement, placements } from '../content/placements'
 import { latLongToUnit } from '../controls/planetMath'
-import { DOCK, PLANET_RADIUS, scatterProps } from '../scene/planetConfig'
+import { DOCK, PLANET_RADIUS } from '../scene/planetConfig'
 
 /**
  * How the island's contents look from above — a Minecraft-style map
@@ -58,26 +58,33 @@ export interface MapMarker {
 
 /** Everything drawn as a single marker — the cemetery and the dock get
  *  footprints instead, and seats are drawn with the fire. */
-export const MARKERS: MapMarker[] = monuments
-  .filter((m) => m.kind !== 'seat' && m.id !== 'cemetery' && m.id !== 'dock')
+export const MARKERS: MapMarker[] = placements
+  .filter(
+    (m) =>
+      m.kind !== 'seat' &&
+      m.kind !== 'scatter' &&
+      m.type !== 'collider' &&
+      m.id !== 'cemetery' &&
+      m.id !== 'dock',
+  )
   .map((m) => ({
     unit: latLongToUnit(m.lat, m.long),
     icon: BY_ID[m.id] ?? BY_KIND[m.kind] ?? BY_KIND.prop,
   }))
 
 /** Scattered nature: palms read as green blobs, rocks as grey ones. */
-export const SCATTER: MapMarker[] = scatterProps
-  .filter((p) => p.kind !== 'shell') // too small to read at this scale
+export const SCATTER: MapMarker[] = placements
+  .filter((p) => p.kind === 'scatter' && p.type !== 'shell') // shells are too small to read
   .map((p) => ({
     unit: latLongToUnit(p.lat, p.long),
     icon:
-      p.kind === 'palm'
+      p.type === 'palm'
         ? { color: '#3f8f4f', shape: 'dot' as const, size: 2.4 }
         : { color: '#9aa0a6', shape: 'dot' as const, size: 1.7 },
   }))
 
 /** The log ring around the fire. */
-export const SEATS: MapMarker[] = monuments
+export const SEATS: MapMarker[] = placements
   .filter((m) => m.kind === 'seat')
   .map((m) => ({ unit: latLongToUnit(m.lat, m.long), icon: BY_KIND.seat }))
 
@@ -91,10 +98,10 @@ const degPerMetreLong = (lat: number) =>
  * shape you actually walk around instead of a dot.
  */
 export const CEMETERY_FOOTPRINT: THREE.Vector3[] = (() => {
-  const plot = monument('cemetery')
+  const plot = placement('cemetery')
   const w = (plot.size?.widthM ?? 12) / 2
   const d = (plot.size?.depthM ?? 10) / 2
-  const yaw = (plot.facingDeg * Math.PI) / 180
+  const yaw = (plot.yawDeg * Math.PI) / 180
   const cos = Math.cos(yaw)
   const sin = Math.sin(yaw)
   const corners: Array<[number, number]> = [

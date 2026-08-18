@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { monument, monumentPos, monumentYaw } from '../content/monuments'
+import { placement, placementPos, placementYaw, placements } from '../content/placements'
 import { latLongToUnit } from '../controls/planetMath'
 
 /**
@@ -131,27 +131,27 @@ const THREE_DEG = Math.PI / 180
  * JSON, not this table.
  */
 export const MAP = {
-  tripod: monumentPos('photos'), // Photos — on the dock end, over water
-  mailbox: monumentPos('contact'), // Contact — dock entrance
+  tripod: placementPos('photos'), // Photos — on the dock end, over water
+  mailbox: placementPos('contact'), // Contact — dock entrance
   // NPC — seat ON the dock's west edge (cross-track ~0.87 m < the 1 m
   // half-width, so his butt overlaps the deck), legs over the surf.
-  ukulelePlayer: monumentPos('koa'),
-  palapa: monumentPos('projects'), // Projects — day-leaning side
-  bulletinBoard: monumentPos('papers'), // Papers — grass, sunset side
-  matrixPortal: monumentPos('rift'), // Build-log room — night-leaning side
-  cemetery: monumentPos('cemetery'), // Memorial garden
-  hedgeStone: monumentPos('about'), // About — the moai, dusk boundary west
-  campfire: monumentPos('campfire'), // night beach
+  ukulelePlayer: placementPos('koa'),
+  palapa: placementPos('projects'), // Projects — day-leaning side
+  bulletinBoard: placementPos('papers'), // Papers — grass, sunset side
+  matrixPortal: placementPos('rift'), // Build-log room — night-leaning side
+  cemetery: placementPos('cemetery'), // Memorial garden
+  hedgeStone: placementPos('about'), // About — the moai, dusk boundary west
+  campfire: placementPos('campfire'), // night beach
   // Log circle: three sittable logs ~3.2 m from the fire on the landward
   // arc, opening toward the sea. Yaw comes from each log's facingDeg.
   logs: [
-    { ...monumentPos('log-center'), yaw: monumentYaw('log-center') },
-    { ...monumentPos('log-west'), yaw: monumentYaw('log-west') },
-    { ...monumentPos('log-east'), yaw: monumentYaw('log-east') },
+    { ...placementPos('log-center'), yaw: placementYaw('log-center') },
+    { ...placementPos('log-west'), yaw: placementYaw('log-west') },
+    { ...placementPos('log-east'), yaw: placementYaw('log-east') },
   ],
-  musicUkulele: monumentPos('music'), // Music — by the fire
-  tv: { lat: monument('videos').lat, long: monument('videos').long - 0.8 }, // Videos — the CRATE's spot; the TV sits on it
-  rowboat: monumentPos('rowboat'),
+  musicUkulele: placementPos('music'), // Music — by the fire
+  tv: { lat: placement('videos').lat, long: placement('videos').long - 0.8 }, // Videos — the CRATE's spot; the TV sits on it
+  rowboat: placementPos('rowboat'),
 }
 
 /** Surf cycle (v3.3) — the single source for the water shader AND the wade
@@ -301,41 +301,29 @@ export interface ScatterProp {
   scale: number
 }
 
-/** Decorative scatter, re-scattered for the new bands (grass ≥ lat 24). */
-export const scatterProps: ScatterProp[] = [
-  // Palms on grass, loosely ringing the beach.
-  { lat: 30, long: 25, kind: 'palm', scale: 1.1 },
-  { lat: 28, long: 70, kind: 'palm', scale: 0.9 },
-  { lat: 33, long: 110, kind: 'palm', scale: 1 },
-  { lat: 29, long: 162, kind: 'palm', scale: 1.2 },
-  { lat: 31, long: 198, kind: 'palm', scale: 1 },
-  { lat: 27, long: 250, kind: 'palm', scale: 1.05 },
-  { lat: 32, long: 288, kind: 'palm', scale: 0.95 },
-  { lat: 29, long: 335, kind: 'palm', scale: 1.15 },
-  { lat: 55, long: 120, kind: 'palm', scale: 1 },
-  { lat: 62, long: 230, kind: 'palm', scale: 0.9 },
-  // Rocks on the sand ring and lower grass.
-  { lat: 19, long: 60, kind: 'rock', scale: 1.2 },
-  { lat: 17, long: 132, kind: 'rock', scale: 1 },
-  { lat: 22, long: 148, kind: 'rock', scale: 1.4 }, // near the TV, per the map
-  { lat: 20, long: 262, kind: 'rock', scale: 1.1 },
-  { lat: 26, long: 315, kind: 'rock', scale: 0.9 },
-  // Shells on the sand (decor only, no blockers).
-  { lat: 18, long: 30, kind: 'shell', scale: 1 },
-  { lat: 16.5, long: 95, kind: 'shell', scale: 0.8 },
-  { lat: 19, long: 168, kind: 'shell', scale: 1 },
-  { lat: 17, long: 228, kind: 'shell', scale: 0.9 },
-  { lat: 18.5, long: 296, kind: 'shell', scale: 1.1 },
-]
+/**
+ * Decorative scatter, DERIVED from the placement file — palms, rocks and
+ * shells are placements like everything else now, and Island renders
+ * them from here.
+ */
+export const scatterProps: ScatterProp[] = placements
+  .filter((p) => p.kind === 'scatter')
+  .map((p) => ({
+    lat: p.lat,
+    long: p.long,
+    kind: p.type as ScatterProp['kind'],
+    scale: p.scale,
+  }))
 
 /** Landmark obstacles from the map table (shells don't block). */
 const landmarkBlockers: { lat: number; long: number; radius: number }[] = [
-  // You can never walk over the fire (slide-along like every blocker).
-  { lat: MAP.campfire.lat, long: MAP.campfire.long, radius: 1.2 },
-  // …or through Koa.
-  { lat: MAP.ukulelePlayer.lat, long: MAP.ukulelePlayer.long, radius: 0.7 },
-  // The three fire logs (sit entry bypasses the target log's blocker).
-  ...MAP.logs.map((l) => ({ lat: l.lat, long: l.long, radius: 0.9 })),
+  // Everything that collides and ISN'T an interactable: props, seats,
+  // the NPC, and the scattered palms and rocks. Interactable blockers
+  // are added by the controller straight from their definitions, so
+  // listing them here too would only duplicate them.
+  ...placements
+    .filter((p) => p.kind !== 'interactable' && p.blockerRadiusM !== undefined)
+    .map((p) => ({ lat: p.lat, long: p.long, radius: p.blockerRadiusM! })),
   // Memorial garden fence (rebuild — bigger walkable ACNH-style plot):
   // blockers TRACE the visible iron-fence line (r 0.55, ~1 m spacing —
   // the moai lesson: colliders must trace something the player can
@@ -346,7 +334,7 @@ const landmarkBlockers: { lat: number; long: number; radius: number }[] = [
   // with the same flat approx used elsewhere in this file: 1° lat ≈
   // π·PLANET_RADIUS/180 m, 1° long ≈ that × cos(latitude).
   ...(() => {
-    const cem = monument('cemetery')
+    const cem = placement('cemetery')
     const hw = (cem.size?.widthM ?? 0) / 2
     const hd = (cem.size?.depthM ?? 0) / 2
     const gateHalf = 1.5
@@ -370,21 +358,11 @@ const landmarkBlockers: { lat: number; long: number; radius: number }[] = [
     for (const z of spaced(-hd, hd)) out.push(point(-hw, z)) // west
     return out
   })(),
-  { lat: MAP.palapa.lat, long: MAP.palapa.long - 2, radius: 1.2 }, // desk
-  { lat: MAP.tv.lat, long: MAP.tv.long + 0.8, radius: 0.9 }, // crate
-  { lat: MAP.mailbox.lat, long: MAP.mailbox.long, radius: 0.5 },
-  { lat: MAP.rowboat.lat, long: MAP.rowboat.long, radius: 1.6 },
 ]
 
-export const blockers: Blocker[] = [
-  ...scatterProps
-    .filter((p) => p.kind !== 'shell')
-    .map((p) => ({
-      unit: latLongToUnit(p.lat, p.long),
-      radius: p.kind === 'palm' ? 1.0 : 1.4 * p.scale,
-    })),
-  ...landmarkBlockers.map((b) => ({
-    unit: latLongToUnit(b.lat, b.long),
-    radius: b.radius,
-  })),
-]
+
+export const blockers: Blocker[] = landmarkBlockers.map((b) => ({
+  unit: latLongToUnit(b.lat, b.long),
+  radius: b.radius,
+}))
+

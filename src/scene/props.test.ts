@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import * as THREE from 'three'
 import { AIDEN } from '../content/characters'
-import { monument } from '../content/monuments'
+import { placement } from '../content/placements'
 import { latLongToUnit } from '../controls/planetMath'
 import { buildNodes } from './BlockyCharacter'
 import { blockers, PLANET_RADIUS } from './planetConfig'
@@ -68,7 +68,7 @@ describe('prop builders merge cleanly', () => {
  * use, so this is measuring the thing the player actually feels.
  */
 describe('cemetery fence blockers leave the gate and interior clear', () => {
-  const cem = monument('cemetery')
+  const cem = placement('cemetery')
   const hd = (cem.size?.depthM ?? 0) / 2
   const mPerDegLat = (Math.PI * PLANET_RADIUS) / 180
 

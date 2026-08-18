@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js'
 import { tintGeometry, wrapToSphere } from './geometryUtils'
-import { monument, monumentYaw } from '../content/monuments'
+import { placement, placementYaw } from '../content/placements'
 import { groundAltitudeAt } from '../controls/terrain'
 import { PLANET_RADIUS, SINK_M } from './planetConfig'
 
@@ -323,7 +323,7 @@ export function buildPalapa(): PropPart[] {
 /**
  * Memorial garden (rebuild — ACNH-style fenced plot, MUCH bigger and
  * walkable; replaces the old 3.2 m circular stone-wall ring that read
- * as "hard to walk around in"). A `monument('cemetery').size` rectangle
+ * as "hard to walk around in"). A `placement('cemetery').size` rectangle
  * (17 × 13 m) of chunky light-stone fence posts (~2.2 m spacing) with
  * dark iron rail sections between them on all four sides, a ~3 m south
  * gate flanked by taller posts (no panel spans the gap), two rows of
@@ -362,7 +362,7 @@ export function buildCemetery(): PropPart[] {
     return n
   }
 
-  const cem = monument('cemetery')
+  const cem = placement('cemetery')
   const HW = (cem.size?.widthM ?? 17) / 2
   const HD = (cem.size?.depthM ?? 13) / 2
   const GATE_HALF = 1.5 // ~3 m opening, centered on the south (downhill) edge
@@ -505,7 +505,7 @@ export function buildCemetery(): PropPart[] {
     lat: cem.lat,
     long: cem.long,
     radius: PLANET_RADIUS,
-    yawRad: monumentYaw('cemetery'),
+    yawRad: placementYaw('cemetery'),
     baseAlt: groundAltitudeAt(cem.lat, cem.long) - SINK_M,
   })
   flat.dispose()
