@@ -29,3 +29,26 @@ body {
 canvas {
   touch-action: none;
 }
+
+/* The rotate nudge's phone glyph tips from upright to sideways. */
+@keyframes tip-phone {
+  0%,
+  22% {
+    transform: rotate(0deg);
+  }
+  55%,
+  100% {
+    transform: rotate(-90deg);
+  }
+}
+
+.animate-tip-phone {
+  animation: tip-phone 2.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-tip-phone {
+    animation: none;
+    transform: rotate(-90deg);
+  }
+}

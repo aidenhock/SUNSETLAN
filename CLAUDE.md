@@ -155,6 +155,25 @@ a lazy chunk, and `useRoomController` takes over.
 - **The minimap follows** and redraws as the room's rectangle.
 - Budget: ~23 draw calls inside the room, well under the mobile 50.
 
+## Phones and orientation
+
+The world asks for landscape; it never demands it. `RotateNudge` (world
+route only, never `/classic`) shows a card on a portrait phone —
+`(orientation: portrait) and (max-width: 820px) and (pointer: coarse)`,
+so tablets are exempt — and hides itself the moment the device turns.
+Where the browser supports it (Android Chrome) a button does the real
+thing: fullscreen + `screen.orientation.lock('landscape')`, purely
+feature-detected. **iOS cannot be locked by a web page at all** —
+Safari implements neither `screen.orientation.lock` nor manifest
+`orientation` — so there the card instead explains Portrait Orientation
+Lock, the real reason turning the phone did nothing.
+
+**Binding: portrait stays playable and the nudge stays dismissible.** A
+visitor with rotation lock on cannot satisfy a gate, and must never be
+locked out. Dismissal is `sessionStorage` (this visit only). The CSS
+whole-app-rotation trick is rejected: it would force axis remapping
+through the orbit drag, the joystick, and pointer picking.
+
 ## Art direction — the style bible
 
 Visual targets: **Animal Crossing** (cozy ground + props), **Wii Sports Resort / Miis** (characters), **Minecraft** (chunky facets). `docs/style-playbook.md` is the **technique authority** — its recipes are binding; do not re-derive alternatives.

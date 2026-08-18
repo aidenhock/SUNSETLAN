@@ -714,3 +714,54 @@ island, and interactables whose monument has gone missing.
   call site would have been a large diff with no behaviour change; one
   derived table costs nothing and keeps the index authoritative.
 
+## 18 · Turning the phone {#rotate-nudge}
+
+**Hook:** The island wants a wide screen, and no website can turn your
+phone for you.
+
+**Plain:** On a phone held upright, the world opens with a card asking
+you to turn it sideways — the island is far wider than it is tall, and
+landscape gives you the whole horizon. Turn the phone and the card
+disappears by itself. On Android there's a button that does it for you.
+On an iPhone there isn't one, because Safari doesn't let a website
+rotate anything; so instead, if you've turned the phone and nothing
+happened, the card explains the real cause — Portrait Orientation Lock
+— and where to switch it off. There is always a "play in portrait
+anyway" button, because the island really does play upright, and
+someone whose rotation is locked must never be shut out of a portfolio.
+The classic site never shows any of this: it's a document, and upright
+is right for it.
+
+**Technical:** `RotateNudge` mounts on the world route only (App, next
+to `ModalRoot`, outside the `inert` wrapper so it shows over an open
+modal). It watches one media query — `(orientation: portrait) and
+(max-width: 820px) and (pointer: coarse)` — which keeps tablets out of
+it and hides the card the instant the device turns. The lock path is
+pure feature detection: fullscreen the document element, then
+`screen.orientation.lock('landscape')`, with any failure falling
+through to the help text rather than an error. Safari implements
+neither call, which is why the button is absent there rather than
+broken. Dismissal is `sessionStorage`, so it lasts the visit and not
+beyond. The e2e helper pre-dismisses it so the gameplay suites still
+drive the world directly, and the nudge has its own test.
+
+**Files:**
+- `src/ui/RotateNudge.tsx` — `RotateNudge`, `tryLockLandscape`
+- `src/App.tsx` — where it mounts
+- `e2e/helpers.ts` — `gotoWorld`
+- `src/index.css` — the tipping-phone keyframes
+
+**Decisions:**
+- A hard gate was rejected. It is the obvious way to guarantee
+  landscape, and it fails exactly the visitors who cannot fix it: with
+  rotation lock on, turning the phone does nothing, and a gate becomes
+  a dead end whose only exit is leaving the site.
+- Rendering the whole app rotated 90° with a CSS transform — the trick
+  HTML5 game portals use, and the only way to beat rotation lock on
+  iOS — was considered and skipped. It would have forced axis remapping
+  through the orbit drag, the touch joystick, and pointer picking, three
+  of the most delicate input paths here, for a payoff the "play anyway"
+  button already covers.
+- The rotation-lock help is time-triggered (five seconds) rather than
+  shown up front. Leading with troubleshooting assumes the visitor has
+  a problem; most just turn the phone and never see it.

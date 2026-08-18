@@ -132,3 +132,40 @@ test('mobile: papers modal opens; view and download links present', async ({ pag
   await expect(dialog).toBeHidden()
   expect(realErrors(errors)).toEqual([])
 })
+
+test('mobile: portrait nudge asks for landscape, offers a way past, and never blocks /classic', async ({
+  page,
+}) => {
+  const errors = collectErrors(page)
+  // NOTE: no gotoWorld here — that helper pre-dismisses the nudge for
+  // the gameplay suites, and this test is about the nudge itself.
+  await page.goto('/?e2e', { waitUntil: 'load' })
+  await page.waitForSelector('canvas', { timeout: 30_000 })
+  const nudge = page.locator('[data-rotate-nudge]')
+  await expect(nudge).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Turn your phone sideways' })).toBeVisible()
+
+  // Rotation-lock help appears once turning the phone clearly hasn't
+  // happened — the iOS case, where the browser cannot rotate for us.
+  await expect(page.getByText('Turned it and nothing happened?')).toBeVisible({ timeout: 9000 })
+
+  // There is always a way past: portrait stays playable.
+  await page.getByRole('button', { name: 'Play in portrait anyway' }).click()
+  await expect(nudge).toBeHidden()
+  // And the world is live underneath it.
+  await page.waitForFunction(() => window.__controls !== undefined, undefined, { timeout: 15_000 })
+
+  // Rotating to landscape hides it without any dismissal at all.
+  await page.evaluate(() => sessionStorage.removeItem('sl-rotate-nudge'))
+  await page.setViewportSize({ width: 915, height: 412 })
+  await page.reload({ waitUntil: 'load' })
+  await page.waitForSelector('canvas', { timeout: 30_000 })
+  await expect(nudge).toBeHidden()
+
+  // The classic site is a document: never nudged, either way up.
+  await page.setViewportSize({ width: 412, height: 915 })
+  await page.goto('/classic', { waitUntil: 'networkidle' })
+  await expect(nudge).toBeHidden()
+
+  expect(realErrors(errors)).toEqual([])
+})

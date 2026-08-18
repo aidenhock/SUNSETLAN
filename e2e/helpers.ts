@@ -42,6 +42,16 @@ export function realErrors(errors: string[]): string[] {
 
 /** Loads the world with the ?e2e hook and waits for the scene. */
 export async function gotoWorld(page: Page): Promise<void> {
+  // The portrait "turn your phone" nudge covers the world on phone
+  // viewports; pre-dismiss it so the gameplay suites drive the world
+  // directly. The nudge has its own test.
+  await page.addInitScript(() => {
+    try {
+      sessionStorage.setItem('sl-rotate-nudge', '1')
+    } catch {
+      // no-storage contexts just see the nudge
+    }
+  })
   await page.goto('/?e2e', { waitUntil: 'load' })
   await page.waitForSelector('canvas', { timeout: 30_000 })
   await page.waitForFunction(

@@ -8,6 +8,7 @@ import { Hud } from './ui/Hud'
 import { Minimap } from './ui/Minimap'
 import { LoadingScreen } from './ui/LoadingScreen'
 import { ModalRoot } from './ui/ModalRoot'
+import { RotateNudge } from './ui/RotateNudge'
 
 const keyboardMap = [
   { name: 'forward', keys: ['ArrowUp', 'KeyW'] },
@@ -138,6 +139,8 @@ export default function App() {
         <Minimap isTouch={isTouch} />
       </div>
       <ModalRoot />
+      {/* World route only — /classic is a document and reads fine upright. */}
+      <RotateNudge />
     </div>
   )
 }
