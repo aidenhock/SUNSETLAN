@@ -6,6 +6,7 @@ import type { InteractableDef, PropKind } from '../content/interactables'
 import { useStore } from '../store/useStore'
 import { buildBulletinBoard, buildHeadstone, buildHedgeStone, buildMailbox, buildMusicStereo, buildTripod, type PropPart } from './props'
 import { buildRift } from './riftGeometry'
+import { controlsRuntime } from '../controls/usePlanetController'
 import { skyRuntime } from './useSkyState'
 
 /** 'portal' is absent by design: the rift renders through RiftBody
@@ -48,6 +49,8 @@ export function Interactable({ def }: { def: InteractableDef }) {
     // While pointer-locked, clicks raycast from the stale pre-lock cursor
     // position — never open from those. Ignore orbit drags too.
     if (document.pointerLockElement) return
+    // In the editor a click means "select this", not "open this".
+    if (controlsRuntime.editing) return
     if (e.delta > 5) return
     document.body.style.cursor = 'auto'
     openModal(def.id)

@@ -100,6 +100,40 @@ if ((await count()) !== before + 1) fail('redo did not replay')
 else ok('redo replays')
 await store('s.undo(); return 1')
 
+// DRAG with a real mouse: select by clicking the handle, drag across
+// the ground, and check the whole drag is ONE undo step.
+await page.evaluate(() => {
+  window.__controls.poseOverride = { lat: 42, long: 343 }
+  window.__controls.azimuthOverride = 0
+  window.__controls.pitchOverride = 0.35
+})
+await page.waitForTimeout(1200)
+await page.mouse.click(775, 350)
+await page.waitForTimeout(200)
+if ((await store('return s.selectedId')) !== 'papers') fail('clicking a handle did not select it')
+else ok('click selects a placement')
+const paperAt = () =>
+  store("const p = s.list.find((x) => x.id === 'papers'); return [p.lat, p.long]")
+const paperBefore = await paperAt()
+const depthBefore = await store('return s.past.length')
+await page.mouse.move(700, 500)
+await page.mouse.down()
+await page.mouse.move(600, 560, { steps: 15 })
+await page.mouse.up()
+await page.waitForTimeout(300)
+const paperAfter = await paperAt()
+if (Math.abs(paperAfter[0] - paperBefore[0]) < 0.01) fail('dragging did not move the placement')
+else ok('drag moves it across the ground')
+if ((await store('return s.past.length')) !== depthBefore + 1)
+  fail('a drag should be exactly one undo step')
+else ok('a drag is one undo step')
+await page.keyboard.press('Control+z')
+await page.waitForTimeout(200)
+const paperUndone = await paperAt()
+if (Math.abs(paperUndone[0] - paperBefore[0]) > 1e-9) fail('one Ctrl+Z did not undo the drag')
+else ok('one Ctrl+Z undoes the whole drag')
+await store('s.select(null); return 1')
+
 // KEYS: the bindings, not just the store. Select something and drive it
 // the way a person would.
 await store("s.select('rock-01'); return 1")

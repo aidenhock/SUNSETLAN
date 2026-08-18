@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { controlsRuntime } from '../controls/usePlanetController'
+import { useStore } from '../store/useStore'
 import { PROP_REGISTRY } from '../scene/propRegistry'
 import { serialize, usePlacementRuntime, warningsFor } from '../scene/placementRuntime'
 import { useEditorInput } from './useEditorInput'
@@ -38,6 +39,23 @@ export function EditorOverlay() {
   const selected = list.find((p) => p.id === selectedId)
   const warnings = useMemo(() => warningsFor(list, drawCalls), [list, drawCalls])
   const mine = warnings.filter((w) => !w.id || w.id === selectedId)
+
+  // Mouse-look captures the pointer, which would leave every editor
+  // click raycasting from a stale position — so the editor switches the
+  // camera to drag-to-orbit while it is open, and hands it back after.
+  useEffect(() => {
+    const store = useStore.getState()
+    const previous = store.settings.cameraMode
+    controlsRuntime.editing = true
+    if (previous === 'pointerLock') {
+      store.setCameraMode('orbit')
+      document.exitPointerLock?.()
+    }
+    return () => {
+      controlsRuntime.editing = false
+      useStore.getState().setCameraMode(previous)
+    }
+  }, [])
 
   // Free-fly: pull the camera right out so anywhere on this face of the
   // planet is one click away, instead of walking there.

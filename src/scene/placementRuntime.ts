@@ -48,6 +48,9 @@ interface PlacementRuntime {
   brush: string | null
 
   select: (id: string | null) => void
+  /** A drag is ONE undo step: startMove snapshots, moveTo streams. */
+  startMove: () => void
+  endMove: () => void
   moveTo: (id: string, lat: number, long: number) => void
   nudge: (id: string, east: number, north: number) => void
   rotate: (id: string, deltaDeg: number) => void
@@ -89,13 +92,18 @@ function newId(list: Placement[], type: string): string {
 }
 
 export const usePlacementRuntime = create<PlacementRuntime>((set, get) => {
+  /** True between pointer-down and pointer-up: a drag streams dozens of
+   *  positions, and every one of them landing in the undo stack would
+   *  make Ctrl+Z crawl back a centimetre at a time. */
+  let coalescing = false
+
   const commit = (mutate: (list: Placement[]) => Placement[]) =>
     set((s) => {
       const next = mutate(s.list)
       rebuildBlockers(next)
       return {
         list: next,
-        past: [...s.past, s.list].slice(-100),
+        past: coalescing ? s.past : [...s.past, s.list].slice(-100),
         future: [],
         version: s.version + 1,
       }
@@ -111,6 +119,15 @@ export const usePlacementRuntime = create<PlacementRuntime>((set, get) => {
     brush: null,
 
     select: (selectedId) => set({ selectedId }),
+
+    startMove: () => {
+      // One snapshot up front, then the drag streams into it.
+      set((s) => ({ past: [...s.past, s.list].slice(-100), future: [] }))
+      coalescing = true
+    },
+    endMove: () => {
+      coalescing = false
+    },
 
     moveTo: (id, lat, long) =>
       commit((list) => list.map((p) => (p.id === id ? { ...p, lat, long } : p))),

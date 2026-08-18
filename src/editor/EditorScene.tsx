@@ -70,6 +70,8 @@ export function EditorScene({ planetRef }: { planetRef: React.RefObject<THREE.Gr
   const selectedId = usePlacementRuntime((s) => s.selectedId)
   const select = usePlacementRuntime((s) => s.select)
   const moveTo = usePlacementRuntime((s) => s.moveTo)
+  const startMove = usePlacementRuntime((s) => s.startMove)
+  const endMove = usePlacementRuntime((s) => s.endMove)
   const setDrawCalls = usePlacementRuntime((s) => s.setDrawCalls)
   const dragging = useRef(false)
   const ringRef = useRef<THREE.Group>(null)
@@ -111,6 +113,7 @@ export function EditorScene({ planetRef }: { planetRef: React.RefObject<THREE.Gr
   const onDown = (e: ThreeEvent<PointerEvent>) => {
     if (!selectedId) return
     dragging.current = true
+    startMove()
     ;(e.target as Element).setPointerCapture?.(e.pointerId)
   }
   const onMove = (e: ThreeEvent<PointerEvent>) => {
@@ -119,6 +122,7 @@ export function EditorScene({ planetRef }: { planetRef: React.RefObject<THREE.Gr
     if (at) moveTo(selectedId, at.lat, at.long)
   }
   const onUp = () => {
+    if (dragging.current) endMove()
     dragging.current = false
   }
   const onClick = (e: ThreeEvent<MouseEvent>) => {
@@ -152,7 +156,7 @@ export function EditorScene({ planetRef }: { planetRef: React.RefObject<THREE.Gr
       {/* Every placement gets a hit target, so anything can be selected
           — including things the scene draws with its own component. */}
       {list.map((p) => {
-        const m = placementMatrix(p.lat, p.long, p.yawDeg, 1, (p.liftM ?? 0) + 0.6)
+        const m = placementMatrix(p.lat, p.long, p.yawDeg, 1, (p.liftM ?? 0) + 0.9)
         const pos = new THREE.Vector3()
         m.decompose(pos, new THREE.Quaternion(), new THREE.Vector3())
         const isSel = p.id === selectedId
@@ -167,7 +171,9 @@ export function EditorScene({ planetRef }: { planetRef: React.RefObject<THREE.Gr
             onPointerOver={() => (document.body.style.cursor = 'pointer')}
             onPointerOut={() => (document.body.style.cursor = 'auto')}
           >
-            <sphereGeometry args={[0.55, 8, 6]} />
+            {/* Big enough to hit from across the island — this is a
+                handle, not scenery. */}
+            <sphereGeometry args={[0.85, 10, 8]} />
             <meshBasicMaterial
               color={isSel ? '#ffd166' : '#5fd8ff'}
               transparent

@@ -72,6 +72,9 @@ export const controlsRuntime = {
   /** Set by the dev world editor while a placement is selected: the
    * arrow keys nudge the prop instead of walking the player. */
   suppressInput: false,
+  /** True while the dev world editor is open: clicks select props
+   * instead of opening their modals. */
+  editing: false,
 }
 
 const JUMP_V0 = 4.5
