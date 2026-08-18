@@ -69,6 +69,9 @@ export const controlsRuntime = {
   /** True while seated at the fire (or tweening onto a seat) — the avatar
    * pose blend and the e2e suite read this. */
   seated: false,
+  /** Set by the dev world editor while a placement is selected: the
+   * arrow keys nudge the prop instead of walking the player. */
+  suppressInput: false,
 }
 
 const JUMP_V0 = 4.5
@@ -217,6 +220,7 @@ export function usePlanetController({ planetRef, avatarRef }: ControllerRefs) {
     }
     const inputActive =
       (ix !== 0 || iz !== 0) &&
+      !controlsRuntime.suppressInput &&
       !store.openModalId &&
       store.introDone &&
       !sitting &&

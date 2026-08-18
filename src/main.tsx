@@ -17,6 +17,13 @@ if (new URLSearchParams(window.location.search).has('e2e')) {
   import('./controls/useRoomController').then((m) => {
     ;(window as unknown as { __room: unknown }).__room = m.roomRuntime
   })
+  // The world editor's store, for e2e/editor.mjs (dev only — the module
+  // is data, but nothing outside a dev run ever reads these).
+  import('./scene/placementRuntime').then((m) => {
+    const w = window as unknown as { __placements: unknown; __serializePlacements: unknown }
+    w.__placements = m.usePlacementRuntime
+    w.__serializePlacements = m.serialize
+  })
 }
 
 const isClassic = window.location.pathname.replace(/\/+$/, '') === '/classic'

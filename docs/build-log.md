@@ -792,3 +792,60 @@ drive the world directly, and the nudge has its own test.
 - The rotation-lock help is time-triggered (five seconds) rather than
   shown up front. Leading with troubleshooting assumes the visitor has
   a problem; most just turn the phone and never see it.
+
+## 19 · A world you can drag {#world-editor}
+
+**Hook:** The island is now editable from inside itself.
+
+**Plain:** Everything on the island — every prop, portal, palm and rock
+— lives in one file of coordinates. In development you can open the
+world with `?editor` (or press F2), click a thing to select it, and drag
+it across the ground; arrow keys nudge it a quarter metre, Q and E turn
+it, sliders set its size and how far it pushes the player away, and that
+push is drawn as a translucent disc so collision stops being invisible.
+There's a palette to place new props, duplicate and delete, and full
+undo. When it looks right, one button writes the file back to disk.
+
+It warns before you make a mess: something placed past the waterline,
+two things whose collisions overlap enough to wedge the player, or a
+placement that pushes the scene over its draw-call budget.
+
+None of this ships. The editor is stripped from production builds
+entirely, and a check in the build asserts it.
+
+**Technical:** Placements moved out of three scattered sources into
+`content/placements.json`, and the scene reads them through
+`scene/placementRuntime.ts` — a small store initialised from the file.
+In production nothing mutates it, so the world IS the file; in the
+editor every change goes through a command stack (whole-list snapshots,
+since 41 entries are cheap) and rebuilds the blocker array IN PLACE, so
+a dragged prop's collision moves with it and the cemetery's generated
+fence regenerates around the plot. Picking is analytic rather than a
+raycast against terrain: the screen ray meets a sphere of the planet's
+radius, and that point converts straight back to lat/long — the numbers
+the file stores. Altitude is never editable; it always comes from
+`groundAltitudeAt − SINK_M`. The panel and the 3D helpers are behind
+`import.meta.env.DEV`, which Vite folds to `false` in a build so Rollup
+drops the dynamic imports and emits no chunk.
+
+**Files:**
+- `src/content/placements.json` — the world
+- `src/scene/placementRuntime.ts` — `usePlacementRuntime`, `serialize`, `warningsFor`
+- `src/editor/EditorOverlay.tsx` — the panel
+- `src/editor/EditorScene.tsx` — `pickLatLong`, the rings and the drag
+
+**Decisions:**
+- Parity was proven rather than eyeballed. `worldParity.test.ts` digests
+  every blocker and interactable; the interactable digest came out
+  byte-identical, and a third test reconstructs the old blocker list
+  from the new one to show the only difference is a duplicate mailbox
+  collider that sat inside its own. The guard immediately earned itself
+  by catching a crate collider I had written 0.8° off its prop.
+- The round-trip check earned itself too: it failed twice on real
+  defects — the serializer rounded yaw to one decimal and lost a baked
+  51.57°, and whole numbers were being written as `40.0` where the
+  editor writes `40`. "Lossless" has to mean bytes, or the file churns
+  every time anyone opens the editor.
+- The store lives in `scene/`, not `editor/`. It is data the world
+  needs; only the UI is dev-only, and keeping them apart is what lets
+  the bundle check assert on the filename as well as the contents.

@@ -25,6 +25,18 @@ function SceneReady({ onReady }: { onReady: () => void }) {
   return null
 }
 
+/**
+ * Dev-only world editor. Both halves are behind `import.meta.env.DEV`,
+ * which Vite replaces with `false` in a build — the branch and the
+ * dynamic imports inside it are then dead code, so no editor chunk is
+ * emitted at all (scripts/check-prod-bundle.mjs proves it).
+ */
+const EditorOverlay = lazy(async () => {
+  if (!import.meta.env.DEV) return { default: () => null }
+  const m = await import('./editor/EditorOverlay')
+  return { default: m.EditorOverlay as () => React.ReactNode }
+})
+
 /** Dev-only profiler overlay, code-split behind the ?perf flag. */
 const Perf = lazy(() => import('r3f-perf').then((m) => ({ default: m.Perf })))
 
@@ -72,6 +84,21 @@ export default function App() {
     [flags],
   )
   const qualityTier = useStore((s) => s.qualityTier)
+  // The editor opens with ?editor or F2, and only ever in dev.
+  const [editing, setEditing] = useState(
+    () => import.meta.env.DEV && flags.has('editor'),
+  )
+  useEffect(() => {
+    if (!import.meta.env.DEV) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.code === 'F2') {
+        e.preventDefault()
+        setEditing((v) => !v)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
 
   if (flags.has('chartest')) {
     return (
@@ -127,7 +154,7 @@ export default function App() {
             {/* Lights live in SkyRig (inside PlanetScene): useSkyState drives
                 them, the fog color, and this background per frame. */}
             <KeyboardControls map={keyboardMap}>
-              <PlanetScene isTouch={isTouch} intro={intro} />
+              <PlanetScene isTouch={isTouch} intro={intro} editing={editing} />
             </KeyboardControls>
             <SceneReady onReady={() => setSceneReady(true)} />
             {showPerf && <Perf position="top-left" />}
@@ -141,6 +168,11 @@ export default function App() {
       <ModalRoot />
       {/* World route only — /classic is a document and reads fine upright. */}
       <RotateNudge />
+      {editing && (
+        <Suspense fallback={null}>
+          <EditorOverlay />
+        </Suspense>
+      )}
     </div>
   )
 }

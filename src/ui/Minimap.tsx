@@ -15,6 +15,7 @@ import {
   type MapMarker,
 } from './mapIcons'
 import { GRASS_POLAR_DEG, PLANET_RADIUS } from '../scene/planetConfig'
+import { usePlacementRuntime } from '../scene/placementRuntime'
 import { useStore } from '../store/useStore'
 import {
   bearingTo,
@@ -234,6 +235,22 @@ export function Minimap({ isTouch }: { isTouch: boolean }) {
       for (const m of SCATTER) marker(m, heading, pxPerM, scale)
       for (const m of SEATS) marker(m, heading, pxPerM, scale)
       for (const m of MARKERS) marker(m, heading, pxPerM, scale)
+
+      // The world editor's selection, so the map answers "which one is
+      // that?" while you drag. Costs nothing when nothing is selected.
+      const sel = usePlacementRuntime.getState().selectedId
+      if (sel) {
+        const p = usePlacementRuntime.getState().list.find((x) => x.id === sel)
+        if (p) {
+          const u = latLongToUnit(p.lat, p.long)
+          toScreen(rangeTo(_frame, u, PLANET_RADIUS), bearingTo(_frame, u), heading, pxPerM, _pt)
+          ctx.beginPath()
+          ctx.arc(c + _pt.x, c + _pt.y, 5 * scale, 0, Math.PI * 2)
+          ctx.strokeStyle = '#ffd166'
+          ctx.lineWidth = 1.8 * scale
+          ctx.stroke()
+        }
+      }
       ctx.restore()
     }
 

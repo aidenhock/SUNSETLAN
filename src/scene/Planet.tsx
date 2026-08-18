@@ -27,13 +27,31 @@ import { Water } from './Water'
 /** The build-log room — code-split, only fetched when you step through. */
 const RoomScene = lazy(() => import('./RoomScene').then((m) => ({ default: m.RoomScene })))
 
+/** Dev-only: the editor's picking, rings and drag handles. Same
+ *  DEV-guarded dynamic import as the panel, so prod emits no chunk. */
+type EditorSceneProps = { planetRef: React.RefObject<THREE.Group | null> }
+
+const EditorScene = lazy<React.ComponentType<EditorSceneProps>>(async () => {
+  if (!import.meta.env.DEV) return { default: () => null }
+  const m = await import('../editor/EditorScene')
+  return { default: m.EditorScene }
+})
+
 /**
  * The whole rotating world. One group owns the planet quaternion; the avatar
  * stays fixed at the pole. Ground height is analytic (see groundHeightAt in
  * usePlanetController) — nothing here is raycast. The touch joystick is a DOM
  * overlay owned by App.
  */
-export function PlanetScene({ isTouch, intro }: { isTouch: boolean; intro: boolean }) {
+export function PlanetScene({
+  isTouch,
+  intro,
+  editing = false,
+}: {
+  isTouch: boolean
+  intro: boolean
+  editing?: boolean
+}) {
   const planetRef = useRef<THREE.Group>(null)
   const avatarRef = useRef<THREE.Group>(null)
   const roomRef = useRef<THREE.Group>(null)
@@ -75,6 +93,11 @@ export function PlanetScene({ isTouch, intro }: { isTouch: boolean; intro: boole
         {interactables.map((def) => (
           <Interactable key={def.id} def={def} />
         ))}
+        {editing && (
+          <Suspense fallback={null}>
+            <EditorScene planetRef={planetRef} />
+          </Suspense>
+        )}
       </group>
       {/* The avatar walks in both places; only the ripple is island-only. */}
       <Avatar ref={avatarRef} />

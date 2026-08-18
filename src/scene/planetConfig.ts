@@ -316,25 +316,21 @@ export const scatterProps: ScatterProp[] = placements
   }))
 
 /** Landmark obstacles from the map table (shells don't block). */
-const landmarkBlockers: { lat: number; long: number; radius: number }[] = [
-  // Everything that collides and ISN'T an interactable: props, seats,
-  // the NPC, and the scattered palms and rocks. Interactable blockers
-  // are added by the controller straight from their definitions, so
-  // listing them here too would only duplicate them.
-  ...placements
-    .filter((p) => p.kind !== 'interactable' && p.blockerRadiusM !== undefined)
-    .map((p) => ({ lat: p.lat, long: p.long, radius: p.blockerRadiusM! })),
-  // Memorial garden fence (rebuild — bigger walkable ACNH-style plot):
-  // blockers TRACE the visible iron-fence line (r 0.55, ~1 m spacing —
-  // the moai lesson: colliders must trace something the player can
-  // SEE) around all four sides of the widthM × depthM rectangle,
-  // skipping the ~3 m south gate gap so the gate and the WHOLE interior
-  // stay walkable (no interior points are ever emitted). Local frame
-  // matches wrapToSphere (+X east, +Z north); converted to lat/long
-  // with the same flat approx used elsewhere in this file: 1° lat ≈
-  // π·PLANET_RADIUS/180 m, 1° long ≈ that × cos(latitude).
-  ...(() => {
-    const cem = placement('cemetery')
+/**
+ * The memorial garden's fence blockers, generated from the plot itself
+ * so they follow it: blockers TRACE the visible iron-fence line (r 0.55,
+ * ~1 m spacing — the moai lesson: colliders must trace something the
+ * player can SEE) around all four sides of the widthM × depthM
+ * rectangle, skipping the ~3 m south gate gap so the gate and the WHOLE
+ * interior stay walkable. Exported because the editor regenerates it
+ * whenever the cemetery placement is dragged.
+ */
+export function fenceBlockersFor(cem: {
+  lat: number
+  long: number
+  size?: { widthM: number; depthM: number }
+}): { lat: number; long: number; radius: number }[] {
+
     const hw = (cem.size?.widthM ?? 0) / 2
     const hd = (cem.size?.depthM ?? 0) / 2
     const gateHalf = 1.5
@@ -357,7 +353,17 @@ const landmarkBlockers: { lat: number; long: number; radius: number }[] = [
     for (const z of spaced(-hd, hd)) out.push(point(hw, z)) // east
     for (const z of spaced(-hd, hd)) out.push(point(-hw, z)) // west
     return out
-  })(),
+}
+
+const landmarkBlockers: { lat: number; long: number; radius: number }[] = [
+  // Everything that collides and ISN'T an interactable: props, seats,
+  // the NPC, and the scattered palms and rocks. Interactable blockers
+  // are added by the controller straight from their definitions, so
+  // listing them here too would only duplicate them.
+  ...placements
+    .filter((p) => p.kind !== 'interactable' && p.blockerRadiusM !== undefined)
+    .map((p) => ({ lat: p.lat, long: p.long, radius: p.blockerRadiusM! })),
+  ...fenceBlockersFor(placement('cemetery')),
 ]
 
 

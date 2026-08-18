@@ -235,7 +235,7 @@
       "label": "Beached rowboat",
       "lat": 18,
       "long": 210,
-      "yawDeg": 0,
+      "yawDeg": 51.57,
       "scale": 1,
       "blockerRadiusM": 1.6
     },
@@ -246,8 +246,8 @@
       "label": "Palapa desk (collider only)",
       "blockerRadiusM": 1.2,
       "notes": "Traces the desk built into the palapa; nothing renders from this entry.",
-      "lat": 40.0,
-      "long": 38.0,
+      "lat": 40,
+      "long": 38,
       "yawDeg": 0,
       "scale": 1
     },
@@ -258,7 +258,7 @@
       "label": "CRT crate",
       "blockerRadiusM": 0.9,
       "notes": "The TV stands on this; the TV entry carries the liftM that puts it on top.",
-      "lat": 21.0,
+      "lat": 21,
       "long": 150.8,
       "yawDeg": 0,
       "scale": 1
@@ -268,119 +268,119 @@
       "type": "palm",
       "kind": "scatter",
       "label": "Palm 1",
-      "lat": 30.0,
-      "long": 25.0,
+      "lat": 30,
+      "long": 25,
       "yawDeg": 0,
       "scale": 1.1,
-      "blockerRadiusM": 1.0
+      "blockerRadiusM": 1
     },
     {
       "id": "palm-02",
       "type": "palm",
       "kind": "scatter",
       "label": "Palm 2",
-      "lat": 28.0,
-      "long": 70.0,
-      "yawDeg": 0,
+      "lat": 28,
+      "long": 70,
+      "yawDeg": 322,
       "scale": 0.9,
-      "blockerRadiusM": 1.0
+      "blockerRadiusM": 1
     },
     {
       "id": "palm-03",
       "type": "palm",
       "kind": "scatter",
       "label": "Palm 3",
-      "lat": 33.0,
-      "long": 110.0,
-      "yawDeg": 0,
-      "scale": 1.0,
-      "blockerRadiusM": 1.0
+      "lat": 33,
+      "long": 110,
+      "yawDeg": 284.19,
+      "scale": 1,
+      "blockerRadiusM": 1
     },
     {
       "id": "palm-04",
       "type": "palm",
       "kind": "scatter",
       "label": "Palm 4",
-      "lat": 29.0,
-      "long": 162.0,
-      "yawDeg": 0,
+      "lat": 29,
+      "long": 162,
+      "yawDeg": 246.37,
       "scale": 1.2,
-      "blockerRadiusM": 1.0
+      "blockerRadiusM": 1
     },
     {
       "id": "palm-05",
       "type": "palm",
       "kind": "scatter",
       "label": "Palm 5",
-      "lat": 31.0,
-      "long": 198.0,
-      "yawDeg": 0,
-      "scale": 1.0,
-      "blockerRadiusM": 1.0
+      "lat": 31,
+      "long": 198,
+      "yawDeg": 208.56,
+      "scale": 1,
+      "blockerRadiusM": 1
     },
     {
       "id": "palm-06",
       "type": "palm",
       "kind": "scatter",
       "label": "Palm 6",
-      "lat": 27.0,
-      "long": 250.0,
-      "yawDeg": 0,
+      "lat": 27,
+      "long": 250,
+      "yawDeg": 170.74,
       "scale": 1.05,
-      "blockerRadiusM": 1.0
+      "blockerRadiusM": 1
     },
     {
       "id": "palm-07",
       "type": "palm",
       "kind": "scatter",
       "label": "Palm 7",
-      "lat": 32.0,
-      "long": 288.0,
-      "yawDeg": 0,
+      "lat": 32,
+      "long": 288,
+      "yawDeg": 132.93,
       "scale": 0.95,
-      "blockerRadiusM": 1.0
+      "blockerRadiusM": 1
     },
     {
       "id": "palm-08",
       "type": "palm",
       "kind": "scatter",
       "label": "Palm 8",
-      "lat": 29.0,
-      "long": 335.0,
-      "yawDeg": 0,
+      "lat": 29,
+      "long": 335,
+      "yawDeg": 95.11,
       "scale": 1.15,
-      "blockerRadiusM": 1.0
+      "blockerRadiusM": 1
     },
     {
       "id": "palm-09",
       "type": "palm",
       "kind": "scatter",
       "label": "Palm 9",
-      "lat": 55.0,
-      "long": 120.0,
-      "yawDeg": 0,
-      "scale": 1.0,
-      "blockerRadiusM": 1.0
+      "lat": 55,
+      "long": 120,
+      "yawDeg": 57.3,
+      "scale": 1,
+      "blockerRadiusM": 1
     },
     {
       "id": "palm-10",
       "type": "palm",
       "kind": "scatter",
       "label": "Palm 10",
-      "lat": 62.0,
-      "long": 230.0,
-      "yawDeg": 0,
+      "lat": 62,
+      "long": 230,
+      "yawDeg": 19.48,
       "scale": 0.9,
-      "blockerRadiusM": 1.0
+      "blockerRadiusM": 1
     },
     {
       "id": "rock-01",
       "type": "rock",
       "kind": "scatter",
       "label": "Rock 1",
-      "lat": 19.0,
-      "long": 60.0,
-      "yawDeg": 0,
+      "lat": 19,
+      "long": 60,
+      "yawDeg": 341.48,
       "scale": 1.2,
       "blockerRadiusM": 1.68
     },
@@ -389,10 +389,10 @@
       "type": "rock",
       "kind": "scatter",
       "label": "Rock 2",
-      "lat": 17.0,
-      "long": 132.0,
-      "yawDeg": 0,
-      "scale": 1.0,
+      "lat": 17,
+      "long": 132,
+      "yawDeg": 303.67,
+      "scale": 1,
       "blockerRadiusM": 1.4
     },
     {
@@ -400,9 +400,9 @@
       "type": "rock",
       "kind": "scatter",
       "label": "Rock 3",
-      "lat": 22.0,
-      "long": 148.0,
-      "yawDeg": 0,
+      "lat": 22,
+      "long": 148,
+      "yawDeg": 265.85,
       "scale": 1.4,
       "blockerRadiusM": 1.96
     },
@@ -411,9 +411,9 @@
       "type": "rock",
       "kind": "scatter",
       "label": "Rock 4",
-      "lat": 20.0,
-      "long": 262.0,
-      "yawDeg": 0,
+      "lat": 20,
+      "long": 262,
+      "yawDeg": 228.04,
       "scale": 1.1,
       "blockerRadiusM": 1.54
     },
@@ -422,9 +422,9 @@
       "type": "rock",
       "kind": "scatter",
       "label": "Rock 5",
-      "lat": 26.0,
-      "long": 315.0,
-      "yawDeg": 0,
+      "lat": 26,
+      "long": 315,
+      "yawDeg": 190.22,
       "scale": 0.9,
       "blockerRadiusM": 1.26
     },
@@ -433,10 +433,10 @@
       "type": "shell",
       "kind": "scatter",
       "label": "Shell 1",
-      "lat": 18.0,
-      "long": 30.0,
-      "yawDeg": 0,
-      "scale": 1.0
+      "lat": 18,
+      "long": 30,
+      "yawDeg": 152.41,
+      "scale": 1
     },
     {
       "id": "shell-02",
@@ -444,8 +444,8 @@
       "kind": "scatter",
       "label": "Shell 2",
       "lat": 16.5,
-      "long": 95.0,
-      "yawDeg": 0,
+      "long": 95,
+      "yawDeg": 114.59,
       "scale": 0.8
     },
     {
@@ -453,19 +453,19 @@
       "type": "shell",
       "kind": "scatter",
       "label": "Shell 3",
-      "lat": 19.0,
-      "long": 168.0,
-      "yawDeg": 0,
-      "scale": 1.0
+      "lat": 19,
+      "long": 168,
+      "yawDeg": 76.78,
+      "scale": 1
     },
     {
       "id": "shell-04",
       "type": "shell",
       "kind": "scatter",
       "label": "Shell 4",
-      "lat": 17.0,
-      "long": 228.0,
-      "yawDeg": 0,
+      "lat": 17,
+      "long": 228,
+      "yawDeg": 38.96,
       "scale": 0.9
     },
     {
@@ -474,8 +474,8 @@
       "kind": "scatter",
       "label": "Shell 5",
       "lat": 18.5,
-      "long": 296.0,
-      "yawDeg": 0,
+      "long": 296,
+      "yawDeg": 1.15,
       "scale": 1.1
     }
   ]

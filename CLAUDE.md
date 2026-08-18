@@ -195,6 +195,35 @@ locked out. Dismissal is `sessionStorage` (this visit only). The CSS
 whole-app-rotation trick is rejected: it would force axis remapping
 through the orbit drag, the joystick, and pointer picking.
 
+## World editor (dev only)
+
+Open the world with **`?editor`** or press **F2** — development builds
+only. Click a marker to select, drag along the ground to move, arrows
+nudge 0.25 m, **Q/E** rotate 5°, sliders set scale and blocker radius
+(drawn as a translucent disc while selected), **Shift+D** duplicates,
+**Delete** removes, **Ctrl+Z / Ctrl+Shift+Z** undo and redo. The palette
+lists everything in `scene/propRegistry.ts`; clicking the ground spends
+the armed brush. Free-fly pulls the camera out so the far side is one
+click away. The minimap rings the selection.
+
+- **Altitude is never editable.** Every placement sits at
+  `groundAltitudeAt − SINK_M + (liftM ?? 0)`, always (placement rule 1).
+- **Export**: "Copy placements" to the clipboard, or "Write placements"
+  to save straight to `src/content/placements.json` through a dev-server
+  endpoint (`scripts/write-placements-plugin.mjs`, `apply: 'serve'`, so
+  it cannot exist in a build). The write is byte-for-byte what the file
+  already looks like — `e2e/editor.mjs` asserts the round-trip.
+- **Guardrails**: warns on placements past the waterline, on blockers
+  that overlap enough to wedge the player, and when the live draw call
+  count crosses the mobile (50) or desktop (100) budget.
+- **NEVER SHIPS**: the panel and its 3D half sit behind
+  `import.meta.env.DEV`, so Rollup drops them; `npm run check:bundle`
+  fails the build if any editor string or filename reaches `dist/`.
+  `npm run verify` = typecheck + vitest + build + that check.
+- After editing, run `node scripts/world-map.mjs` and update the digests
+  in `scene/worldParity.test.ts` in the same commit — a moved world
+  should be visible in review, never silent.
+
 ## Art direction — the style bible
 
 Visual targets: **Animal Crossing** (cozy ground + props), **Wii Sports Resort / Miis** (characters), **Minecraft** (chunky facets). `docs/style-playbook.md` is the **technique authority** — its recipes are binding; do not re-derive alternatives.

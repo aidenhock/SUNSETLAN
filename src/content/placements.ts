@@ -47,6 +47,9 @@ export interface Placement {
 
 export const placements: Placement[] = data.placements as Placement[]
 
+/** The JSON file's own header comment, preserved on round-trip. */
+export const placementsHeader: string[] = (data as { $comment?: string[] }).$comment ?? []
+
 const byId = new Map(placements.map((p) => [p.id, p]))
 
 /** Look up a placement, loudly — a typo'd id is a bug, not a blank spot. */

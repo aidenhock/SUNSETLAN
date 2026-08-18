@@ -40,7 +40,7 @@ blockers, the minimap, `planetConfig.MAP`) follows from it.
 | id | what | lat | long | facing | lift | notes |
 |---|---|---|---|---|---|---|
 | `campfire` | Campfire | 22 | 180 | 0° N | — |  |
-| `rowboat` | Beached rowboat | 18 | 210 | 0° N | — |  |
+| `rowboat` | Beached rowboat | 18 | 210 | 51.57° NE | — |  |
 | `palapa-desk` | Palapa desk (collider only) | 40 | 38 | 0° N | — | Traces the desk built into the palapa; nothing renders from this entry. |
 | `tv-crate` | CRT crate | 21 | 150.8 | 0° N | — | The TV stands on this; the TV entry carries the liftM that puts it on top. |
 
@@ -63,25 +63,25 @@ blockers, the minimap, `planetConfig.MAP`) follows from it.
 | id | what | lat | long | facing | lift | notes |
 |---|---|---|---|---|---|---|
 | `palm-01` | Palm 1 | 30 | 25 | 0° N | — |  |
-| `palm-02` | Palm 2 | 28 | 70 | 0° N | — |  |
-| `palm-03` | Palm 3 | 33 | 110 | 0° N | — |  |
-| `palm-04` | Palm 4 | 29 | 162 | 0° N | — |  |
-| `palm-05` | Palm 5 | 31 | 198 | 0° N | — |  |
-| `palm-06` | Palm 6 | 27 | 250 | 0° N | — |  |
-| `palm-07` | Palm 7 | 32 | 288 | 0° N | — |  |
-| `palm-08` | Palm 8 | 29 | 335 | 0° N | — |  |
-| `palm-09` | Palm 9 | 55 | 120 | 0° N | — |  |
-| `palm-10` | Palm 10 | 62 | 230 | 0° N | — |  |
-| `rock-01` | Rock 1 | 19 | 60 | 0° N | — |  |
-| `rock-02` | Rock 2 | 17 | 132 | 0° N | — |  |
-| `rock-03` | Rock 3 | 22 | 148 | 0° N | — |  |
-| `rock-04` | Rock 4 | 20 | 262 | 0° N | — |  |
-| `rock-05` | Rock 5 | 26 | 315 | 0° N | — |  |
-| `shell-01` | Shell 1 | 18 | 30 | 0° N | — |  |
-| `shell-02` | Shell 2 | 16.5 | 95 | 0° N | — |  |
-| `shell-03` | Shell 3 | 19 | 168 | 0° N | — |  |
-| `shell-04` | Shell 4 | 17 | 228 | 0° N | — |  |
-| `shell-05` | Shell 5 | 18.5 | 296 | 0° N | — |  |
+| `palm-02` | Palm 2 | 28 | 70 | 322° NW | — |  |
+| `palm-03` | Palm 3 | 33 | 110 | 284.19° W | — |  |
+| `palm-04` | Palm 4 | 29 | 162 | 246.37° SW | — |  |
+| `palm-05` | Palm 5 | 31 | 198 | 208.56° SW | — |  |
+| `palm-06` | Palm 6 | 27 | 250 | 170.74° S | — |  |
+| `palm-07` | Palm 7 | 32 | 288 | 132.93° SE | — |  |
+| `palm-08` | Palm 8 | 29 | 335 | 95.11° E | — |  |
+| `palm-09` | Palm 9 | 55 | 120 | 57.3° NE | — |  |
+| `palm-10` | Palm 10 | 62 | 230 | 19.48° N | — |  |
+| `rock-01` | Rock 1 | 19 | 60 | 341.48° N | — |  |
+| `rock-02` | Rock 2 | 17 | 132 | 303.67° NW | — |  |
+| `rock-03` | Rock 3 | 22 | 148 | 265.85° W | — |  |
+| `rock-04` | Rock 4 | 20 | 262 | 228.04° SW | — |  |
+| `rock-05` | Rock 5 | 26 | 315 | 190.22° S | — |  |
+| `shell-01` | Shell 1 | 18 | 30 | 152.41° SE | — |  |
+| `shell-02` | Shell 2 | 16.5 | 95 | 114.59° SE | — |  |
+| `shell-03` | Shell 3 | 19 | 168 | 76.78° E | — |  |
+| `shell-04` | Shell 4 | 17 | 228 | 38.96° NE | — |  |
+| `shell-05` | Shell 5 | 18.5 | 296 | 1.15° N | — |  |
 
 ## Moving something
 

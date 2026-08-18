@@ -8,27 +8,22 @@ import {
   DOCK,
   MAP,
   PLANET_RADIUS,
-  scatterProps,
   SINK_M,
   TERRAIN,
   terrainProfile,
 } from './planetConfig'
-import { IDENTITY_Q, InstancedProp, StaticInstances, surfacePartMatrix } from './instancing'
+import { IDENTITY_Q, InstancedProp, surfacePartMatrix } from './instancing'
 import {
   buildCemetery,
-  buildCrate,
-  buildPalapa,
-  buildPalm,
-  buildRock,
-  buildRowboat,
   paletteMaterial,
   PROP_COLORS,
+  type PropPart,
 } from './props'
+import { usePlacementRuntime } from './placementRuntime'
+import { PROP_REGISTRY } from './propRegistry'
 
 const woodMat = paletteMaterial(PROP_COLORS.woodDark)
 const postGeo = new THREE.CylinderGeometry(0.09, 0.09, 0.84, 5)
-const shellMat = paletteMaterial('#f3e6c8')
-const shellGeo = new THREE.ConeGeometry(0.16, 0.22, 5)
 
 const V = (x: number, y: number, z: number) => new THREE.Vector3(x, y, z)
 
@@ -69,31 +64,31 @@ export function Island() {
     [],
   )
 
-  const props = useMemo(
+  // Every registered prop type, built once. Which of them appear and
+  // where comes from the placement list below, not from this map.
+  const props = useMemo<Record<string, PropPart[]>>(
     () => ({
-      palm: buildPalm(),
-      rock: buildRock(),
+      ...Object.fromEntries(Object.entries(PROP_REGISTRY).map(([k, build]) => [k, build()])),
       cemetery: buildCemetery(),
-      crate: buildCrate(),
-      rowboat: buildRowboat(),
-      palapa: buildPalapa(),
     }),
     [],
   )
 
-  const scatter = useMemo(() => {
-    const palms: THREE.Matrix4[] = []
-    const rocks: THREE.Matrix4[] = []
-    const shells: THREE.Matrix4[] = []
-    scatterProps.forEach((p, i) => {
-      const yaw = (i * 137.5) % 6.28
-      const m = placement(p.lat, p.long, yaw, p.scale)
-      if (p.kind === 'palm') palms.push(m)
-      else if (p.kind === 'rock') rocks.push(m)
-      else shells.push(m)
-    })
-    return { palms, rocks, shells }
-  }, [])
+  // Placements, grouped by type into one instanced draw each. Reading
+  // the runtime list (rather than the file) is what lets the dev editor
+  // move things and see it immediately; in production the list is the
+  // file and never changes.
+  const live = usePlacementRuntime((s) => s.list)
+  const groups = useMemo(() => {
+    const out: Record<string, THREE.Matrix4[]> = {}
+    for (const p of live) {
+      if (!(p.type in PROP_REGISTRY)) continue
+      ;(out[p.type] ??= []).push(
+        placement(p.lat, p.long, (p.yawDeg * Math.PI) / 180, p.scale),
+      )
+    }
+    return out
+  }, [live])
 
   const dock = useMemo(() => {
     const planks: THREE.Matrix4[] = []
@@ -183,15 +178,6 @@ export function Island() {
     return merged
   }, [])
 
-  const single = useMemo(
-    () => ({
-      crate: [placement(MAP.tv.lat, MAP.tv.long + 0.8)],
-      rowboat: [placement(MAP.rowboat.lat, MAP.rowboat.long, 0.9)],
-      palapa: [placement(MAP.palapa.lat, MAP.palapa.long)],
-    }),
-    [],
-  )
-
   return (
     <>
       {/* The island surface — one continuous mesh, no rims, no undersides
@@ -204,9 +190,10 @@ export function Island() {
       <mesh geometry={dockGeo} material={woodMat} />
 
       {/* Chunky scatter — one draw call per material part. */}
-      <InstancedProp parts={props.palm} placements={scatter.palms} />
-      <InstancedProp parts={props.rock} placements={scatter.rocks} />
-      <StaticInstances geometry={shellGeo} material={shellMat} matrices={scatter.shells} />
+      {/* One instanced draw per prop type, straight from the placements. */}
+      {Object.entries(groups).map(([type, matrices]) => (
+        <InstancedProp key={type} parts={props[type]} placements={matrices} />
+      ))}
 
       {/* Night beach: the three sittable logs, fire-lit (the fire itself —
           flame, teepee wood, stone ring — is the animated <Fire> component). */}
@@ -221,12 +208,9 @@ export function Island() {
       <mesh geometry={props.cemetery[0].geometry} material={props.cemetery[0].material} />
 
       {/* CRT crate + beached rowboat. */}
-      <InstancedProp parts={props.crate} placements={single.crate} />
-      <InstancedProp parts={props.rowboat} placements={single.rowboat} />
 
       {/* Landmark: the palapa (Projects). The About hedge stone renders
           as its interactable's own prop body. */}
-      <InstancedProp parts={props.palapa} placements={single.palapa} />
     </>
   )
 }
