@@ -5,20 +5,20 @@ import { meridianYaw, surfaceQuaternion } from '../controls/planetMath'
 import type { InteractableDef, PropKind } from '../content/interactables'
 import { useStore } from '../store/useStore'
 import { buildBulletinBoard, buildEasel, buildHeadstone, buildHedgeStone, buildMicStand, buildTelescope, buildMailbox, buildMusicStereo, buildTripod, type PropPart } from './props'
+import { DOME_R } from './CelestialDome'
 import { buildRift } from './riftGeometry'
 import { controlsRuntime } from '../controls/usePlanetController'
 import { skyRuntime } from './useSkyState'
 
 /** 'portal' is absent by design: the rift renders through RiftBody
  * with unlit materials, not the shared vertex-tinted prop pipeline. */
-const PROP_BUILDERS: Record<Exclude<PropKind, 'portal'>, () => PropPart[]> = {
+const PROP_BUILDERS: Record<Exclude<PropKind, 'portal' | 'telescope'>, () => PropPart[]> = {
   tripod: buildTripod,
   mailbox: buildMailbox,
   stereo: buildMusicStereo,
   hedgestone: buildHedgeStone,
   bulletin: buildBulletinBoard,
   headstone: buildHeadstone,
-  telescope: buildTelescope,
   easel: buildEasel,
   micstand: buildMicStand,
 }
@@ -34,18 +34,25 @@ export function Interactable({ def }: { def: InteractableDef }) {
   const isNearby = useStore((s) => s.nearbyId === def.id)
   const openModal = useStore((s) => s.openModal)
 
-  const { quaternion, rotation } = useMemo(() => {
+  const { quaternion, rotation, aimBasis } = useMemo(() => {
     const unit = new THREE.Vector3(...def.position).normalize()
     const lat = 90 - THREE.MathUtils.radToDeg(Math.acos(THREE.MathUtils.clamp(unit.y, -1, 1)))
     const long = THREE.MathUtils.radToDeg(Math.atan2(unit.x, unit.z))
-    return {
-      quaternion: surfaceQuaternion(unit),
-      rotation: new THREE.Euler(
-        def.rotation[0],
-        def.rotation[1] + meridianYaw(lat, long),
-        def.rotation[2],
-      ),
-    }
+    const quaternion = surfaceQuaternion(unit)
+    const rotation = new THREE.Euler(
+      def.rotation[0],
+      def.rotation[1] + meridianYaw(lat, long),
+      def.rotation[2],
+    )
+    // Everything inside this prop sits under (surface × yaw). Inverting
+    // that once gives a way to bring a PLANET-LOCAL direction — like the
+    // moon's — into the prop's own frame, which is what lets the
+    // telescope aim itself.
+    const aimBasis = quaternion
+      .clone()
+      .multiply(new THREE.Quaternion().setFromEuler(rotation))
+      .invert()
+    return { quaternion, rotation, aimBasis }
   }, [def.position, def.rotation])
 
   const onClick = (e: { delta: number }) => {
@@ -68,6 +75,8 @@ export function Interactable({ def }: { def: InteractableDef }) {
       <group rotation={rotation}>
         {def.prop === 'portal' ? (
           <RiftBody isNearby={isNearby} onClick={onClick} hover={hover} />
+        ) : def.prop === 'telescope' ? (
+          <TelescopeBody aimBasis={aimBasis} at={def.position} onClick={onClick} hover={hover} />
         ) : def.prop ? (
           <PropBody kind={def.prop} isNearby={isNearby} onClick={onClick} hover={hover} />
         ) : (
@@ -133,7 +142,7 @@ function PropBody({
   onClick,
   hover,
 }: {
-  kind: Exclude<PropKind, 'portal'>
+  kind: Exclude<PropKind, 'portal' | 'telescope'>
   isNearby: boolean
   onClick: (e: { delta: number }) => void
   hover: { onPointerOver: () => void; onPointerOut: () => void }
@@ -229,3 +238,82 @@ function RiftBody({
     </group>
   )
 }
+
+
+/**
+ * The telescope: a static tripod with a tube that FOLLOWS THE MOON.
+ *
+ * The moon on this planet is not a fixed prop in the sky — it rises and
+ * sets with where you stand (the celestial arc), so a telescope aimed
+ * at a hardcoded angle would be pointing at nothing most of the time.
+ * `skyRuntime.moonLocal` carries its live direction in planet-local
+ * space; `aimBasis` brings that into the prop's own frame, and the tube
+ * turns to match, easing so it drifts rather than snapping.
+ *
+ * When the moon is below the horizon the tube returns to a resting tilt
+ * instead of aiming into the ground.
+ */
+function TelescopeBody({
+  aimBasis,
+  at,
+  onClick,
+  hover,
+}: {
+  aimBasis: THREE.Quaternion
+  /** The telescope's own planet-local position. */
+  at: [number, number, number]
+  onClick: (e: { delta: number }) => void
+  hover: { onPointerOver: () => void; onPointerOut: () => void }
+}) {
+  const here = useMemo(() => new THREE.Vector3(...at), [at])
+  const parts = useMemo(() => buildTelescope(), [])
+  const tube = useRef<THREE.Group>(null)
+  const aim = useRef(new THREE.Quaternion())
+  const rest = useMemo(
+    // Parked: tilted up and a little back, the way one is left standing.
+    () => new THREE.Quaternion().setFromEuler(new THREE.Euler(-0.6, 0, 0)),
+    [],
+  )
+
+  useFrame((_state, rawDt) => {
+    const g = tube.current
+    if (!g) return
+    const dt = Math.min(rawDt, 0.1)
+    // Above the horizon? Then track it; otherwise ease back to rest.
+    const up = skyRuntime.moonElevAboveLimbDeg > 1
+    if (up) {
+      // Aim from WHERE THE TELESCOPE STANDS, not from the planet's
+      // centre: the moon sits on a dome of radius 240 around a world of
+      // radius 55, so a surface observer sees it up to ~13° away from
+      // its centre-of-planet direction — the whole difference between
+      // pointing at the horizon and pointing at the sky above it.
+      _dir
+        .copy(skyRuntime.moonLocal)
+        .multiplyScalar(DOME_R)
+        .sub(here)
+        .normalize()
+        .applyQuaternion(aimBasis)
+      _target.setFromUnitVectors(_UP, _dir)
+    } else {
+      _target.copy(rest)
+    }
+    // ~0.8 s ease: the moon crawls, and a snapping tube looks mechanical.
+    aim.current.slerp(_target, 1 - Math.exp(-dt / 0.8))
+    g.quaternion.copy(aim.current)
+  })
+
+  return (
+    <group onClick={onClick} {...hover}>
+      <mesh geometry={parts[0].geometry} material={parts[0].material} />
+      <group ref={tube} position={[0, TELESCOPE_PIVOT_Y, 0]}>
+        <mesh geometry={parts[1].geometry} material={parts[1].material} />
+      </group>
+    </group>
+  )
+}
+
+/** Height of the yoke the tube swings on (matches buildTelescope). */
+const TELESCOPE_PIVOT_Y = 1.21
+const _dir = new THREE.Vector3()
+const _target = new THREE.Quaternion()
+const _UP = new THREE.Vector3(0, 1, 0)

@@ -957,7 +957,11 @@ names moves.
 is tonight — and it never phones anyone to find out.
 
 **Plain:** Walk to the dark side of the island and there's a telescope
-aimed down the moon's meridian. Look through it and you get the real
+on a tripod — and it FOLLOWS THE MOON. The moon here isn't pinned to the
+sky; it rises and sets depending on where you're standing, so a
+telescope aimed at a fixed angle would spend most of its life pointing
+at nothing. This one turns to keep the moon in its sights, slowly, and
+settles back to a resting tilt when the moon is down. Look through it and you get the real
 moon for today: its phase, how much of it is lit, how many days old it
 is, and whether it's filling out or thinning, with the shadow drawn
 across the disc where it really falls.
@@ -993,6 +997,7 @@ missing file falls back to the drawing instead of showing a broken img.
 
 **Files:**
 - `src/scene/moonPhase.ts` — `moonPhase`, `drawMoonPhase`, `SYNODIC_DAYS`
+- `src/scene/Interactable.tsx` — `TelescopeBody`, the tracking
 - `scripts/prepare-moon.mjs` — crops a photo to the moon's limb
 - `src/ui/modals/TelescopeModal.tsx` — the eyepiece
 - `src/scene/props.ts` — `buildTelescope`
@@ -1008,6 +1013,12 @@ missing file falls back to the drawing instead of showing a broken img.
   moon of 26 May 2021 and the new moon a fortnight earlier both fall
   where the maths says they should. A test that only checks internal
   consistency would pass with the epoch wrong by a week.
+- The tube aims from WHERE IT STANDS, not from the planet's centre. The
+  moon sits on a dome of radius 240 around a world of radius 55, so a
+  surface observer sees it up to 13° off its centre-of-planet direction
+  — the difference between a telescope pointing at the horizon and one
+  pointing at the sky above it. The first version used the raw direction
+  and stood there aiming at the zenith.
 - The disc said when it was a stand-in, and named the file to drop in —
   which is how it got replaced within the hour. An unlabelled
   procedural moon would quietly have become the finished thing.

@@ -20,7 +20,7 @@ import { SKY, skyRuntime } from './useSkyState'
  * fog-excluded, depth-write-off, rendered first.
  */
 
-const DOME_R = 240 // inside camera far 400
+export const DOME_R = 240 // inside camera far 400
 const BODY_R = 230 // sun/moon/stars sit just inside the dome
 
 const DOME_VERT = /* glsl */ `

@@ -349,11 +349,21 @@ export function buildPalapa(): PropPart[] {
  * vertex-tinted merge (one draw call).
  */
 /**
- * The telescope on the night beach: a chunky tripod and a tube tilted
- * up at the moon's meridian. Brass and dark metal, faceted like
- * everything else. "E — Look through it" reads tonight's real phase.
+ * The telescope on the night beach, in two parts: a static tripod, and
+ * a TUBE that gets aimed at the moon every frame (see `Telescope` in
+ * Interactable.tsx). Part 0 is the base, part 1 is the barrel — the
+ * barrel is built around its pivot at the yoke, so rotating it swings
+ * the way a real one does instead of sweeping through the mount.
+ *
+ * Built from struts between named points, like the easel: legs that
+ * meet a head, not three sticks standing near each other.
  */
 export function buildTelescope(): PropPart[] {
+  const METAL = '#3a4048'
+  const METAL_LIGHT = '#5a626e'
+  const BRASS = '#b8894a'
+  const GLASS = '#1b2740'
+
   const tinted = (
     g: THREE.BufferGeometry,
     color: string,
@@ -371,33 +381,72 @@ export function buildTelescope(): PropPart[] {
     )
     return n
   }
-  const METAL = '#3a4048'
-  const BRASS = '#b8894a'
-  const parts: THREE.BufferGeometry[] = []
-  // Three splayed legs.
-  for (let i = 0; i < 3; i++) {
-    const a = (i / 3) * Math.PI * 2 + 0.4
-    parts.push(
-      tinted(new THREE.CylinderGeometry(0.035, 0.045, 1.15, 5), METAL, [
-        Math.sin(a) * 0.16,
-        0.55,
-        Math.cos(a) * 0.16,
-      ], [Math.cos(a) * 0.26, 0, -Math.sin(a) * 0.26]),
+
+  /** A leg running from `a` to `b` — orientation derived, not guessed. */
+  const strut = (a: THREE.Vector3, b: THREE.Vector3, thick: number, color: string) => {
+    const dir = new THREE.Vector3().subVectors(b, a)
+    const g = tintGeometry(
+      normalizeForMerge(new THREE.CylinderGeometry(thick, thick * 1.15, dir.length(), 6)),
+      color,
     )
+    g.applyMatrix4(
+      new THREE.Matrix4().compose(
+        new THREE.Vector3().addVectors(a, b).multiplyScalar(0.5),
+        new THREE.Quaternion().setFromUnitVectors(
+          new THREE.Vector3(0, 1, 0),
+          dir.clone().normalize(),
+        ),
+        new THREE.Vector3(1, 1, 1),
+      ),
+    )
+    return g
   }
-  // Head, tube and eyepiece: the tube tilts up toward the sky.
-  parts.push(tinted(new THREE.BoxGeometry(0.17, 0.12, 0.17), METAL, [0, 1.12, 0]))
-  const TILT = -0.62
-  parts.push(tinted(new THREE.CylinderGeometry(0.085, 0.1, 0.78, 8), BRASS, [0, 1.32, 0.06], [TILT, 0, 0]))
-  parts.push(tinted(new THREE.CylinderGeometry(0.055, 0.055, 0.16, 6), METAL, [0, 1.06, -0.28], [TILT, 0, 0]))
-  parts.push(tinted(new THREE.CylinderGeometry(0.11, 0.11, 0.05, 8), METAL, [0, 1.56, 0.28], [TILT, 0, 0]))
-  const merged = mergeGeometries(parts)
-  parts.forEach((g) => g.dispose())
+
+  // Three feet and the head they all reach.
+  const HEAD_Y = 1.12
+  const head = new THREE.Vector3(0, HEAD_Y, 0)
+  const feet = [0, 1, 2].map((i) => {
+    const a = (i / 3) * Math.PI * 2 + 0.5
+    return new THREE.Vector3(Math.sin(a) * 0.4, 0, Math.cos(a) * 0.4)
+  })
+  const brace = feet.map((f) => f.clone().lerp(head, 0.42))
+
+  const baseParts: THREE.BufferGeometry[] = [
+    ...feet.map((f) => strut(f, head, 0.032, METAL)),
+    // Spreader between the legs, like the reference's wire brace.
+    ...brace.map((b, i) => strut(b, brace[(i + 1) % 3], 0.016, METAL_LIGHT)),
+    // Rubber feet.
+    ...feet.map((f) => tinted(new THREE.CylinderGeometry(0.045, 0.05, 0.05, 6), METAL_LIGHT, [f.x, 0.025, f.z])),
+    // Head casting and the yoke arms the tube swings between.
+    tinted(new THREE.CylinderGeometry(0.075, 0.09, 0.1, 8), METAL, [0, HEAD_Y, 0]),
+    tinted(new THREE.BoxGeometry(0.05, 0.14, 0.05), METAL_LIGHT, [-0.11, HEAD_Y + 0.09, 0]),
+    tinted(new THREE.BoxGeometry(0.05, 0.14, 0.05), METAL_LIGHT, [0.11, HEAD_Y + 0.09, 0]),
+  ]
+  const base = mergeGeometries(baseParts)!
+  baseParts.forEach((g) => g.dispose())
+
+  // The tube, built around its pivot at the origin and pointing +Y:
+  // the objective ahead of the pivot, the eyepiece behind it.
+  const tubeParts: THREE.BufferGeometry[] = [
+    tinted(new THREE.CylinderGeometry(0.075, 0.075, 0.86, 10), BRASS, [0, 0.19, 0]),
+    // Dew shield at the front, and the glass inside it.
+    tinted(new THREE.CylinderGeometry(0.088, 0.082, 0.14, 10), METAL, [0, 0.66, 0]),
+    tinted(new THREE.CylinderGeometry(0.07, 0.07, 0.02, 10), GLASS, [0, 0.71, 0]),
+    // Focuser and eyepiece behind the pivot.
+    tinted(new THREE.CylinderGeometry(0.055, 0.06, 0.1, 8), METAL, [0, -0.29, 0]),
+    tinted(new THREE.CylinderGeometry(0.032, 0.038, 0.12, 8), METAL_LIGHT, [0, -0.4, 0]),
+    // Finder scope riding alongside.
+    tinted(new THREE.CylinderGeometry(0.022, 0.022, 0.26, 6), METAL, [0.085, 0.3, 0.02]),
+    // Cradle ring where it meets the yoke.
+    tinted(new THREE.CylinderGeometry(0.09, 0.09, 0.06, 10), METAL_LIGHT, [0, 0, 0], [0, 0, 0]),
+  ]
+  const tube = mergeGeometries(tubeParts)!
+  tubeParts.forEach((g) => g.dispose())
+
+  const material = () => new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true })
   return [
-    {
-      geometry: merged,
-      material: new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }),
-    },
+    { geometry: base, material: material() },
+    { geometry: tube, material: material() },
   ]
 }
 
