@@ -23,7 +23,9 @@ find it by walking up and pressing E:
 |---|---|---|---|
 | Photos | Camera tripod | "Look through the camera" | Dock's far end, over the water |
 | Projects | Palapa desk | "Check the monitor" | Day-leaning side of the island |
+| Paintings | Easel | "Look at the paintings" | Day side grass, with a view |
 | Music | Ukulele on the log | "Pick up the ukulele" | By the campfire, night beach |
+| Covers | Mic stand | "Hear the covers" | Night beach, near the fire |
 | Videos | CRT TV on a crate | "Turn on the TV" | Night beach |
 | About | Tree rings | "Grab the rings" | Big tree, dusk boundary |
 | Contact | Mailbox | "Open the mailbox" | Dock entrance |
@@ -83,6 +85,56 @@ import anzaSunsetThumb from '../assets/photos/anza-sunset.thumb.webp'
   caption: 'Borrego overlook, last light',
 },
 ```
+
+## Paintings — `src/content/paintings.ts`
+
+```ts
+export interface Painting {
+  id: string       // stable slug, e.g. 'dusk-horizon'
+  title: string
+  year?: string     // e.g. '2024'
+  medium?: string   // e.g. 'Acrylic on canvas'
+  note?: string
+  image: string     // imported web-size WebP — a PHOTOGRAPH OF the painting
+  thumb?: string
+  width?: number
+  height?: number
+  placeholder?: boolean // demo entries only — see below
+}
+```
+
+- **`title`** (required) — shown under the frame.
+- **`year?` / `medium?`** (optional) — shown together under the title, e.g. "2024 · Acrylic on canvas".
+- **`note?`** (optional) — a short line; also what a placeholder entry shows in place of a photo.
+- **`image`** (required for real entries) — a photograph *of* the physical painting, not the painting file itself. The modal and `/classic` both wrap it in a chunky wooden frame with an off-white mat so a photo reads as a canvas on a wall.
+
+**Where it renders**: `src/ui/modals/PaintingsModal.tsx` (the easel's gallery) and the `/classic` Paintings section — the same array, both surfaces.
+
+**Empty state**: the three entries ship with `placeholder: true` and an empty `image`; those render a friendly "Still being photographed" note inside the frame instead of a picture. Replace one: fill in the real fields, remove `placeholder: true`.
+
+**The pipeline** (reuses the Photos pipeline — `scripts/optimize-images.mjs` isn't category-aware, so there's no separate `paintings/` staging folder):
+
+1. Drop the photograph of the painting into `staging/photos/` (name it the slug you want, e.g. `dusk-horizon.png`) — same spot as regular photos.
+2. `node scripts/optimize-images.mjs` → writes `src/assets/photos/<slug>.webp` (≤ 1800 px) and `<slug>.thumb.webp` (480 px), and prints a paste-ready import + entry block.
+3. Paste into `src/content/paintings.ts`: fill `title`/`year`/`medium`/`note`, set `image` to the imported web-size WebP, and drop `placeholder: true`.
+
+**Example entry**:
+
+```ts
+import duskHorizonFull from '../assets/photos/dusk-horizon.webp'
+
+{
+  id: 'dusk-horizon',
+  title: 'Dusk Horizon',
+  year: '2024',
+  medium: 'Acrylic on canvas',
+  image: duskHorizonFull,
+  width: 1600,
+  height: 1200,
+},
+```
+
+---
 
 ## Projects — `src/content/projects.ts`
 
@@ -184,6 +236,40 @@ export const music: Track[] = [
   { title: 'Sundown (original)', audioSrc: sundown },
   { title: 'Live at the dock', embedUrl: 'https://open.spotify.com/embed/track/4uLU6hMCjMI75M1A2tKUQC' },
 ]
+```
+
+---
+
+## Covers — `src/content/covers.ts`
+
+```ts
+export interface Cover {
+  id: string      // stable slug, e.g. 'landslide'
+  title: string
+  artist: string  // who wrote the original
+  note?: string
+  audio?: string  // public path, e.g. '/covers/landslide.mp3'
+  link?: string   // external link (YouTube/SoundCloud) instead of audio
+}
+```
+
+- **`title`** (required) — heading above the player.
+- **`artist`** (required) — rendered as "originally by {artist}".
+- **`note?`** (optional) — a short line under the byline.
+- **`audio?`** (optional) — a public path under `public/covers/`; renders a native `<audio controls>` player. Takes priority over `link` if both are set.
+- **`link?`** (optional) — used only when `audio` is absent; renders a plain "Listen" link instead.
+- If a cover has **neither**, it renders "Recording coming soon." for that one entry.
+
+**Where it renders**: `src/ui/modals/CoversModal.tsx` (the mic stand's set list) and the `/classic` Covers section — the same array, both surfaces. The `<audio>` element here is a plain HTML player — it stays OUT of the in-world positional audio buses (CLAUDE.md's audio system), so dropping a file in never touches scene code.
+
+**Empty state**: today's three entries are title/artist-only placeholders, so each renders "Recording coming soon." until you add `audio` or `link`.
+
+**Assets**: drop the mp3 straight into `public/covers/` (kebab-case filename) — no build step, no optimize script; reference it as `/covers/<file>.mp3`.
+
+**Example entry**:
+
+```ts
+{ id: 'landslide', title: 'Landslide (cover)', artist: 'Fleetwood Mac', audio: '/covers/landslide.mp3' },
 ```
 
 ---
@@ -405,6 +491,22 @@ To add a whole mural: pick a free wall position (`at`), the wall's
 `faceYaw`, the `chapterId` it explains, and a caption (that caption is
 what the E prompt says).
 
+## The telescope's moon — `public/moon/moon.jpg`
+
+The telescope shows YOUR photograph of the full moon, shaded to
+tonight's real phase (the phase is computed, never fetched). To swap the
+photo:
+
+```
+node scripts/prepare-moon.mjs "path/to/your-moon.png"
+```
+
+That finds the disc by brightness, crops a square on its centre, scales
+it to 720 px and writes `public/moon/moon.jpg`. The crop matters: the
+eyepiece clips the disc to a circle and lays the shadow across it, so a
+photo with sky around the moon would show a black ring and a shadow in
+the wrong place. Keep originals in `staging/moon/` (gitignored).
+
 ## Aiden's gathering checklist
 
 **Photos** (`src/content/photos.ts`)
@@ -421,11 +523,21 @@ what the E prompt says).
 - [ ] `link` and/or `repo` where they exist (at least one recommended,
       neither is required)
 
+**Paintings** (`src/content/paintings.ts`)
+- [ ] At least one real painting (replace the three placeholder canvases)
+- [ ] Originals dropped in `staging/photos/`, run `node scripts/optimize-images.mjs`
+- [ ] Each real entry has `title`, `image`, and `placeholder` removed;
+      `year`/`medium`/`note` where they add context
+
 **Music** (`src/content/music.ts`)
 - [ ] At least one real track (replace the two title-only placeholders)
 - [ ] Each track has an `embedUrl` or an `audioSrc`
 - [ ] Decide whether any `audioSrc` files should also live in
       `src/assets/audio/music/` to join the in-world ambient pool
+
+**Covers** (`src/content/covers.ts`)
+- [ ] At least one real cover (replace the three title-only placeholders)
+- [ ] Each has an `audio` (dropped in `public/covers/`) or a `link`
 
 **Videos** (`src/content/videos.ts`)
 - [ ] 2–4 videos (replace the two CC-licensed placeholders)

@@ -1,9 +1,11 @@
 import { cards } from '../content/about'
 import { ContactForm } from '../ui/ContactForm'
 import { contact } from '../content/contact'
+import { covers } from '../content/covers'
 import { music } from '../content/music'
 import { BuildLogSection } from './BuildLogSection'
 import { memorials } from '../content/memorials'
+import { paintings } from '../content/paintings'
 import { papers } from '../content/papers'
 import { photos } from '../content/photos'
 import { projects } from '../content/projects'
@@ -126,6 +128,35 @@ export default function ClassicPage() {
           </ul>
         </section>
 
+        <section className="mt-12" aria-labelledby="paintings-h">
+          <h2 id="paintings-h" className="font-display text-2xl font-bold">
+            Paintings
+          </h2>
+          {paintings.length === 0 && <p className="mt-3 text-ink/70">Paintings are on their way.</p>}
+          <ul className="mt-4 grid gap-6 sm:grid-cols-2">
+            {paintings.map((p) => (
+              <li key={p.id}>
+                <div className="rounded-sm border-[14px] border-[#8a6f47] bg-[#f5efdd] p-3 shadow-[inset_0_2px_10px_rgba(0,0,0,0.35)]">
+                  {p.placeholder || !p.image ? (
+                    <p className="p-6 text-center text-sm text-ink/60">{p.note ?? 'Still being photographed.'}</p>
+                  ) : (
+                    <img
+                      src={p.image}
+                      alt={p.title}
+                      loading="lazy"
+                      className="aspect-[4/3] w-full object-cover"
+                    />
+                  )}
+                </div>
+                <p className="mt-2 text-sm font-semibold">{p.title}</p>
+                {(p.year || p.medium) && (
+                  <p className="text-xs text-ink/60">{[p.year, p.medium].filter(Boolean).join(' · ')}</p>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+
         <section className="mt-12" aria-labelledby="music-h">
           <h2 id="music-h" className="font-display text-2xl font-bold">
             Music
@@ -139,6 +170,36 @@ export default function ClassicPage() {
                   <iframe src={track.embedUrl} title={track.title} className="mt-1 h-28 w-full rounded-lg border-0" loading="lazy" />
                 ) : track.audioSrc ? (
                   <audio controls src={track.audioSrc} className="mt-1 w-full" preload="none" />
+                ) : (
+                  <p className="text-sm text-ink/70">Recording coming soon.</p>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section className="mt-12" aria-labelledby="covers-h">
+          <h2 id="covers-h" className="font-display text-2xl font-bold">
+            Covers
+          </h2>
+          {covers.length === 0 && <p className="mt-3 text-ink/70">Cover recordings are on their way.</p>}
+          <ul className="mt-4 space-y-3">
+            {covers.map((cover) => (
+              <li key={cover.id}>
+                <h3 className="font-semibold">{cover.title}</h3>
+                <p className="text-sm text-ink/60 italic">originally by {cover.artist}</p>
+                {cover.note && <p className="mt-1 text-sm text-ink/70">{cover.note}</p>}
+                {cover.audio ? (
+                  <audio controls src={cover.audio} className="mt-1 w-full" preload="none" />
+                ) : cover.link ? (
+                  <a
+                    href={cover.link}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-1 inline-block text-sm font-semibold text-deepwater underline"
+                  >
+                    Listen
+                  </a>
                 ) : (
                   <p className="text-sm text-ink/70">Recording coming soon.</p>
                 )}

@@ -10,6 +10,8 @@ const CASES: [string, string][] = [
   ['videos', 'Videos'],
   ['memorial-1', 'A good boy'],
   ['contact', 'Contact'],
+  ['paintings', 'Paintings'],
+  ['covers', 'Covers'],
 ]
 
 test('every modal type opens from data; gallery lightbox and lite-embed work', async ({ page }) => {

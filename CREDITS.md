@@ -81,6 +81,14 @@ ships (no entry, no ship):
 |---|---|---|---|
 | `music/lofi-loop.mp3` | *(artist — track)* | *(e.g. CC BY 4.0)* | *(url)* |
 
+## Photography
+
+| What | Source | Notes |
+|---|---|---|
+| `public/photos/*` | Aiden — own photographs | The gallery; originals stay in gitignored `staging/photos/` |
+| `public/moon/moon.jpg` | Aiden — own photograph | The telescope's disc, shaded to tonight's phase. Cropped to the limb by `scripts/prepare-moon.mjs`; the original stays in gitignored `staging/moon/` |
+| `public/murals/*` | Screenshots of this project | Captured by `scripts/capture-murals.mjs` |
+
 ## Fonts
 
 **Self-hosted — no font CDN at runtime.** The latin woff2 subsets live

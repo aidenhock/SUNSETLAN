@@ -57,6 +57,19 @@ describe('moon phase', () => {
     expect(n.illumination).toBeLessThan(0.02)
   })
 
+  it('counts down to the next full and new moon', () => {
+    const base = Date.UTC(2000, 0, 6, 18, 14)
+    // At new moon: a full moon is half a lunation away, the next new a
+    // whole one (never zero — that one has just happened).
+    const atNew = moonPhase(new Date(base + 60_000))
+    expect(atNew.daysToFull).toBeCloseTo(SYNODIC_DAYS / 2, 1)
+    expect(atNew.daysToNew).toBeCloseTo(SYNODIC_DAYS, 1)
+    // At full: the reverse.
+    const atFull = moonPhase(new Date(base + (SYNODIC_DAYS / 2) * 86_400_000 + 60_000))
+    expect(atFull.daysToFull).toBeCloseTo(SYNODIC_DAYS, 1)
+    expect(atFull.daysToNew).toBeCloseTo(SYNODIC_DAYS / 2, 1)
+  })
+
   it('never leaves the cycle, whatever date it is handed', () => {
     for (const iso of ['1969-07-20T20:17:00Z', '2026-08-19T00:00:00Z', '2099-12-31T23:59:00Z']) {
       const p = at(iso)

@@ -14,9 +14,21 @@ export type ModalKind =
   | 'memorial'
   | 'matrix'
   | 'telescope'
+  | 'paintings'
+  | 'covers'
 
 /** Chunky primitive prop bodies built in scene/props.ts. */
-export type PropKind = 'tripod' | 'mailbox' | 'stereo' | 'hedgestone' | 'bulletin' | 'headstone' | 'portal' | 'telescope'
+export type PropKind =
+  | 'tripod'
+  | 'mailbox'
+  | 'stereo'
+  | 'hedgestone'
+  | 'bulletin'
+  | 'headstone'
+  | 'portal'
+  | 'telescope'
+  | 'easel'
+  | 'micstand'
 
 export interface InteractableDef {
   id: string
@@ -155,5 +167,29 @@ export const interactables: InteractableDef[] = [
     rotation: [0, placementYaw('videos'), 0],
     modal: 'videos',
     contentKey: 'videos',
+  },
+  {
+    id: 'paintings',
+    // The HUD prompt shows `label` (PromptE), so it carries the verb —
+    // short enough for the mobile thumb button, like the rift.
+    label: 'Look at the paintings',
+    prompt: 'Look at the paintings',
+    prop: 'easel',
+    blockRadius: 0.6,
+    position: place(placement('paintings').lat, placement('paintings').long),
+    rotation: [0, placementYaw('paintings'), 0],
+    modal: 'paintings',
+    contentKey: 'paintings',
+  },
+  {
+    id: 'covers',
+    label: 'Hear the covers',
+    prompt: 'Hear the covers',
+    prop: 'micstand',
+    blockRadius: 0.6,
+    position: place(placement('covers').lat, placement('covers').long),
+    rotation: [0, placementYaw('covers'), 0],
+    modal: 'covers',
+    contentKey: 'covers',
   },
 ]

@@ -510,6 +510,30 @@
       "scale": 1,
       "blockerRadiusM": 0.6,
       "notes": "Night beach, aimed down the moon's meridian."
+    },
+    {
+      "id": "paintings",
+      "type": "easel",
+      "kind": "interactable",
+      "label": "Easel — Paintings",
+      "lat": 38,
+      "long": 15,
+      "yawDeg": 180,
+      "scale": 1,
+      "blockerRadiusM": 0.6,
+      "notes": "Day side grass, with a view."
+    },
+    {
+      "id": "covers",
+      "type": "micstand",
+      "kind": "interactable",
+      "label": "Mic stand — Covers",
+      "lat": 26,
+      "long": 168,
+      "yawDeg": 110,
+      "scale": 1,
+      "blockerRadiusM": 0.6,
+      "notes": "Night beach, near the fire but clear of it."
     }
   ]
 }

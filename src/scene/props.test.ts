@@ -8,8 +8,10 @@ import { blockers, PLANET_RADIUS } from './planetConfig'
 import {
   buildBulletinBoard,
   buildCemetery,
+  buildEasel,
   buildHeadstone,
   buildHedgeStone,
+  buildMicStand,
   buildMusicStereo,
   buildCrate,
   buildLogBench,
@@ -43,6 +45,8 @@ const BUILDERS: Record<string, () => PropPart[]> = {
   bulletinBoard: buildBulletinBoard,
   cemetery: buildCemetery,
   headstone: buildHeadstone,
+  easel: buildEasel,
+  micStand: buildMicStand,
 }
 
 describe('prop builders merge cleanly', () => {

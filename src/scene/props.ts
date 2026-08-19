@@ -652,6 +652,127 @@ export function buildBulletinBoard(): PropPart[] {
   return [{ geometry: merged, material: new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }) }]
 }
 
+/** Painter's easel (Paintings portal): a three-legged A-frame — two
+ * front legs canted forward, one back leg canted back for the classic
+ * tripod stance — a horizontal rail holding a blank canvas board leaned
+ * back at a natural angle, and a small paint-tray ledge with a few
+ * paint dabs. Faces local +z (north = the walking approach). ONE
+ * vertex-tinted merged mesh. ~1.6 m tall. */
+export function buildEasel(): PropPart[] {
+  const tinted = (
+    g: THREE.BufferGeometry,
+    color: string,
+    pos: [number, number, number],
+    rot: [number, number, number] = [0, 0, 0],
+    scale: [number, number, number] = [1, 1, 1],
+  ) => {
+    const n = tintGeometry(normalizeForMerge(g), color)
+    g.dispose()
+    n.applyMatrix4(
+      new THREE.Matrix4().compose(
+        new THREE.Vector3(...pos),
+        new THREE.Quaternion().setFromEuler(new THREE.Euler(...rot)),
+        new THREE.Vector3(...scale),
+      ),
+    )
+    return n
+  }
+  const WOOD = PROP_COLORS.woodDark
+  const WOOD_LIGHT = PROP_COLORS.woodLight
+  const CANVAS = PROP_COLORS.cream
+  const DABS = [PROP_COLORS.ember, PROP_COLORS.lagoon, PROP_COLORS.frond]
+
+  const parts: THREE.BufferGeometry[] = [
+    // Two front legs, splayed and canted forward for stability.
+    tinted(new THREE.CylinderGeometry(0.035, 0.045, 1.5, 6), WOOD, [-0.32, 0.7, 0.14], [0.16, 0, 0.1]),
+    tinted(new THREE.CylinderGeometry(0.035, 0.045, 1.5, 6), WOOD, [0.32, 0.7, 0.14], [0.16, 0, -0.1]),
+    // Back leg, canted further back — the classic easel tripod stance.
+    tinted(new THREE.CylinderGeometry(0.035, 0.045, 1.55, 6), WOOD, [0, 0.73, -0.32], [-0.34, 0, 0]),
+    // Horizontal rail the canvas rests on.
+    tinted(new THREE.BoxGeometry(0.85, 0.07, 0.12), WOOD_LIGHT, [0, 0.55, 0.06]),
+    // Small paint-tray ledge jutting forward off the rail.
+    tinted(new THREE.BoxGeometry(0.5, 0.03, 0.16), WOOD_LIGHT, [0, 0.51, 0.2]),
+    // Blank canvas board, leaned back against the front legs.
+    tinted(new THREE.BoxGeometry(0.72, 0.92, 0.035), CANVAS, [0, 1.03, 0], [-0.12, 0, 0]),
+    // Thin wood lip top and bottom holding the canvas.
+    tinted(new THREE.BoxGeometry(0.78, 0.045, 0.05), WOOD, [0, 0.6, 0.02], [-0.12, 0, 0]),
+    tinted(new THREE.BoxGeometry(0.78, 0.045, 0.05), WOOD, [0, 1.46, -0.05], [-0.12, 0, 0]),
+  ]
+  // Paint dabs on the tray.
+  DABS.forEach((color, i) => {
+    parts.push(
+      tinted(new THREE.IcosahedronGeometry(0.035, 0), color, [-0.14 + i * 0.14, 0.545, 0.22], [0.3, i, 0.2]),
+    )
+  })
+  const merged = mergeGeometries(parts)
+  for (const p of parts) p.dispose()
+  return [{ geometry: merged, material: new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }) }]
+}
+
+/** Mic stand (Covers portal): a slim dark tripod stand, a boom arm
+ * angled up and out, and a chunky faceted mic head with a grille cap.
+ * Faces local +z (north = the walking approach). ONE vertex-tinted
+ * merged mesh. ~1.5 m tall. */
+export function buildMicStand(): PropPart[] {
+  const tinted = (
+    g: THREE.BufferGeometry,
+    color: string,
+    pos: [number, number, number],
+    rot: [number, number, number] = [0, 0, 0],
+    scale: [number, number, number] = [1, 1, 1],
+  ) => {
+    const n = tintGeometry(normalizeForMerge(g), color)
+    g.dispose()
+    n.applyMatrix4(
+      new THREE.Matrix4().compose(
+        new THREE.Vector3(...pos),
+        new THREE.Quaternion().setFromEuler(new THREE.Euler(...rot)),
+        new THREE.Vector3(...scale),
+      ),
+    )
+    return n
+  }
+  const STAND = PROP_COLORS.slate
+  const GRILLE = PROP_COLORS.stone
+
+  // Geometry that MEETS: the pole rises from a round base plate (a
+  // splayed tripod kept leaving legs hanging in mid-air), and the boom
+  // and mic are positioned from the pole's actual top rather than by
+  // eye — every joint below is computed from the one before it.
+  const POLE_TOP = 1.3
+  const BOOM_TILT = -0.85 // from vertical, toward +X
+  const BOOM_LEN = 0.5
+  const boomDir = new THREE.Vector3(Math.sin(-BOOM_TILT), Math.cos(BOOM_TILT), 0)
+  const boomMid = boomDir.clone().multiplyScalar(BOOM_LEN / 2).add(new THREE.Vector3(0, POLE_TOP, 0))
+  const boomEnd = boomDir.clone().multiplyScalar(BOOM_LEN).add(new THREE.Vector3(0, POLE_TOP, 0))
+
+  const parts: THREE.BufferGeometry[] = [
+    // Weighted base plate, and a collar where the pole enters it.
+    tinted(new THREE.CylinderGeometry(0.22, 0.24, 0.055, 12), STAND, [0, 0.03, 0]),
+    tinted(new THREE.CylinderGeometry(0.06, 0.075, 0.09, 8), STAND, [0, 0.09, 0]),
+    // Pole, from the collar to POLE_TOP.
+    tinted(new THREE.CylinderGeometry(0.024, 0.03, POLE_TOP - 0.09, 7), STAND, [
+      0,
+      (POLE_TOP + 0.09) / 2,
+      0,
+    ]),
+    // Boom arm off the top, and a clutch at the joint.
+    tinted(new THREE.CylinderGeometry(0.05, 0.05, 0.07, 7), STAND, [0, POLE_TOP, 0], [0, 0, 0.6]),
+    tinted(new THREE.CylinderGeometry(0.018, 0.021, BOOM_LEN, 6), STAND, boomMid.toArray() as [number, number, number], [0, 0, BOOM_TILT]),
+    // Mic hanging off the end of the boom, pointing down at the singer.
+    tinted(new THREE.CylinderGeometry(0.04, 0.04, 0.05, 6), STAND, [boomEnd.x, boomEnd.y, 0]),
+    tinted(new THREE.CylinderGeometry(0.055, 0.062, 0.19, 7), STAND, [
+      boomEnd.x,
+      boomEnd.y - 0.13,
+      0,
+    ]),
+    tinted(new THREE.IcosahedronGeometry(0.062, 0), GRILLE, [boomEnd.x, boomEnd.y - 0.24, 0], [0.3, 0.5, 0]),
+  ]
+  const merged = mergeGeometries(parts)
+  for (const p of parts) p.dispose()
+  return [{ geometry: merged, material: new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }) }]
+}
+
 /** The moai (About portal; "hedge stone" is its historical id): a
  * ~2.9 m Easter-Island-style statue — elongated head with a heavy
  * brow, long wide-based nose, shadowed eye hollows, pursed lips, long

@@ -28,6 +28,8 @@ blockers, the minimap, `planetConfig.MAP`) follows from it.
 | `memorial-2` | Headstone 2 | 45.6 | 107 | 180° S | — |  |
 | `memorial-3` | Headstone 3 | 45.6 | 109.6 | 180° S | — |  |
 | `telescope` | Telescope — tonight's moon | 19.5 | 188 | 180° S | — | Night beach, aimed down the moon's meridian. |
+| `paintings` | Easel — Paintings | 38 | 15 | 180° S | — | Day side grass, with a view. |
+| `covers` | Mic stand — Covers | 26 | 168 | 110° E | — | Night beach, near the fire but clear of it. |
 
 ## Structures
 

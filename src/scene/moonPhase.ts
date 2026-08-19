@@ -32,6 +32,10 @@ export type PhaseName =
   | 'Waning crescent'
 
 export interface MoonPhase {
+  /** Days until the next full moon (0 if it is full right now). */
+  daysToFull: number
+  /** Days until the next new moon. */
+  daysToNew: number
   /** Days since the last new moon, 0 … 29.53. */
   ageDays: number
   /** 0 at new, 1 at full — the fraction of the disc that is lit. */
@@ -48,7 +52,10 @@ export function moonPhase(now: Date = new Date()): MoonPhase {
   const cycle = ageDays / SYNODIC_DAYS
   const illumination = (1 - Math.cos(2 * Math.PI * cycle)) / 2
   const waxing = cycle < 0.5
-  return { ageDays, illumination, cycle, waxing, name: phaseName(cycle) }
+  // How far round the circle to the next full (0.5) and new (1.0).
+  const daysToFull = (((0.5 - cycle) % 1) + 1) % 1 * SYNODIC_DAYS
+  const daysToNew = (((1 - cycle) % 1) + 1) % 1 * SYNODIC_DAYS
+  return { ageDays, illumination, cycle, waxing, daysToFull, daysToNew, name: phaseName(cycle) }
 }
 
 /** The eight names, each covering its slice of the cycle. */

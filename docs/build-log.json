@@ -662,7 +662,7 @@
           "excerpts": [
             {
               "symbol": "buildHedgeStone",
-              "line": 665,
+              "line": 786,
               "code": "export function buildHedgeStone(): PropPart[] {\r\n  const tinted = (g: THREE.BufferGeometry, color: string, pos: [number, number, number], rot: [number, number, number] = [0, 0, 0], scale: [number, number, number] = [1, 1, 1]) => {\r\n    const n = tintGeometry(normalizeForMerge(g), color)\r\n    g.dispose()\r\n    n.applyMatrix4(\r\n      new THREE.Matrix4().compose(\r\n        new THREE.Vector3(...pos),\r\n        new THREE.Quaternion().setFromEuler(new THREE.Euler(...rot)),\r\n        new THREE.Vector3(...scale),\r\n      ),\r\n    )\r\n    return n\r\n  }\r\n  const STONE = '#8a9484'\r"
             }
           ]
@@ -676,12 +676,12 @@
           "excerpts": [
             {
               "symbol": "prop: 'hedgestone'",
-              "line": 142,
+              "line": 154,
               "code": "    prop: 'hedgestone',\r\n    blockRadius: 1.1,\r\n    position: place(MAP.hedgeStone.lat, MAP.hedgeStone.long),\r\n    rotation: [0, placementYaw('about'), 0],\r\n    modal: 'card',\r\n    contentKey: 'about',\r\n  },\r\n  {\r\n    id: 'videos',\r\n    label: 'Videos',\r\n    prompt: 'Turn on the TV',\r\n    // \"CRT TV on crate\": the cube sits on the crate top (0.7 + sink back).\r\n    position: place(placement('videos').lat, placement('videos').long, placement('videos').liftM ?? 0),\r\n    rotation: [0, placementYaw('videos'), 0],\r"
             },
             {
               "symbol": "blockRadius",
-              "line": 47,
+              "line": 59,
               "code": "    blockRadius: 0.8,\r\n    position: place(MAP.musicUkulele.lat, MAP.musicUkulele.long),\r\n    rotation: [0, placementYaw('music'), 0],\r\n    modal: 'music',\r\n    contentKey: 'music',\r\n  },\r\n  {\r\n    id: 'photos',\r\n    label: 'Photos',\r\n    prompt: 'Look through the camera',\r\n    prop: 'tripod',\r\n    blockRadius: 0.7,\r\n    position: place(MAP.tripod.lat, MAP.tripod.long),\r\n    rotation: [0, placementYaw('photos'), 0], // faces the sun, out over the water\r"
             }
           ],
@@ -696,7 +696,7 @@
             {
               "symbol": "PROP_BUILDERS",
               "line": 14,
-              "code": "const PROP_BUILDERS: Record<Exclude<PropKind, 'portal'>, () => PropPart[]> = {\r\n  tripod: buildTripod,\r\n  mailbox: buildMailbox,\r\n  stereo: buildMusicStereo,\r\n  hedgestone: buildHedgeStone,\r\n  bulletin: buildBulletinBoard,\r\n  headstone: buildHeadstone,\r\n  telescope: buildTelescope,\r\n}\r\n\r\n/**\r\n * An interactable, oriented to stand on the sphere with meridian-aligned yaw\r\n * (rotation[1] is relative to local north, like every SurfaceGroup prop).\r\n * Renders its chunky primitive prop when `prop` is set (see props.ts), else\r"
+              "code": "const PROP_BUILDERS: Record<Exclude<PropKind, 'portal'>, () => PropPart[]> = {\r\n  tripod: buildTripod,\r\n  mailbox: buildMailbox,\r\n  stereo: buildMusicStereo,\r\n  hedgestone: buildHedgeStone,\r\n  bulletin: buildBulletinBoard,\r\n  headstone: buildHeadstone,\r\n  telescope: buildTelescope,\r\n  easel: buildEasel,\r\n  micstand: buildMicStand,\r\n}\r\n\r\n/**\r\n * An interactable, oriented to stand on the sphere with meridian-aligned yaw\r"
             }
           ]
         }
@@ -1269,7 +1269,7 @@
       "step": 21,
       "title": "Tonight's moon",
       "hook": "A telescope on the night beach shows the moon as it actually\r\nis tonight — and it never phones anyone to find out.",
-      "plain": "Walk to the dark side of the island and there's a telescope\r aimed down the moon's meridian. Look through it and you get the real\r moon for today: its phase, how much of it is lit, how many days old it\r is, and whether it's filling out or thinning, with the shadow drawn\r across the disc where it really falls.\r \r The obvious way to build that is to fetch a picture of the moon from\r somewhere. This island doesn't do that. Nothing here calls out to\r another server while you're visiting — that's why the fonts are stored\r with the site and why analytics ships switched off — and a live image\r would mean some other company seeing everyone who comes here, plus a\r telescope that shows a broken picture the day that service changes.\r \r It turns out you don't need to ask anyone. The moon's cycle is 29.53\r days long and we know when one started, so today's phase is arithmetic,\r accurate to within a few hours — far finer than an eye can read off a\r disc. The picture in the eyepiece is a stand-in for now; drop in the\r photograph the island's own moon was drawn from and the telescope shows\r that instead, shaded to tonight.",
+      "plain": "Walk to the dark side of the island and there's a telescope\r aimed down the moon's meridian. Look through it and you get the real\r moon for today: its phase, how much of it is lit, how many days old it\r is, and whether it's filling out or thinning, with the shadow drawn\r across the disc where it really falls.\r \r The obvious way to build that is to fetch a picture of the moon from\r somewhere. This island doesn't do that. Nothing here calls out to\r another server while you're visiting — that's why the fonts are stored\r with the site and why analytics ships switched off — and a live image\r would mean some other company seeing everyone who comes here, plus a\r telescope that shows a broken picture the day that service changes.\r \r It turns out you don't need to ask anyone. The moon's cycle is 29.53\r days long and we know when one started, so today's phase is arithmetic,\r accurate to within a few hours — far finer than an eye can read off a\r disc. The picture in the eyepiece is Aiden's own photograph of the full moon,\r with tonight's shadow laid across it. Under it is every number the\r drawing is made from — how lit it is, how old, how far through the\r cycle, which way it's heading, and when the next full and new moons\r fall — with a dropdown that explains what each one actually means.",
       "technical": "`moonPhase(date)` takes days since a known new moon\r (2000-01-06 18:14 UTC) modulo the synodic month; illumination is\r `(1 − cos 2πt)/2`, and the eight phase names take narrow bands around\r the quarters so \"first quarter\" means roughly the day it is rather than\r a whole week. `drawMoonPhase` paints the disc — the photograph if\r `public/moon/moon.jpg` exists, else a procedural stand-in with maria —\r then the shadow: a half-disc plus a terminator ellipse of horizontal\r semi-axis `R·|cos 2πt|`, added for a crescent and carved out for a\r gibbous. The shadow is dark blue rather than black because earthshine\r keeps the unlit limb faintly present and a pure silhouette reads as a\r hole in the image. The photo load is optional by construction: a\r missing file falls back to the drawing instead of showing a broken img.",
       "files": [
         {
@@ -1282,20 +1282,26 @@
           "excerpts": [
             {
               "symbol": "moonPhase",
-              "line": 45,
-              "code": "export function moonPhase(now: Date = new Date()): MoonPhase {\n  const days = (now.getTime() - EPOCH_NEW_MOON) / 86_400_000\n  const ageDays = ((days % SYNODIC_DAYS) + SYNODIC_DAYS) % SYNODIC_DAYS\n  const cycle = ageDays / SYNODIC_DAYS\n  const illumination = (1 - Math.cos(2 * Math.PI * cycle)) / 2\n  const waxing = cycle < 0.5\n  return { ageDays, illumination, cycle, waxing, name: phaseName(cycle) }\n}\n\n/** The eight names, each covering its slice of the cycle. */\nfunction phaseName(cycle: number): PhaseName {\n  // Quarters and the new/full moments get a narrow band of their own so\n  // \"first quarter\" means roughly the day it is, not a whole week.\n  const c = ((cycle % 1) + 1) % 1"
+              "line": 49,
+              "code": "export function moonPhase(now: Date = new Date()): MoonPhase {\r\n  const days = (now.getTime() - EPOCH_NEW_MOON) / 86_400_000\r\n  const ageDays = ((days % SYNODIC_DAYS) + SYNODIC_DAYS) % SYNODIC_DAYS\r\n  const cycle = ageDays / SYNODIC_DAYS\r\n  const illumination = (1 - Math.cos(2 * Math.PI * cycle)) / 2\r\n  const waxing = cycle < 0.5\r\n  // How far round the circle to the next full (0.5) and new (1.0).\r\n  const daysToFull = (((0.5 - cycle) % 1) + 1) % 1 * SYNODIC_DAYS\r\n  const daysToNew = (((1 - cycle) % 1) + 1) % 1 * SYNODIC_DAYS\r\n  return { ageDays, illumination, cycle, waxing, daysToFull, daysToNew, name: phaseName(cycle) }\r\n}\r\n\r\n/** The eight names, each covering its slice of the cycle. */\r\nfunction phaseName(cycle: number): PhaseName {\r"
             },
             {
               "symbol": "drawMoonPhase",
-              "line": 79,
-              "code": "export function drawMoonPhase(\n  ctx: CanvasRenderingContext2D,\n  size: number,\n  phase: MoonPhase,\n  photo?: CanvasImageSource | null,\n): void {\n  const r = size / 2\n  const cx = r\n  const cy = r\n\n  ctx.clearRect(0, 0, size, size)\n  ctx.save()\n  ctx.beginPath()\n  ctx.arc(cx, cy, r, 0, Math.PI * 2)"
+              "line": 86,
+              "code": "export function drawMoonPhase(\r\n  ctx: CanvasRenderingContext2D,\r\n  size: number,\r\n  phase: MoonPhase,\r\n  photo?: CanvasImageSource | null,\r\n): void {\r\n  const r = size / 2\r\n  const cx = r\r\n  const cy = r\r\n\r\n  ctx.clearRect(0, 0, size, size)\r\n  ctx.save()\r\n  ctx.beginPath()\r\n  ctx.arc(cx, cy, r, 0, Math.PI * 2)\r"
             },
             {
               "symbol": "SYNODIC_DAYS",
               "line": 19,
-              "code": "export const SYNODIC_DAYS = 29.530588853\n\n/** A known new moon: 2000-01-06 18:14 UTC. */\nconst EPOCH_NEW_MOON = Date.UTC(2000, 0, 6, 18, 14)\n\nexport type PhaseName =\n  | 'New moon'\n  | 'Waxing crescent'\n  | 'First quarter'\n  | 'Waxing gibbous'\n  | 'Full moon'\n  | 'Waning gibbous'\n  | 'Last quarter'\n  | 'Waning crescent'"
+              "code": "export const SYNODIC_DAYS = 29.530588853\r\n\r\n/** A known new moon: 2000-01-06 18:14 UTC. */\r\nconst EPOCH_NEW_MOON = Date.UTC(2000, 0, 6, 18, 14)\r\n\r\nexport type PhaseName =\r\n  | 'New moon'\r\n  | 'Waxing crescent'\r\n  | 'First quarter'\r\n  | 'Waxing gibbous'\r\n  | 'Full moon'\r\n  | 'Waning gibbous'\r\n  | 'Last quarter'\r\n  | 'Waning crescent'\r"
             }
           ]
+        },
+        {
+          "path": "scripts/prepare-moon.mjs",
+          "symbols": [],
+          "excerpts": [],
+          "note": "crops a photo to the moon's limb"
         },
         {
           "path": "src/ui/modals/TelescopeModal.tsx",
@@ -1326,7 +1332,8 @@
       "decisions": [
         "No API, deliberately. A live moon image was the first idea and it loses on every axis that matters here: privacy (a third party sees every visitor), reliability (endpoints move; NASA's own moon frames are re-pathed yearly), and the project's own rule that nothing phones home. Computing it is smaller, faster, offline, and exact enough.",
         "Pinned against real dates rather than only against itself: the full moon of 26 May 2021 and the new moon a fortnight earlier both fall where the maths says they should. A test that only checks internal consistency would pass with the epoch wrong by a week.",
-        "The disc says when it is a stand-in. An unlabelled procedural moon would quietly become the finished thing; the note names the file to drop in."
+        "The disc said when it was a stand-in, and named the file to drop in — which is how it got replaced within the hour. An unlabelled procedural moon would quietly have become the finished thing.",
+        "The photograph is cropped to the limb by script, not by hand. The drawing clips the disc to a circle and lays an ellipse across it, so a photo with sky around the moon would show a black ring inside the eyepiece and a shadow that missed. `prepare-moon.mjs` finds the disc by luminance, squares the crop on its centre, and scales it — rerun it on any future photo and the maths still lines up."
       ]
     }
   ]

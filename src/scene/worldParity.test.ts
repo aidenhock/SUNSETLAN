@@ -48,7 +48,7 @@ const dumpBlockers = (list: typeof blockers) =>
  * world, so anything that did not exist then has to come back out of it.
  * Add an id here in the same commit that adds the prop.
  */
-const ADDED_SINCE_MIGRATION = ['signpost']
+const ADDED_SINCE_MIGRATION = ['signpost', 'paintings', 'covers']
 
 const isRecent = (b: (typeof blockers)[number]) =>
   ADDED_SINCE_MIGRATION.some((id) => {
@@ -70,10 +70,12 @@ describe('world parity', () => {
           .map((n) => n.toFixed(6))
           .join(',')}|${d.blockRadius ?? ''}|${d.modal}`,
     )
-    expect(interactables.length).toBe(12)
+    expect(interactables.length).toBe(14)
     // Was byte-identical to the pre-migration build; the telescope has
-    // been added since, which is why this no longer reads 6d7f4d8c.
-    expect(digest(dump)).toBe('f0b0bafc')
+    // been added since, which is why this no longer reads 6d7f4d8c. The
+    // paintings/covers easel + mic stand interactables (TASK: paintings
+    // & covers) are why this no longer reads f0b0bafc.
+    expect(digest(dump)).toBe('686e9faa')
   })
 
   it('differs from the pre-migration world by exactly the redundant mailbox blocker', () => {

@@ -945,9 +945,11 @@ telescope that shows a broken picture the day that service changes.
 It turns out you don't need to ask anyone. The moon's cycle is 29.53
 days long and we know when one started, so today's phase is arithmetic,
 accurate to within a few hours — far finer than an eye can read off a
-disc. The picture in the eyepiece is a stand-in for now; drop in the
-photograph the island's own moon was drawn from and the telescope shows
-that instead, shaded to tonight.
+disc. The picture in the eyepiece is Aiden's own photograph of the full moon,
+with tonight's shadow laid across it. Under it is every number the
+drawing is made from — how lit it is, how old, how far through the
+cycle, which way it's heading, and when the next full and new moons
+fall — with a dropdown that explains what each one actually means.
 
 **Technical:** `moonPhase(date)` takes days since a known new moon
 (2000-01-06 18:14 UTC) modulo the synodic month; illumination is
@@ -964,6 +966,7 @@ missing file falls back to the drawing instead of showing a broken img.
 
 **Files:**
 - `src/scene/moonPhase.ts` — `moonPhase`, `drawMoonPhase`, `SYNODIC_DAYS`
+- `scripts/prepare-moon.mjs` — crops a photo to the moon's limb
 - `src/ui/modals/TelescopeModal.tsx` — the eyepiece
 - `src/scene/props.ts` — `buildTelescope`
 - `src/scene/moonPhase.test.ts` — the almanac checks
@@ -978,6 +981,12 @@ missing file falls back to the drawing instead of showing a broken img.
   moon of 26 May 2021 and the new moon a fortnight earlier both fall
   where the maths says they should. A test that only checks internal
   consistency would pass with the epoch wrong by a week.
-- The disc says when it is a stand-in. An unlabelled procedural moon
-  would quietly become the finished thing; the note names the file to
-  drop in.
+- The disc said when it was a stand-in, and named the file to drop in —
+  which is how it got replaced within the hour. An unlabelled
+  procedural moon would quietly have become the finished thing.
+- The photograph is cropped to the limb by script, not by hand. The
+  drawing clips the disc to a circle and lays an ellipse across it, so
+  a photo with sky around the moon would show a black ring inside the
+  eyepiece and a shadow that missed. `prepare-moon.mjs` finds the disc
+  by luminance, squares the crop on its centre, and scales it — rerun
+  it on any future photo and the maths still lines up.
