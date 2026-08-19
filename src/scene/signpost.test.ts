@@ -32,28 +32,11 @@ describe('signpost', () => {
     expect(east).toBeLessThan(180)
   })
 
-  it('points its arrow along the bearing, not ninety degrees off it', () => {
-    // The tip is the vertex furthest from the post. Its direction has to
-    // match the bearing in the post's own frame (+Z north, +X east) —
-    // the first version built the plank along +X and forgot the quarter
-    // turn, so every sign pointed at the wrong landmark.
-    for (const bearing of [0, Math.PI / 2, Math.PI, -Math.PI / 4, 2.2]) {
-      const g = plank(0, 1, bearing, 0)
-      const pos = g.attributes.position as THREE.BufferAttribute
-      let tip = new THREE.Vector3()
-      let best = -1
-      for (let i = 0; i < pos.count; i++) {
-        const v = new THREE.Vector3(pos.getX(i), 0, pos.getZ(i))
-        if (v.lengthSq() > best) {
-          best = v.lengthSq()
-          tip = v
-        }
-      }
-      const want = new THREE.Vector3(Math.sin(bearing), 0, Math.cos(bearing))
-      expect(tip.normalize().dot(want), `bearing ${bearing.toFixed(2)}`).toBeGreaterThan(0.99)
-      g.dispose()
-    }
-  })
+  // NOTE: the aim of each board is tested in signpostAim.test.ts, which
+  // measures it through the scene's own placement matrix. The test that
+  // used to live here checked the plank against a hand-written idea of
+  // which way local +X faced — the same idea the code was written from,
+  // so the two agreed with each other and were wrong together.
 
   it('letters the back face mirrored so both sides read', () => {
     const g = plank(0, 1, 0, 0)

@@ -882,8 +882,9 @@ step with your feet, fading back into the sand after a few seconds.
 It's a small thing and it changes how the island feels: the world
 registers that you were there.
 
-Near where you arrive stands a totem of a signpost: six pointed boards
-stacked down a heavy post, each one turned toward a landmark and
+Near where you arrive stands a totem of a signpost, a carved hawk with
+its wings spread at the top and six pointed boards stacked down a heavy
+post, each one turned toward a landmark and
 lettered with the real distance — the dock 68 m one way, the campfire
 71 m another. Every board is an arrow, pointing where you'd walk. Both
 numbers come from the same file the world is built from, so the sign
@@ -925,11 +926,20 @@ names moves.
   time anything moved; deriving them means the sign is a view of the
   placement file, and a test pins both the maths and the fact that every
   named landmark exists.
-- The first signpost pointed every board ninety degrees off. The plank
-  was built along +X and swung by the bearing, but local +Z is north —
-  the quarter turn was missing, and the boards looked plausible enough
-  from the ground that only the maths caught it. A test now builds a
-  plank at five bearings and checks the tip really lies along each.
+- Aiming the boards took three goes, and the reason is worth writing
+  down. `surfacePartMatrix` aligns local +Z with north, and in a
+  right-handed frame with +Y up that puts EAST at local −X. Building the
+  board along +X and turning it by the bearing pointed everything ninety
+  degrees off; correcting that by a quarter turn fixed due north and
+  left everything else MIRRORED — which looks plausible from the ground,
+  because a fan of signs at wrong angles is still a fan of signs.
+- The test that missed it was written from the same wrong idea as the
+  code, so the two agreed with each other. The replacement takes no view
+  on the frame at all: it pushes each board through the SAME
+  `surfacePartMatrix` the scene uses and compares where the tip actually
+  lands against the great-circle direction to the real placement — the
+  point the editor's own grab handle sits on. Every board now aims
+  within half a degree, and it fails if any of them lies.
 - Sand only for prints, deliberately: leaving a trail across the whole
   island would turn a small delight into a permanent scribble, and
   grass genuinely does spring back.

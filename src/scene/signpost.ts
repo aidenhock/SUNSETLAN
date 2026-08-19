@@ -142,11 +142,87 @@ export function plank(rowIndex: number, rowCount: number, bearing: number, y: nu
   }
 
   // Out past the post, up to its slot, then turned to point at the
-  // landmark. Local +Z is north (meridianYaw), and the plank is built
-  // along +X — hence the quarter turn, which the first version missed.
+  // landmark.
+  //
+  // The frame is the fiddly part. `surfacePartMatrix` aligns local +Z
+  // with NORTH, and in a right-handed frame with +Y up that puts EAST at
+  // local −X, not +X. The plank is built along +X, so pointing it along
+  // a bearing b — east·sin b + north·cos b, i.e. (−sin b, 0, cos b) —
+  // needs rotateY(−b − π/2). Turning it the other way is correct due
+  // north and mirrored everywhere else, which is exactly what the first
+  // two attempts did.
   g.translate(POST_R * 0.75, y, 0)
-  g.rotateY(bearing - Math.PI / 2)
+  g.rotateY(-bearing - Math.PI / 2)
   return g
+}
+
+
+/** Place a tinted primitive: the local helper the totem parts share. */
+function piece(
+  g: THREE.BufferGeometry,
+  color: string,
+  pos: [number, number, number],
+  rot: [number, number, number] = [0, 0, 0],
+  scale: [number, number, number] = [1, 1, 1],
+): THREE.BufferGeometry {
+  const n = tintGeometry(normalizeForMerge(g), color)
+  g.dispose()
+  n.applyMatrix4(
+    new THREE.Matrix4().compose(
+      new THREE.Vector3(...pos),
+      new THREE.Quaternion().setFromEuler(new THREE.Euler(...rot)),
+      new THREE.Vector3(...scale),
+    ),
+  )
+  return n
+}
+
+/**
+ * The hawk on top, wings spread — the carved figure a totem wants at its
+ * head. Chunky faceted primitives like everything else, and merged into
+ * the post so the whole totem stays one draw call.
+ *
+ * It faces local +Z, which is NORTH: the signpost sits below the pole,
+ * so that is the way an arriving visitor comes from.
+ */
+function hawkParts(y: number): THREE.BufferGeometry[] {
+  const BODY = '#6b4a2f'
+  const CHEST = '#c9a266'
+  const WING = '#5a3d26'
+  const TIP = '#3a2717'
+  const BEAK = '#e3b23c'
+  const EYE = '#1a1208'
+
+  const wing = (side: 1 | -1) => [
+    // Inner wing, swept up and out from the shoulder.
+    piece(new THREE.BoxGeometry(0.62, 0.075, 0.3), WING, [side * 0.4, y + 0.5, 0.02], [0, side * -0.18, side * 0.34]),
+    // Outer wing, angled up more — the kink is what reads as a raptor.
+    piece(new THREE.BoxGeometry(0.5, 0.06, 0.22), WING, [side * 0.95, y + 0.71, -0.04], [0, side * -0.3, side * 0.62]),
+    // Dark primaries at the very tip.
+    piece(new THREE.BoxGeometry(0.26, 0.05, 0.19), TIP, [side * 1.24, y + 0.85, -0.08], [0, side * -0.36, side * 0.66]),
+  ]
+
+  return [
+    // Perch cap the bird stands on.
+    piece(new THREE.CylinderGeometry(0.23, 0.19, 0.1, 8), '#8a6a45', [0, y - 0.04, 0]),
+    // Talons.
+    piece(new THREE.BoxGeometry(0.09, 0.07, 0.16), BEAK, [-0.08, y + 0.04, 0.03]),
+    piece(new THREE.BoxGeometry(0.09, 0.07, 0.16), BEAK, [0.08, y + 0.04, 0.03]),
+    // Body, leaning forward a touch, with a pale chest.
+    piece(new THREE.BoxGeometry(0.3, 0.36, 0.26), BODY, [0, y + 0.26, 0], [0.12, 0, 0]),
+    piece(new THREE.BoxGeometry(0.2, 0.26, 0.06), CHEST, [0, y + 0.24, 0.13], [0.12, 0, 0]),
+    // Tail, fanned out behind and angled down.
+    piece(new THREE.BoxGeometry(0.26, 0.05, 0.38), WING, [0, y + 0.16, -0.24], [-0.5, 0, 0]),
+    piece(new THREE.BoxGeometry(0.3, 0.045, 0.14), TIP, [0, y + 0.06, -0.42], [-0.5, 0, 0]),
+    // Head, hooded brow, beak and eyes.
+    piece(new THREE.BoxGeometry(0.22, 0.2, 0.22), BODY, [0, y + 0.53, 0.03]),
+    piece(new THREE.BoxGeometry(0.24, 0.06, 0.2), TIP, [0, y + 0.62, 0.02]),
+    piece(new THREE.ConeGeometry(0.055, 0.17, 4), BEAK, [0, y + 0.5, 0.17], [Math.PI / 2, Math.PI / 4, 0]),
+    piece(new THREE.SphereGeometry(0.032, 6, 5), EYE, [-0.08, y + 0.56, 0.12]),
+    piece(new THREE.SphereGeometry(0.032, 6, 5), EYE, [0.08, y + 0.56, 0.12]),
+    ...wing(1),
+    ...wing(-1),
+  ]
 }
 
 /**
@@ -177,10 +253,7 @@ export function buildSignpost(
       normalizeForMerge(new THREE.CylinderGeometry(POST_R * 1.35, POST_R * 1.35, 0.1, 8)),
       '#8a6a45',
     ).translate(0, POST_H - 0.22, 0),
-    tintGeometry(
-      normalizeForMerge(new THREE.ConeGeometry(POST_R * 1.5, 0.34, 8)),
-      '#b98a4f',
-    ).translate(0, POST_H + 0.05, 0),
+    ...hawkParts(POST_H + 0.02),
   ]
   const post = mergeGeometries(postParts)!
   postParts.forEach((g) => g.dispose())
