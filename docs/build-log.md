@@ -940,6 +940,13 @@ names moves.
   lands against the great-circle direction to the real placement — the
   point the editor's own grab handle sits on. Every board now aims
   within half a degree, and it fails if any of them lies.
+- Props built by positioning each piece separately keep coming out as
+  a pile of sticks — the mic stand's legs ended above its hub, the
+  easel's legs never met anything. Both are now built from STRUTS
+  BETWEEN TWO POINTS: name the feet and the apex, and let the geometry
+  work out where each piece goes and which way it faces. Joints meet by
+  construction rather than by eye, which is the only way this survives
+  someone changing a dimension later.
 - Sand only for prints, deliberately: leaving a trail across the whole
   island would turn a small delight into a permanent scribble, and
   grass genuinely does spring back.

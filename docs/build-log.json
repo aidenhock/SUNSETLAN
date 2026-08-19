@@ -662,7 +662,7 @@
           "excerpts": [
             {
               "symbol": "buildHedgeStone",
-              "line": 786,
+              "line": 842,
               "code": "export function buildHedgeStone(): PropPart[] {\r\n  const tinted = (g: THREE.BufferGeometry, color: string, pos: [number, number, number], rot: [number, number, number] = [0, 0, 0], scale: [number, number, number] = [1, 1, 1]) => {\r\n    const n = tintGeometry(normalizeForMerge(g), color)\r\n    g.dispose()\r\n    n.applyMatrix4(\r\n      new THREE.Matrix4().compose(\r\n        new THREE.Vector3(...pos),\r\n        new THREE.Quaternion().setFromEuler(new THREE.Euler(...rot)),\r\n        new THREE.Vector3(...scale),\r\n      ),\r\n    )\r\n    return n\r\n  }\r\n  const STONE = '#8a9484'\r"
             }
           ]
@@ -1263,6 +1263,7 @@
         "The sign reads the world instead of quoting it. Hand-written distances would have been three lines of content and wrong the first time anything moved; deriving them means the sign is a view of the placement file, and a test pins both the maths and the fact that every named landmark exists.",
         "Aiming the boards took three goes, and the reason is worth writing down. `surfacePartMatrix` aligns local +Z with north, and in a right-handed frame with +Y up that puts EAST at local −X. Building the board along +X and turning it by the bearing pointed everything ninety degrees off; correcting that by a quarter turn fixed due north and left everything else MIRRORED — which looks plausible from the ground, because a fan of signs at wrong angles is still a fan of signs.",
         "The test that missed it was written from the same wrong idea as the code, so the two agreed with each other. The replacement takes no view on the frame at all: it pushes each board through the SAME `surfacePartMatrix` the scene uses and compares where the tip actually lands against the great-circle direction to the real placement — the point the editor's own grab handle sits on. Every board now aims within half a degree, and it fails if any of them lies.",
+        "Props built by positioning each piece separately keep coming out as a pile of sticks — the mic stand's legs ended above its hub, the easel's legs never met anything. Both are now built from STRUTS BETWEEN TWO POINTS: name the feet and the apex, and let the geometry work out where each piece goes and which way it faces. Joints meet by construction rather than by eye, which is the only way this survives someone changing a dimension later.",
         "Sand only for prints, deliberately: leaving a trail across the whole island would turn a small delight into a permanent scribble, and grass genuinely does spring back."
       ]
     },

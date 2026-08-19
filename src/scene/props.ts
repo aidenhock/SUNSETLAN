@@ -658,13 +658,26 @@ export function buildBulletinBoard(): PropPart[] {
  * back at a natural angle, and a small paint-tray ledge with a few
  * paint dabs. Faces local +z (north = the walking approach). ONE
  * vertex-tinted merged mesh. ~1.6 m tall. */
+/**
+ * A painter's easel: an A-frame of three legs meeting at an apex, a
+ * chunky tray across the front pair, and a canvas leaning back on it.
+ *
+ * Every leg is built as a STRUT BETWEEN TWO POINTS — its foot and the
+ * shared apex — rather than a cylinder positioned and rotated by eye.
+ * That is the whole difference between an easel and three sticks
+ * standing near each other, which is what the first version was.
+ */
 export function buildEasel(): PropPart[] {
+  const WOOD = PROP_COLORS.woodDark
+  const WOOD_LIGHT = '#b98a4f'
+  const CANVAS = '#efe4cf'
+  const DABS = ['#d94f3d', '#3d6fd9', '#e3b23c']
+
   const tinted = (
     g: THREE.BufferGeometry,
     color: string,
     pos: [number, number, number],
     rot: [number, number, number] = [0, 0, 0],
-    scale: [number, number, number] = [1, 1, 1],
   ) => {
     const n = tintGeometry(normalizeForMerge(g), color)
     g.dispose()
@@ -672,47 +685,90 @@ export function buildEasel(): PropPart[] {
       new THREE.Matrix4().compose(
         new THREE.Vector3(...pos),
         new THREE.Quaternion().setFromEuler(new THREE.Euler(...rot)),
-        new THREE.Vector3(...scale),
+        new THREE.Vector3(1, 1, 1),
       ),
     )
     return n
   }
-  const WOOD = PROP_COLORS.woodDark
-  const WOOD_LIGHT = PROP_COLORS.woodLight
-  const CANVAS = PROP_COLORS.cream
-  const DABS = [PROP_COLORS.ember, PROP_COLORS.lagoon, PROP_COLORS.frond]
+
+  /** A square leg running from `a` to `b`: joints meet by construction. */
+  const strut = (a: THREE.Vector3, b: THREE.Vector3, thick: number, color: string) => {
+    const dir = new THREE.Vector3().subVectors(b, a)
+    const len = dir.length()
+    const g = tintGeometry(normalizeForMerge(new THREE.BoxGeometry(thick, len, thick)), color)
+    const quat = new THREE.Quaternion().setFromUnitVectors(
+      new THREE.Vector3(0, 1, 0),
+      dir.clone().normalize(),
+    )
+    g.applyMatrix4(
+      new THREE.Matrix4().compose(
+        new THREE.Vector3().addVectors(a, b).multiplyScalar(0.5),
+        quat,
+        new THREE.Vector3(1, 1, 1),
+      ),
+    )
+    return g
+  }
+
+  // The three feet and the apex they all reach. The rear leg is the
+  // prop; the front pair splay forward and carry the tray.
+  const APEX = new THREE.Vector3(0, 1.42, -0.1)
+  const FRONT_L = new THREE.Vector3(-0.4, 0, 0.26)
+  const FRONT_R = new THREE.Vector3(0.4, 0, 0.26)
+  const REAR = new THREE.Vector3(0, 0, -0.6)
+
+  /** Where a leg is at a given height — so the tray lands ON the legs. */
+  const along = (foot: THREE.Vector3, y: number) =>
+    foot.clone().lerp(APEX, y / APEX.y)
+
+  const TRAY_Y = 0.62
+  const trayL = along(FRONT_L, TRAY_Y)
+  const trayR = along(FRONT_R, TRAY_Y)
+  const trayZ = trayL.z
+  const trayW = (trayR.x - trayL.x) + 0.2 // a little overhang each side
 
   const parts: THREE.BufferGeometry[] = [
-    // Two front legs, splayed and canted forward for stability.
-    tinted(new THREE.CylinderGeometry(0.035, 0.045, 1.5, 6), WOOD, [-0.32, 0.7, 0.14], [0.16, 0, 0.1]),
-    tinted(new THREE.CylinderGeometry(0.035, 0.045, 1.5, 6), WOOD, [0.32, 0.7, 0.14], [0.16, 0, -0.1]),
-    // Back leg, canted further back — the classic easel tripod stance.
-    tinted(new THREE.CylinderGeometry(0.035, 0.045, 1.55, 6), WOOD, [0, 0.73, -0.32], [-0.34, 0, 0]),
-    // Horizontal rail the canvas rests on.
-    tinted(new THREE.BoxGeometry(0.85, 0.07, 0.12), WOOD_LIGHT, [0, 0.55, 0.06]),
-    // Small paint-tray ledge jutting forward off the rail.
-    tinted(new THREE.BoxGeometry(0.5, 0.03, 0.16), WOOD_LIGHT, [0, 0.51, 0.2]),
-    // Blank canvas board, leaned back against the front legs.
-    tinted(new THREE.BoxGeometry(0.72, 0.92, 0.035), CANVAS, [0, 1.03, 0], [-0.12, 0, 0]),
-    // Thin wood lip top and bottom holding the canvas.
-    tinted(new THREE.BoxGeometry(0.78, 0.045, 0.05), WOOD, [0, 0.6, 0.02], [-0.12, 0, 0]),
-    tinted(new THREE.BoxGeometry(0.78, 0.045, 0.05), WOOD, [0, 1.46, -0.05], [-0.12, 0, 0]),
+    strut(FRONT_L, APEX, 0.075, WOOD),
+    strut(FRONT_R, APEX, 0.075, WOOD),
+    strut(REAR, APEX, 0.07, WOOD_LIGHT),
+    // Cross-brace between the front legs, low down, like the reference.
+    strut(along(FRONT_L, 0.3), along(FRONT_R, 0.3), 0.05, WOOD),
+    // The tray: a ledge with a lip, sitting on the front legs.
+    tinted(new THREE.BoxGeometry(trayW, 0.06, 0.19), WOOD_LIGHT, [0, TRAY_Y, trayZ + 0.05]),
+    tinted(new THREE.BoxGeometry(trayW, 0.07, 0.04), WOOD, [0, TRAY_Y + 0.05, trayZ + 0.13]),
   ]
-  // Paint dabs on the tray.
+
+  // The canvas, resting on the tray and leaning back into the frame.
+  const LEAN = -0.13
+  const CANVAS_H = 0.74
+  const cy = TRAY_Y + 0.05 + (CANVAS_H / 2) * Math.cos(LEAN)
+  const cz = trayZ + 0.03 + (CANVAS_H / 2) * Math.sin(LEAN)
+  parts.push(
+    tinted(new THREE.BoxGeometry(0.86, CANVAS_H, 0.05), WOOD_LIGHT, [0, cy, cz], [LEAN, 0, 0]),
+    tinted(new THREE.BoxGeometry(0.78, CANVAS_H - 0.08, 0.03), CANVAS, [0, cy, cz + 0.035], [LEAN, 0, 0]),
+  )
+
+  // Paint dabs along the tray.
   DABS.forEach((color, i) => {
     parts.push(
-      tinted(new THREE.IcosahedronGeometry(0.035, 0), color, [-0.14 + i * 0.14, 0.545, 0.22], [0.3, i, 0.2]),
+      tinted(new THREE.SphereGeometry(0.035, 6, 5), color, [
+        -0.16 + i * 0.16,
+        TRAY_Y + 0.05,
+        trayZ + 0.08,
+      ]),
     )
   })
+
   const merged = mergeGeometries(parts)
-  for (const p of parts) p.dispose()
-  return [{ geometry: merged, material: new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }) }]
+  parts.forEach((g) => g.dispose())
+  return [
+    {
+      geometry: merged,
+      material: new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }),
+    },
+  ]
 }
 
-/** Mic stand (Covers portal): a slim dark tripod stand, a boom arm
- * angled up and out, and a chunky faceted mic head with a grille cap.
- * Faces local +z (north = the walking approach). ONE vertex-tinted
- * merged mesh. ~1.5 m tall. */
 export function buildMicStand(): PropPart[] {
   const tinted = (
     g: THREE.BufferGeometry,
