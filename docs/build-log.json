@@ -47,7 +47,7 @@
           "excerpts": [
             {
               "symbol": "controlsRuntime",
-              "line": 38,
+              "line": 39,
               "code": "export const controlsRuntime = {\r\n  joyX: 0,\r\n  joyY: 0,\r\n  azimuth: Math.PI,\r\n  /** Set to snap the camera heading next frame (consumed once) — used by the\r\n   * e2e suites and, later, the intro swoop. */\r\n  azimuthOverride: null as number | null,\r\n  /** Teleport: put this lat/long under the avatar next frame (consumed once). */\r\n  poseOverride: null as { lat: number; long: number } | null,\r\n  wadeRippleTime: 0,\r\n  /** Written every frame for the animated avatar's clip selection. */\r\n  locomotion: 'idle' as 'idle' | 'walk' | 'run',\r\n  airborne: false,\r\n  /** Body world yaw + camera pitch, published for the head look-at (v3.3). */\r"
             }
           ],
@@ -662,7 +662,7 @@
           "excerpts": [
             {
               "symbol": "buildHedgeStone",
-              "line": 607,
+              "line": 612,
               "code": "export function buildHedgeStone(): PropPart[] {\r\n  const tinted = (g: THREE.BufferGeometry, color: string, pos: [number, number, number], rot: [number, number, number] = [0, 0, 0], scale: [number, number, number] = [1, 1, 1]) => {\r\n    const n = tintGeometry(normalizeForMerge(g), color)\r\n    g.dispose()\r\n    n.applyMatrix4(\r\n      new THREE.Matrix4().compose(\r\n        new THREE.Vector3(...pos),\r\n        new THREE.Quaternion().setFromEuler(new THREE.Euler(...rot)),\r\n        new THREE.Vector3(...scale),\r\n      ),\r\n    )\r\n    return n\r\n  }\r\n  const STONE = '#8a9484'\r"
             }
           ]
@@ -695,7 +695,7 @@
           "excerpts": [
             {
               "symbol": "PROP_BUILDERS",
-              "line": 13,
+              "line": 14,
               "code": "const PROP_BUILDERS: Record<Exclude<PropKind, 'portal'>, () => PropPart[]> = {\r\n  tripod: buildTripod,\r\n  mailbox: buildMailbox,\r\n  stereo: buildMusicStereo,\r\n  hedgestone: buildHedgeStone,\r\n  bulletin: buildBulletinBoard,\r\n  headstone: buildHeadstone,\r\n}\r\n\r\n/**\r\n * An interactable, oriented to stand on the sphere with meridian-aligned yaw\r\n * (rotation[1] is relative to local north, like every SurfaceGroup prop).\r\n * Renders its chunky primitive prop when `prop` is set (see props.ts), else\r\n * the placeholder box. Proximity is angular distance, computed centrally in\r"
             }
           ]
@@ -723,7 +723,7 @@
           "excerpts": [
             {
               "symbol": "buildBulletinBoard",
-              "line": 546,
+              "line": 551,
               "code": "export function buildBulletinBoard(): PropPart[] {\r\n  const tinted = (g: THREE.BufferGeometry, color: string, pos: [number, number, number], rot: [number, number, number] = [0, 0, 0], scale: [number, number, number] = [1, 1, 1]) => {\r\n    const n = tintGeometry(normalizeForMerge(g), color)\r\n    g.dispose()\r\n    n.applyMatrix4(\r\n      new THREE.Matrix4().compose(\r\n        new THREE.Vector3(...pos),\r\n        new THREE.Quaternion().setFromEuler(new THREE.Euler(...rot)),\r\n        new THREE.Vector3(...scale),\r\n      ),\r\n    )\r\n    return n\r\n  }\r\n  const FRAME = '#7f9578'\r"
             }
           ]
@@ -803,17 +803,17 @@
           "excerpts": [
             {
               "symbol": "MARKERS",
-              "line": 61,
+              "line": 67,
               "code": "export const MARKERS: MapMarker[] = placements\r\n  .filter(\r\n    (m) =>\r\n      m.kind !== 'seat' &&\r\n      m.kind !== 'scatter' &&\r\n      m.type !== 'collider' &&\r\n      m.id !== 'cemetery' &&\r\n      m.id !== 'dock',\r\n  )\r\n  .map((m) => ({\r\n    unit: latLongToUnit(m.lat, m.long),\r\n    icon: BY_ID[m.id] ?? BY_KIND[m.kind] ?? BY_KIND.prop,\r\n  }))\r\n\r"
             },
             {
               "symbol": "CEMETERY_FOOTPRINT",
-              "line": 100,
+              "line": 106,
               "code": "export const CEMETERY_FOOTPRINT: THREE.Vector3[] = (() => {\r\n  const plot = placement('cemetery')\r\n  const w = (plot.size?.widthM ?? 12) / 2\r\n  const d = (plot.size?.depthM ?? 10) / 2\r\n  const yaw = (plot.yawDeg * Math.PI) / 180\r\n  const cos = Math.cos(yaw)\r\n  const sin = Math.sin(yaw)\r\n  const corners: Array<[number, number]> = [\r\n    [-w, d],\r\n    [w, d],\r\n    [w, -d],\r\n    [-w, -d],\r\n  ]\r\n  return corners.map(([east, north]) => {\r"
             },
             {
               "symbol": "SUN_UNIT",
-              "line": 135,
+              "line": 141,
               "code": "export const SUN_UNIT = latLongToUnit(4, 0)\r\nexport const MOON_UNIT = latLongToUnit(4, 180)\r\n"
             }
           ]
@@ -857,11 +857,11 @@
             {
               "symbol": "buildCemetery",
               "line": 351,
-              "code": "export function buildCemetery(): PropPart[] {\r\n  const tinted = (g: THREE.BufferGeometry, color: string, pos: [number, number, number], rot: [number, number, number] = [0, 0, 0], scale: [number, number, number] = [1, 1, 1]) => {\r\n    const n = tintGeometry(normalizeForMerge(g), color)\r\n    g.dispose()\r\n    n.applyMatrix4(\r\n      new THREE.Matrix4().compose(\r\n        new THREE.Vector3(...pos),\r\n        new THREE.Quaternion().setFromEuler(new THREE.Euler(...rot)),\r\n        new THREE.Vector3(...scale),\r\n      ),\r\n    )\r\n    return n\r\n  }\r\n\r"
+              "code": "export function buildCemetery(plot: {\r\n  lat: number\r\n  long: number\r\n  yawDeg: number\r\n  size?: { widthM: number; depthM: number }\r\n} = placement('cemetery')): PropPart[] {\r\n  const tinted = (g: THREE.BufferGeometry, color: string, pos: [number, number, number], rot: [number, number, number] = [0, 0, 0], scale: [number, number, number] = [1, 1, 1]) => {\r\n    const n = tintGeometry(normalizeForMerge(g), color)\r\n    g.dispose()\r\n    n.applyMatrix4(\r\n      new THREE.Matrix4().compose(\r\n        new THREE.Vector3(...pos),\r\n        new THREE.Quaternion().setFromEuler(new THREE.Euler(...rot)),\r\n        new THREE.Vector3(...scale),\r"
             },
             {
               "symbol": "buildHeadstone",
-              "line": 517,
+              "line": 522,
               "code": "export function buildHeadstone(): PropPart[] {\r\n  const tinted = (g: THREE.BufferGeometry, color: string, pos: [number, number, number], rot: [number, number, number] = [0, 0, 0]) => {\r\n    const n = tintGeometry(normalizeForMerge(g), color)\r\n    g.dispose()\r\n    n.applyMatrix4(\r\n      new THREE.Matrix4().compose(\r\n        new THREE.Vector3(...pos),\r\n        new THREE.Quaternion().setFromEuler(new THREE.Euler(...rot)),\r\n        new THREE.Vector3(1, 1, 1),\r\n      ),\r\n    )\r\n    return n\r\n  }\r\n  const parts = [\r"
             }
           ]
@@ -1130,7 +1130,7 @@
       "step": 19,
       "title": "A world you can drag",
       "hook": "The island is now editable from inside itself.",
-      "plain": "Everything on the island — every prop, portal, palm and rock\r — lives in one file of coordinates. In development you can open the\r world with `?editor` (or press F2), click a thing to select it, and drag\r it across the ground; arrow keys nudge it a quarter metre, Q and E turn\r it, sliders set its size and how far it pushes the player away, and that\r push is drawn as a translucent disc so collision stops being invisible.\r There's a palette to place new props, duplicate and delete, and full\r undo. When it looks right, one button writes the file back to disk.\r \r It warns before you make a mess: something placed past the waterline,\r two things whose collisions overlap enough to wedge the player, or a\r placement that pushes the scene over its draw-call budget.\r \r None of this ships. The editor is stripped from production builds\r entirely, and a check in the build asserts it.",
+      "plain": "Everything on the island — every prop, portal, palm and rock\r — lives in one file of coordinates. In development you can open the\r world with `?editor` (or press F2) and rearrange it.\r \r The main tool is a plan view: the island seen from above, holding still,\r with everything on it as a dot you can drag. Blocker radii are drawn at\r their true size, so two things fighting over the same ground is obvious\r at a glance; a stalk on the selected item turns it; the wheel zooms and\r the background pans. Faint lines tie a monument's parts to it, so you\r can see what will come along before you drag. You can still click props\r in the 3D world to select them, and nudge with the arrow keys, but the\r laying-out happens on the map.\r \r Sliders set size and collision, there's a palette to place new props,\r duplicate and delete, and full undo. When it looks right, one button\r writes the file back to disk.\r \r It warns before you make a mess: something placed past the waterline,\r two things whose collisions overlap enough to wedge the player, or a\r placement that pushes the scene over its draw-call budget.\r \r None of this ships. The editor is stripped from production builds\r entirely, and a check in the build asserts it.",
       "technical": "Placements moved out of three scattered sources into\r `content/placements.json`, and the scene reads them through\r `scene/placementRuntime.ts` — a small store initialised from the file.\r In production nothing mutates it, so the world IS the file; in the\r editor every change goes through a command stack (whole-list snapshots,\r since 41 entries are cheap) and rebuilds the blocker array IN PLACE, so\r a dragged prop's collision moves with it and the cemetery's generated\r fence regenerates around the plot. Picking is analytic rather than a\r raycast against terrain: the screen ray meets a sphere of the planet's\r radius, and that point converts straight back to lat/long — the numbers\r the file stores. Altitude is never editable; it always comes from\r `groundAltitudeAt − SINK_M`. The panel and the 3D helpers are behind\r `import.meta.env.DEV`, which Vite folds to `false` in a build so Rollup\r drops the dynamic imports and emits no chunk.",
       "files": [
         {
@@ -1149,18 +1149,43 @@
           "excerpts": [
             {
               "symbol": "usePlacementRuntime",
-              "line": 91,
-              "code": "export const usePlacementRuntime = create<PlacementRuntime>((set, get) => {\r\n  const commit = (mutate: (list: Placement[]) => Placement[]) =>\r\n    set((s) => {\r\n      const next = mutate(s.list)\r\n      rebuildBlockers(next)\r\n      return {\r\n        list: next,\r\n        past: [...s.past, s.list].slice(-100),\r\n        future: [],\r\n        version: s.version + 1,\r\n      }\r\n    })\r\n\r\n  return {\r"
+              "line": 136,
+              "code": "export const usePlacementRuntime = create<PlacementRuntime>((set, get) => {\r\n  /** True between pointer-down and pointer-up: a drag streams dozens of\r\n   *  positions, and every one of them landing in the undo stack would\r\n   *  make Ctrl+Z crawl back a centimetre at a time. */\r\n  let coalescing = false\r\n\r\n  const commit = (mutate: (list: Placement[]) => Placement[]) =>\r\n    set((s) => {\r\n      const next = mutate(s.list)\r\n      rebuildBlockers(next)\r\n      return {\r\n        list: next,\r\n        past: coalescing ? s.past : [...s.past, s.list].slice(-100),\r\n        future: [],\r"
             },
             {
               "symbol": "serialize",
-              "line": 261,
+              "line": 371,
               "code": "export function serialize(list: Placement[]): string {\r\n  const round = (n: number, dp = 4) => Math.round(n * 10 ** dp) / 10 ** dp\r\n  return (\r\n    JSON.stringify(\r\n      {\r\n        $comment: placementsHeader,\r\n        placements: list.map((p) => ({\r\n          ...p,\r\n          lat: round(p.lat),\r\n          long: round((p.long + 360) % 360),\r\n          // 2 dp, not 1: the file carries yaws like 51.57 (a baked\r\n          // hand-rotation), and rounding harder made the round-trip lossy.\r\n          yawDeg: round(p.yawDeg, 2),\r\n          scale: round(p.scale, 3),\r"
             },
             {
               "symbol": "warningsFor",
-              "line": 212,
+              "line": 322,
               "code": "export function warningsFor(list: Placement[], drawCalls: number): PlacementWarning[] {\r\n  const out: PlacementWarning[] = []\r\n  for (const p of list) {\r\n    if (p.lat < WATERLINE_LAT) {\r\n      out.push({\r\n        id: p.id,\r\n        kind: 'underwater',\r\n        message: `${p.id} is past the waterline (lat ${p.lat.toFixed(1)} < ${WATERLINE_LAT}) — it will stand in the sea.`,\r\n      })\r\n    } else if (groundAltitudeAt(p.lat, p.long) <= 0.02 && p.type !== 'dock' && p.type !== 'rift') {\r\n      out.push({\r\n        id: p.id,\r\n        kind: 'underwater',\r\n        message: `${p.id} sits at sea level — check it isn't in the surf.`,\r"
+            }
+          ]
+        },
+        {
+          "path": "src/editor/MapEditor.tsx",
+          "symbols": [],
+          "excerpts": [],
+          "note": "the plan view"
+        },
+        {
+          "path": "src/editor/mapProjection.ts",
+          "symbols": [
+            "project",
+            "unproject"
+          ],
+          "excerpts": [
+            {
+              "symbol": "project",
+              "line": 28,
+              "code": "export function project(view: MapView, lat: number, long: number): { x: number; y: number } {\n  const r = (90 - lat) * view.scale\n  const a = long * DEG\n  return {\n    x: view.cx + view.panX + Math.sin(a) * r,\n    y: view.cy + view.panY - Math.cos(a) * r,\n  }\n}\n\nexport function unproject(view: MapView, x: number, y: number): { lat: number; long: number } {\n  const dx = x - view.cx - view.panX\n  const dy = y - view.cy - view.panY\n  const r = Math.hypot(dx, dy)\n  return {"
+            },
+            {
+              "symbol": "unproject",
+              "line": 37,
+              "code": "export function unproject(view: MapView, x: number, y: number): { lat: number; long: number } {\n  const dx = x - view.cx - view.panX\n  const dy = y - view.cy - view.panY\n  const r = Math.hypot(dx, dy)\n  return {\n    lat: 90 - r / view.scale,\n    long: ((Math.atan2(dx, -dy) / DEG) % 360 + 360) % 360,\n  }\n}\n\n/** Metres → pixels, for drawing blocker radii at their true size. */\nexport const metresPerDegree = (Math.PI * PLANET_RADIUS) / 180\nexport const pxPerMetre = (view: MapView) => view.scale / metresPerDegree\n"
             }
           ]
         },
@@ -1169,25 +1194,13 @@
           "symbols": [],
           "excerpts": [],
           "note": "the panel"
-        },
-        {
-          "path": "src/editor/EditorScene.tsx",
-          "symbols": [
-            "pickLatLong"
-          ],
-          "excerpts": [
-            {
-              "symbol": "pickLatLong",
-              "line": 30,
-              "code": "export function pickLatLong(\r\n  camera: THREE.Camera,\r\n  pointer: THREE.Vector2,\r\n  planet: THREE.Object3D,\r\n): { lat: number; long: number } | null {\r\n  _ray.setFromCamera(pointer, camera)\r\n  if (!_ray.ray.intersectSphere(_sphere, _hit)) return null\r\n  // World → planet-local, so the answer survives the world's rotation.\r\n  _local.copy(_hit).applyQuaternion(_q.copy(planet.quaternion).invert()).normalize()\r\n  const lat = 90 - (Math.acos(THREE.MathUtils.clamp(_local.y, -1, 1)) * 180) / Math.PI\r\n  const long = ((Math.atan2(_local.x, _local.z) * 180) / Math.PI + 360) % 360\r\n  return { lat, long }\r\n}\r\n\r"
-            }
-          ],
-          "note": "the rings and the drag"
         }
       ],
       "decisions": [
         "Parity was proven rather than eyeballed. `worldParity.test.ts` digests every blocker and interactable; the interactable digest came out byte-identical, and a third test reconstructs the old blocker list from the new one to show the only difference is a duplicate mailbox collider that sat inside its own. The guard immediately earned itself by catching a crate collider I had written 0.8° off its prop.",
         "The round-trip check earned itself too: it failed twice on real defects — the serializer rounded yaw to one decimal and lost a baked 51.57°, and whole numbers were being written as `40.0` where the editor writes `40`. \"Lossless\" has to mean bytes, or the file churns every time anyone opens the editor.",
+        "Dragging things around the 3D world was the first version and the wrong one: it means fighting a camera, a horizon and a sphere to do what is really a two-dimensional job. The plan view uses its own projection — north-up, island-centred, and crucially INVERTIBLE, so a pixel maps straight back to a lat/long and a thing lands exactly where you let go. The HUD's map can't serve here: it spins with the camera and follows the player, which is right for wayfinding and wrong for layout.",
+        "The draw-call guardrail counts the WORLD, not the tool. Naively it read the renderer's total, which includes one handle per placement — the warning was measuring the editor. It now subtracts the handles actually inside the camera frustum, which lands within a call of the truth, and the panel says `~` rather than pretending to be exact.",
         "The store lives in `scene/`, not `editor/`. It is data the world needs; only the UI is dev-only, and keeping them apart is what lets the bundle check assert on the filename as well as the contents."
       ]
     }

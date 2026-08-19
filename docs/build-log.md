@@ -799,12 +799,20 @@ drive the world directly, and the nudge has its own test.
 
 **Plain:** Everything on the island — every prop, portal, palm and rock
 — lives in one file of coordinates. In development you can open the
-world with `?editor` (or press F2), click a thing to select it, and drag
-it across the ground; arrow keys nudge it a quarter metre, Q and E turn
-it, sliders set its size and how far it pushes the player away, and that
-push is drawn as a translucent disc so collision stops being invisible.
-There's a palette to place new props, duplicate and delete, and full
-undo. When it looks right, one button writes the file back to disk.
+world with `?editor` (or press F2) and rearrange it.
+
+The main tool is a plan view: the island seen from above, holding still,
+with everything on it as a dot you can drag. Blocker radii are drawn at
+their true size, so two things fighting over the same ground is obvious
+at a glance; a stalk on the selected item turns it; the wheel zooms and
+the background pans. Faint lines tie a monument's parts to it, so you
+can see what will come along before you drag. You can still click props
+in the 3D world to select them, and nudge with the arrow keys, but the
+laying-out happens on the map.
+
+Sliders set size and collision, there's a palette to place new props,
+duplicate and delete, and full undo. When it looks right, one button
+writes the file back to disk.
 
 It warns before you make a mess: something placed past the waterline,
 two things whose collisions overlap enough to wedge the player, or a
@@ -831,8 +839,9 @@ drops the dynamic imports and emits no chunk.
 **Files:**
 - `src/content/placements.json` — the world
 - `src/scene/placementRuntime.ts` — `usePlacementRuntime`, `serialize`, `warningsFor`
+- `src/editor/MapEditor.tsx` — the plan view
+- `src/editor/mapProjection.ts` — `project`, `unproject`
 - `src/editor/EditorOverlay.tsx` — the panel
-- `src/editor/EditorScene.tsx` — `pickLatLong`, the rings and the drag
 
 **Decisions:**
 - Parity was proven rather than eyeballed. `worldParity.test.ts` digests
@@ -846,6 +855,19 @@ drops the dynamic imports and emits no chunk.
   51.57°, and whole numbers were being written as `40.0` where the
   editor writes `40`. "Lossless" has to mean bytes, or the file churns
   every time anyone opens the editor.
+- Dragging things around the 3D world was the first version and the
+  wrong one: it means fighting a camera, a horizon and a sphere to do
+  what is really a two-dimensional job. The plan view uses its own
+  projection — north-up, island-centred, and crucially INVERTIBLE, so a
+  pixel maps straight back to a lat/long and a thing lands exactly where
+  you let go. The HUD's map can't serve here: it spins with the camera
+  and follows the player, which is right for wayfinding and wrong for
+  layout.
+- The draw-call guardrail counts the WORLD, not the tool. Naively it
+  read the renderer's total, which includes one handle per placement —
+  the warning was measuring the editor. It now subtracts the handles
+  actually inside the camera frustum, which lands within a call of the
+  truth, and the panel says `~` rather than pretending to be exact.
 - The store lives in `scene/`, not `editor/`. It is data the world
   needs; only the UI is dev-only, and keeping them apart is what lets
   the bundle check assert on the filename as well as the contents.

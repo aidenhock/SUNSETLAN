@@ -198,10 +198,24 @@ through the orbit drag, the joystick, and pointer picking.
 ## World editor (dev only)
 
 Open the world with **`?editor`** or press **F2** — development builds
-only. Click a marker to select, drag along the ground to move, arrows
-nudge 0.25 m, **Q/E** rotate 5°, sliders set scale and blocker radius
-(drawn as a translucent disc while selected), **Shift+D** duplicates,
-**Delete** removes, **Ctrl+Z / Ctrl+Shift+Z** undo and redo. The palette
+only.
+
+**The plan view is the primary tool** (`editor/MapEditor.tsx`): the
+island from above, north-up and island-centred, on its own INVERTIBLE
+projection (`editor/mapProjection.ts`) so a pixel maps back to a
+lat/long. Drag a dot to move it (parts follow), drag the stalk to turn
+it, wheel zooms, dragging empty space pans, and an armed brush places
+where you click. Blocker radii draw at TRUE SIZE and footprints as real
+rectangles, so overlaps are visible rather than discovered later. The
+HUD minimap is deliberately not reused: it spins with the camera and
+centres on the player, which is right for wayfinding and wrong for
+layout.
+
+The 3D world still selects (click a handle) and nudges: arrows move
+0.25 m, **Q/E** rotate 5°, sliders set scale and blocker radius (drawn
+as a translucent disc while selected), **Shift+D** duplicates,
+**Delete** removes, **Ctrl+Z / Ctrl+Shift+Z** undo and redo. A plain
+select never costs an undo step; a whole drag costs exactly one. The palette
 lists everything in `scene/propRegistry.ts`; clicking the ground spends
 the armed brush. Free-fly pulls the camera out so the far side is one
 click away. The minimap rings the selection.
@@ -233,7 +247,10 @@ click away. The minimap rings the selection.
   already looks like — `e2e/editor.mjs` asserts the round-trip.
 - **Guardrails**: warns on placements past the waterline, on blockers
   that overlap enough to wedge the player, and when the live draw call
-  count crosses the mobile (50) or desktop (100) budget.
+  count crosses the mobile (50) or desktop (100) budget. That count is
+  the WORLD's: the editor subtracts its own in-frustum handles, lands
+  within a call of the truth, and is shown as `~N` rather than
+  pretending to be exact.
 - **NEVER SHIPS**: the panel and its 3D half sit behind
   `import.meta.env.DEV`, so Rollup drops them; `npm run check:bundle`
   fails the build if any editor string or filename reaches `dist/`.

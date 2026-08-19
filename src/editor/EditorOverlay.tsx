@@ -3,6 +3,7 @@ import { controlsRuntime } from '../controls/usePlanetController'
 import { useStore } from '../store/useStore'
 import { PROP_REGISTRY } from '../scene/propRegistry'
 import { serialize, usePlacementRuntime, warningsFor } from '../scene/placementRuntime'
+import { MapEditor } from './MapEditor'
 import { useEditorInput } from './useEditorInput'
 
 /**
@@ -19,6 +20,7 @@ const BAND = (lat: number) =>
   lat >= 66 ? 'plateau' : lat >= 24 ? 'grass' : lat >= 15 ? 'sand' : 'water'
 
 export function EditorOverlay() {
+  const [showMap, setShowMap] = useState(true)
   // Arrows nudge, Q/E rotate, Delete removes, Ctrl+Z walks the stack.
   useEditorInput()
   const list = usePlacementRuntime((s) => s.list)
@@ -102,15 +104,17 @@ export function EditorOverlay() {
   }
 
   return (
+    <>
+      {showMap && <MapEditor />}
     <div className="pointer-events-auto fixed top-4 right-4 z-50 flex max-h-[92vh] w-80 flex-col gap-3 overflow-y-auto rounded-xl bg-ink/95 p-3 font-display text-xs text-sand shadow-2xl">
       <div className="flex items-center gap-2">
         <span className="font-bold tracking-wide">World editor</span>
         <span className="ml-auto rounded bg-sand/10 px-1.5 py-0.5">{list.length} placed</span>
         <span
           className={`rounded px-1.5 py-0.5 ${drawCalls > 50 ? 'bg-red-500/30' : 'bg-sand/10'}`}
-          title="Live draw calls"
+          title="Live draw calls for the WORLD — the editor's own handles are subtracted, so this is within a call or two"
         >
-          {drawCalls} draws
+          ~{drawCalls} draws
         </span>
       </div>
 
@@ -278,6 +282,13 @@ export function EditorOverlay() {
         </button>
         <button
           type="button"
+          onClick={() => setShowMap((m) => !m)}
+          className={`rounded px-2 py-1 ${showMap ? 'bg-lagoon text-ink' : 'bg-sand/10'}`}
+        >
+          Plan view
+        </button>
+        <button
+          type="button"
           onClick={() => setFreeFly((f) => !f)}
           className={`rounded px-2 py-1 ${freeFly ? 'bg-lagoon text-ink' : 'bg-sand/10'}`}
         >
@@ -306,5 +317,6 @@ export function EditorOverlay() {
         Total warnings: {warnings.length}. F2 closes the editor.
       </p>
     </div>
+    </>
   )
 }

@@ -25,6 +25,11 @@ const _sphere = new THREE.Sphere(new THREE.Vector3(0, 0, 0), PLANET_RADIUS)
 const _hit = new THREE.Vector3()
 const _local = new THREE.Vector3()
 const _q = new THREE.Quaternion()
+const _frustum = new THREE.Frustum()
+const _projScreen = new THREE.Matrix4()
+const _identity = new THREE.Matrix4()
+const _m = new THREE.Matrix4()
+const _v = new THREE.Vector3()
 
 /** Where a screen ray meets the planet, as lat/long (null if it misses). */
 export function pickLatLong(
@@ -74,6 +79,7 @@ export function EditorScene({ planetRef }: { planetRef: React.RefObject<THREE.Gr
   const endMove = usePlacementRuntime((s) => s.endMove)
   const setDrawCalls = usePlacementRuntime((s) => s.setDrawCalls)
   const dragging = useRef(false)
+  const movedOnce = useRef(false)
   const ringRef = useRef<THREE.Group>(null)
 
   const selected = useMemo(() => list.find((p) => p.id === selectedId), [list, selectedId])
@@ -84,7 +90,21 @@ export function EditorScene({ planetRef }: { planetRef: React.RefObject<THREE.Gr
   useFrame((state) => {
     if (state.clock.elapsedTime - lastSample.current > 0.5) {
       lastSample.current = state.clock.elapsedTime
-      setDrawCalls(gl.info.render.calls)
+      // Subtract the editor's own overhead, or the budget warning would
+      // be measuring the tool instead of the world. Count the handles
+      // actually IN FRAME rather than all of them: three.js culls the
+      // rest, and subtracting those would understate the real total.
+      _projScreen.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse)
+      _frustum.setFromProjectionMatrix(_projScreen)
+      let onScreen = 0
+      for (const p of list) {
+        placementMatrix(p.lat, p.long, 0, 1, (p.liftM ?? 0) + 0.9, _m)
+        _v.setFromMatrixPosition(_m).applyMatrix4(planetRef.current?.matrixWorld ?? _identity)
+        if (_frustum.containsPoint(_v)) onScreen++
+      }
+      // (The click catcher's material is invisible, so it never draws.)
+      const overhead = onScreen + (selected ? 3 : 0)
+      setDrawCalls(Math.max(0, gl.info.render.calls - overhead))
     }
     const ring = ringRef.current
     if (ring && selected) {
@@ -115,17 +135,24 @@ export function EditorScene({ planetRef }: { planetRef: React.RefObject<THREE.Gr
   const onDown = (e: ThreeEvent<PointerEvent>) => {
     if (!selectedId) return
     dragging.current = true
-    startMove()
+    movedOnce.current = false
     ;(e.target as Element).setPointerCapture?.(e.pointerId)
   }
   const onMove = (e: ThreeEvent<PointerEvent>) => {
     if (!dragging.current || !selectedId) return
     const at = pointerToLatLong(e)
-    if (at) moveTo(selectedId, at.lat, at.long)
+    if (!at) return
+    // Snapshot on the first movement, so selecting costs no undo step.
+    if (!movedOnce.current) {
+      movedOnce.current = true
+      startMove()
+    }
+    moveTo(selectedId, at.lat, at.long)
   }
   const onUp = () => {
-    if (dragging.current) endMove()
+    if (dragging.current && movedOnce.current) endMove()
     dragging.current = false
+    movedOnce.current = false
   }
   const onClick = (e: ThreeEvent<MouseEvent>) => {
     // A drag ends with a click event too; ignore those.

@@ -51,6 +51,12 @@ const BY_KIND: Record<string, MapIcon> = {
   seat: { color: '#8a6a45', shape: 'dot', size: 1.6 },
 }
 
+/** The look for any placement, by id first and kind second — exported
+ *  so the editor's plan view draws the same island the HUD map does. */
+export function iconFor(p: { id: string; kind: string; type: string }): MapIcon {
+  return BY_ID[p.id] ?? BY_KIND[p.kind] ?? BY_KIND.prop
+}
+
 export interface MapMarker {
   unit: THREE.Vector3
   icon: MapIcon
