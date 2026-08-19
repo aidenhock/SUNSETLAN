@@ -923,3 +923,61 @@ moves, keyed on those coordinates.
 - Sand only for prints, deliberately: leaving a trail across the whole
   island would turn a small delight into a permanent scribble, and
   grass genuinely does spring back.
+
+## 21 · Tonight's moon {#telescope}
+
+**Hook:** A telescope on the night beach shows the moon as it actually
+is tonight — and it never phones anyone to find out.
+
+**Plain:** Walk to the dark side of the island and there's a telescope
+aimed down the moon's meridian. Look through it and you get the real
+moon for today: its phase, how much of it is lit, how many days old it
+is, and whether it's filling out or thinning, with the shadow drawn
+across the disc where it really falls.
+
+The obvious way to build that is to fetch a picture of the moon from
+somewhere. This island doesn't do that. Nothing here calls out to
+another server while you're visiting — that's why the fonts are stored
+with the site and why analytics ships switched off — and a live image
+would mean some other company seeing everyone who comes here, plus a
+telescope that shows a broken picture the day that service changes.
+
+It turns out you don't need to ask anyone. The moon's cycle is 29.53
+days long and we know when one started, so today's phase is arithmetic,
+accurate to within a few hours — far finer than an eye can read off a
+disc. The picture in the eyepiece is a stand-in for now; drop in the
+photograph the island's own moon was drawn from and the telescope shows
+that instead, shaded to tonight.
+
+**Technical:** `moonPhase(date)` takes days since a known new moon
+(2000-01-06 18:14 UTC) modulo the synodic month; illumination is
+`(1 − cos 2πt)/2`, and the eight phase names take narrow bands around
+the quarters so "first quarter" means roughly the day it is rather than
+a whole week. `drawMoonPhase` paints the disc — the photograph if
+`public/moon/moon.jpg` exists, else a procedural stand-in with maria —
+then the shadow: a half-disc plus a terminator ellipse of horizontal
+semi-axis `R·|cos 2πt|`, added for a crescent and carved out for a
+gibbous. The shadow is dark blue rather than black because earthshine
+keeps the unlit limb faintly present and a pure silhouette reads as a
+hole in the image. The photo load is optional by construction: a
+missing file falls back to the drawing instead of showing a broken img.
+
+**Files:**
+- `src/scene/moonPhase.ts` — `moonPhase`, `drawMoonPhase`, `SYNODIC_DAYS`
+- `src/ui/modals/TelescopeModal.tsx` — the eyepiece
+- `src/scene/props.ts` — `buildTelescope`
+- `src/scene/moonPhase.test.ts` — the almanac checks
+
+**Decisions:**
+- No API, deliberately. A live moon image was the first idea and it
+  loses on every axis that matters here: privacy (a third party sees
+  every visitor), reliability (endpoints move; NASA's own moon frames
+  are re-pathed yearly), and the project's own rule that nothing phones
+  home. Computing it is smaller, faster, offline, and exact enough.
+- Pinned against real dates rather than only against itself: the full
+  moon of 26 May 2021 and the new moon a fortnight earlier both fall
+  where the maths says they should. A test that only checks internal
+  consistency would pass with the epoch wrong by a week.
+- The disc says when it is a stand-in. An unlabelled procedural moon
+  would quietly become the finished thing; the note names the file to
+  drop in.

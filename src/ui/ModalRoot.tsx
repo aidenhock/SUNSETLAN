@@ -7,6 +7,7 @@ import { MemorialModal } from './modals/MemorialModal'
 import { MuralModal } from './modals/MuralModal'
 import { MusicModal } from './modals/MusicModal'
 import { PapersModal } from './modals/PapersModal'
+import { TelescopeModal } from './modals/TelescopeModal'
 import { ProjectsModal } from './modals/ProjectsModal'
 import { VideosModal } from './modals/VideosModal'
 
@@ -35,6 +36,8 @@ export function ModalRoot() {
       return <ContactModal />
     case 'papers':
       return <PapersModal />
+    case 'telescope':
+      return <TelescopeModal />
     case 'memorial':
       return <MemorialModal def={def} />
     case 'matrix':

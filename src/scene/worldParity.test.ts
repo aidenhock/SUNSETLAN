@@ -70,9 +70,10 @@ describe('world parity', () => {
           .map((n) => n.toFixed(6))
           .join(',')}|${d.blockRadius ?? ''}|${d.modal}`,
     )
-    expect(interactables.length).toBe(11)
-    // Byte-identical to the pre-migration build.
-    expect(digest(dump)).toBe('6d7f4d8c')
+    expect(interactables.length).toBe(12)
+    // Was byte-identical to the pre-migration build; the telescope has
+    // been added since, which is why this no longer reads 6d7f4d8c.
+    expect(digest(dump)).toBe('f0b0bafc')
   })
 
   it('differs from the pre-migration world by exactly the redundant mailbox blocker', () => {

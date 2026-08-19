@@ -13,9 +13,10 @@ export type ModalKind =
   | 'papers'
   | 'memorial'
   | 'matrix'
+  | 'telescope'
 
 /** Chunky primitive prop bodies built in scene/props.ts. */
-export type PropKind = 'tripod' | 'mailbox' | 'stereo' | 'hedgestone' | 'bulletin' | 'headstone' | 'portal'
+export type PropKind = 'tripod' | 'mailbox' | 'stereo' | 'hedgestone' | 'bulletin' | 'headstone' | 'portal' | 'telescope'
 
 export interface InteractableDef {
   id: string
@@ -109,6 +110,17 @@ export const interactables: InteractableDef[] = [
     rotation: [0, placementYaw('rift'), 0],
     modal: 'matrix',
     contentKey: 'buildLog',
+  },
+  {
+    id: 'telescope',
+    label: 'Look through it',
+    prompt: 'Look through the telescope',
+    prop: 'telescope',
+    blockRadius: 0.6,
+    position: place(placement('telescope').lat, placement('telescope').long),
+    rotation: [0, placementYaw('telescope'), 0],
+    modal: 'telescope',
+    contentKey: 'telescope',
   },
   {
     id: 'projects',

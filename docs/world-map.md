@@ -27,6 +27,7 @@ blockers, the minimap, `planetConfig.MAP`) follows from it.
 | `memorial-1` | Headstone 1 | 45.6 | 104.4 | 180° S | — |  |
 | `memorial-2` | Headstone 2 | 45.6 | 107 | 180° S | — |  |
 | `memorial-3` | Headstone 3 | 45.6 | 109.6 | 180° S | — |  |
+| `telescope` | Telescope — tonight's moon | 19.5 | 188 | 180° S | — | Night beach, aimed down the moon's meridian. |
 
 ## Structures
 

@@ -348,6 +348,59 @@ export function buildPalapa(): PropPart[] {
  * builder in this file: render it with NO placement transform. ONE
  * vertex-tinted merge (one draw call).
  */
+/**
+ * The telescope on the night beach: a chunky tripod and a tube tilted
+ * up at the moon's meridian. Brass and dark metal, faceted like
+ * everything else. "E — Look through it" reads tonight's real phase.
+ */
+export function buildTelescope(): PropPart[] {
+  const tinted = (
+    g: THREE.BufferGeometry,
+    color: string,
+    pos: [number, number, number],
+    rot: [number, number, number] = [0, 0, 0],
+  ) => {
+    const n = tintGeometry(normalizeForMerge(g), color)
+    g.dispose()
+    n.applyMatrix4(
+      new THREE.Matrix4().compose(
+        new THREE.Vector3(...pos),
+        new THREE.Quaternion().setFromEuler(new THREE.Euler(...rot)),
+        new THREE.Vector3(1, 1, 1),
+      ),
+    )
+    return n
+  }
+  const METAL = '#3a4048'
+  const BRASS = '#b8894a'
+  const parts: THREE.BufferGeometry[] = []
+  // Three splayed legs.
+  for (let i = 0; i < 3; i++) {
+    const a = (i / 3) * Math.PI * 2 + 0.4
+    parts.push(
+      tinted(new THREE.CylinderGeometry(0.035, 0.045, 1.15, 5), METAL, [
+        Math.sin(a) * 0.16,
+        0.55,
+        Math.cos(a) * 0.16,
+      ], [Math.cos(a) * 0.26, 0, -Math.sin(a) * 0.26]),
+    )
+  }
+  // Head, tube and eyepiece: the tube tilts up toward the sky.
+  parts.push(tinted(new THREE.BoxGeometry(0.17, 0.12, 0.17), METAL, [0, 1.12, 0]))
+  const TILT = -0.62
+  parts.push(tinted(new THREE.CylinderGeometry(0.085, 0.1, 0.78, 8), BRASS, [0, 1.32, 0.06], [TILT, 0, 0]))
+  parts.push(tinted(new THREE.CylinderGeometry(0.055, 0.055, 0.16, 6), METAL, [0, 1.06, -0.28], [TILT, 0, 0]))
+  parts.push(tinted(new THREE.CylinderGeometry(0.11, 0.11, 0.05, 8), METAL, [0, 1.56, 0.28], [TILT, 0, 0]))
+  const merged = mergeGeometries(parts)
+  parts.forEach((g) => g.dispose())
+  return [
+    {
+      geometry: merged,
+      material: new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }),
+    },
+  ]
+}
+
 export function buildCemetery(plot: {
   lat: number
   long: number

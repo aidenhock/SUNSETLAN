@@ -4,7 +4,7 @@ import * as THREE from 'three'
 import { meridianYaw, surfaceQuaternion } from '../controls/planetMath'
 import type { InteractableDef, PropKind } from '../content/interactables'
 import { useStore } from '../store/useStore'
-import { buildBulletinBoard, buildHeadstone, buildHedgeStone, buildMailbox, buildMusicStereo, buildTripod, type PropPart } from './props'
+import { buildBulletinBoard, buildHeadstone, buildHedgeStone, buildTelescope, buildMailbox, buildMusicStereo, buildTripod, type PropPart } from './props'
 import { buildRift } from './riftGeometry'
 import { controlsRuntime } from '../controls/usePlanetController'
 import { skyRuntime } from './useSkyState'
@@ -18,6 +18,7 @@ const PROP_BUILDERS: Record<Exclude<PropKind, 'portal'>, () => PropPart[]> = {
   hedgestone: buildHedgeStone,
   bulletin: buildBulletinBoard,
   headstone: buildHeadstone,
+  telescope: buildTelescope,
 }
 
 /**

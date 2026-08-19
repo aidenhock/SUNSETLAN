@@ -498,6 +498,18 @@
       "scale": 1,
       "blockerRadiusM": 0.5,
       "notes": "Planks point at landmarks with live distances; both come from this file."
+    },
+    {
+      "id": "telescope",
+      "type": "telescope",
+      "kind": "interactable",
+      "label": "Telescope — tonight's moon",
+      "lat": 19.5,
+      "long": 188,
+      "yawDeg": 180,
+      "scale": 1,
+      "blockerRadiusM": 0.6,
+      "notes": "Night beach, aimed down the moon's meridian."
     }
   ]
 }
