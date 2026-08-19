@@ -1203,6 +1203,66 @@
         "The draw-call guardrail counts the WORLD, not the tool. Naively it read the renderer's total, which includes one handle per placement — the warning was measuring the editor. It now subtracts the handles actually inside the camera frustum, which lands within a call of the truth, and the panel says `~` rather than pretending to be exact.",
         "The store lives in `scene/`, not `editor/`. It is data the world needs; only the UI is dev-only, and keeping them apart is what lets the bundle check assert on the filename as well as the contents."
       ]
+    },
+    {
+      "id": "reasons-to-walk",
+      "step": 20,
+      "title": "Reasons to walk, and a world that notices",
+      "hook": "The sand keeps your footprints, and a sign at the top of the\r\nworld tells you how far everything is.",
+      "plain": "Walk the beach and you leave prints behind you, pressed in\r step with your feet, fading back into the sand after a few seconds.\r It's a small thing and it changes how the island feels: the world\r registers that you were there.\r \r Near where you arrive there's a signpost, its planks each turned toward\r a landmark and lettered with the real distance — the dock 68 m one way,\r the campfire 71 m another. Both numbers come from the same file the\r world is built from, so the sign can't be wrong: move the campfire and\r its plank swings round and re-letters itself.",
+      "technical": "Footprints are a fixed pool of 28 instanced ovals pressed\r by the avatar's foot-plant — the same event that fires the footstep\r sound, so the trail lands in step with the gait rather than on a timer.\r They are built in world space at the moment of the step and converted to\r planet-local, so they stay on the ground as the world turns under you.\r They fade by lerping their instance colour back toward the sand rather\r than by opacity: an opaque instanced mesh needs no transparency sorting\r against the water or the fire, and per-instance alpha isn't a thing.\r Sand only — grass springs back and a print in the sea is nonsense.\r \r The signpost is a placement like anything else, so it can be dragged in\r the editor. `bearingBetween` gives each plank its yaw from the local\r tangent frame and `metresBetween` the great-circle distance; the\r lettering is drawn into one canvas at build time, a row per plank, with\r every plank's UVs mapped to its own row so the whole sign is one texture\r and one draw call. It rebuilds when the post or any landmark it names\r moves, keyed on those coordinates.",
+      "files": [
+        {
+          "path": "src/scene/Footprints.tsx",
+          "symbols": [],
+          "excerpts": [],
+          "note": "the pool and the press"
+        },
+        {
+          "path": "src/scene/Avatar.tsx",
+          "symbols": [
+            "aidenStep"
+          ],
+          "excerpts": [
+            {
+              "symbol": "aidenStep",
+              "line": 18,
+              "code": "const aidenStep = () => {\r\n  stepSound(\r\n    surfaceUnderfoot(controlsRuntime.surfPolarDeg, controlsRuntime.surfLongDeg, controlsRuntime.wet),\r\n    controlsRuntime.locomotion === 'run',\r\n  )\r\n  footprintQueue.press()\r\n}\r\n\r\n/** Jump apex (m) from the controller's ballistics: v0² / 2g. */\r\nconst JUMP_APEX_M = (4.5 * 4.5) / (2 * 12)\r\n\r\n/** Seated-at-the-fire pose (3C sit system): thighs swing forward like\r\n * Koa's dock dangle but higher (log seat), knees apart a touch, arms\r\n * resting toward the lap, elbows soft. Blended in ~0.15 s over whatever\r"
+            }
+          ],
+          "note": "where a step becomes a print"
+        },
+        {
+          "path": "src/scene/signpost.ts",
+          "symbols": [
+            "buildSignpost",
+            "bearingBetween",
+            "metresBetween"
+          ],
+          "excerpts": [
+            {
+              "symbol": "buildSignpost",
+              "line": 92,
+              "code": "export function buildSignpost(\n  from: { lat: number; long: number },\n  list: Placement[],\n): PropPart[] {\n  const found = SIGNPOST_TARGETS.map((t) => ({\n    ...t,\n    place: list.find((p) => p.id === t.id),\n  })).filter((t) => t.place)\n\n  // The post: one chunky column, plus a cap so it reads as finished.\n  const postParts = [\n    tintGeometry(\n      normalizeForMerge(new THREE.CylinderGeometry(0.075, 0.09, 2.1, 6)),\n      PROP_COLORS.woodDark,"
+            },
+            {
+              "symbol": "bearingBetween",
+              "line": 45,
+              "code": "export function bearingBetween(\n  from: { lat: number; long: number },\n  to: { lat: number; long: number },\n): number {\n  const p = latLongToUnit(from.lat, from.long)\n  const t = latLongToUnit(to.lat, to.long)\n  const polar = ((90 - from.lat) * Math.PI) / 180\n  const longRad = (from.long * Math.PI) / 180\n  const north = new THREE.Vector3(\n    -Math.cos(polar) * Math.sin(longRad),\n    Math.sin(polar),\n    -Math.cos(polar) * Math.cos(longRad),\n  ).normalize()\n  const east = new THREE.Vector3().crossVectors(north, p).normalize()"
+            },
+            {
+              "symbol": "metresBetween",
+              "line": 36,
+              "code": "export function metresBetween(a: { lat: number; long: number }, b: { lat: number; long: number }) {\n  return latLongToUnit(a.lat, a.long).angleTo(latLongToUnit(b.lat, b.long)) * PLANET_RADIUS\n}\n\n/**\n * Bearing from `from` to `to`, in radians from local north (positive\n * east) — the direction you would walk, which is exactly the yaw a\n * plank needs once meridianYaw has aligned the post.\n */\nexport function bearingBetween(\n  from: { lat: number; long: number },\n  to: { lat: number; long: number },\n): number {\n  const p = latLongToUnit(from.lat, from.long)"
+            }
+          ]
+        }
+      ],
+      "decisions": [
+        "Prints fade by COLOUR, not opacity. Transparency would have put 28 more sorted surfaces in front of the water and the campfire, which is exactly the class of bug the fire's renderOrder rules exist to stop.",
+        "The sign reads the world instead of quoting it. Hand-written distances would have been three lines of content and wrong the first time anything moved; deriving them means the sign is a view of the placement file, and a test pins both the maths and the fact that every named landmark exists.",
+        "Sand only for prints, deliberately: leaving a trail across the whole island would turn a small delight into a permanent scribble, and grass genuinely does spring back."
+      ]
     }
   ]
 }

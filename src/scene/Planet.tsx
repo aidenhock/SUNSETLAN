@@ -14,6 +14,7 @@ import { Clouds } from './Clouds'
 import { Cemetery } from './Cemetery'
 import { Crabs } from './Crabs'
 import { Fire } from './Fire'
+import { Footprints } from './Footprints'
 import { Interactable } from './Interactable'
 import { Island } from './Island'
 import { PLANET_RADIUS } from './planetConfig'
@@ -89,6 +90,7 @@ export function PlanetScene({
         <Island />
         <UkulelePlayer />
         <Crabs />
+        <Footprints />
         <Fire />
         <Cemetery />
         <WorldEmitters />

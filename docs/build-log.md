@@ -871,3 +871,55 @@ drops the dynamic imports and emits no chunk.
 - The store lives in `scene/`, not `editor/`. It is data the world
   needs; only the UI is dev-only, and keeping them apart is what lets
   the bundle check assert on the filename as well as the contents.
+
+## 20 · Reasons to walk, and a world that notices {#reasons-to-walk}
+
+**Hook:** The sand keeps your footprints, and a sign at the top of the
+world tells you how far everything is.
+
+**Plain:** Walk the beach and you leave prints behind you, pressed in
+step with your feet, fading back into the sand after a few seconds.
+It's a small thing and it changes how the island feels: the world
+registers that you were there.
+
+Near where you arrive there's a signpost, its planks each turned toward
+a landmark and lettered with the real distance — the dock 68 m one way,
+the campfire 71 m another. Both numbers come from the same file the
+world is built from, so the sign can't be wrong: move the campfire and
+its plank swings round and re-letters itself.
+
+**Technical:** Footprints are a fixed pool of 28 instanced ovals pressed
+by the avatar's foot-plant — the same event that fires the footstep
+sound, so the trail lands in step with the gait rather than on a timer.
+They are built in world space at the moment of the step and converted to
+planet-local, so they stay on the ground as the world turns under you.
+They fade by lerping their instance colour back toward the sand rather
+than by opacity: an opaque instanced mesh needs no transparency sorting
+against the water or the fire, and per-instance alpha isn't a thing.
+Sand only — grass springs back and a print in the sea is nonsense.
+
+The signpost is a placement like anything else, so it can be dragged in
+the editor. `bearingBetween` gives each plank its yaw from the local
+tangent frame and `metresBetween` the great-circle distance; the
+lettering is drawn into one canvas at build time, a row per plank, with
+every plank's UVs mapped to its own row so the whole sign is one texture
+and one draw call. It rebuilds when the post or any landmark it names
+moves, keyed on those coordinates.
+
+**Files:**
+- `src/scene/Footprints.tsx` — the pool and the press
+- `src/scene/Avatar.tsx` — `aidenStep`, where a step becomes a print
+- `src/scene/signpost.ts` — `buildSignpost`, `bearingBetween`, `metresBetween`
+
+**Decisions:**
+- Prints fade by COLOUR, not opacity. Transparency would have put 28
+  more sorted surfaces in front of the water and the campfire, which is
+  exactly the class of bug the fire's renderOrder rules exist to stop.
+- The sign reads the world instead of quoting it. Hand-written
+  distances would have been three lines of content and wrong the first
+  time anything moved; deriving them means the sign is a view of the
+  placement file, and a test pins both the maths and the fact that every
+  named landmark exists.
+- Sand only for prints, deliberately: leaving a trail across the whole
+  island would turn a small delight into a permanent scribble, and
+  grass genuinely does spring back.

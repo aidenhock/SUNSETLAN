@@ -13,7 +13,7 @@ import { blockers, MAP } from './planetConfig'
  * world did not shift by a millimetre on the way, plus the tripwire if
  * a future edit moves something by accident.
  *
- * The pre-migration world was 86 blockers, digest 8bf80257. Exactly one
+ * The pre-migration world was 86 blockers, digest 8bf80257. The current world is 86 with the signpost added since. Exactly one
  * entry was dropped: a second blocker on the mailbox (r 0.5) that sat
  * at the same point as the mailbox's own interactable blocker (r 0.6)
  * and was therefore strictly inside it — nothing the player could ever
@@ -43,10 +43,24 @@ const dumpBlockers = (list: typeof blockers) =>
       `${b.unit.x.toFixed(6)},${b.unit.y.toFixed(6)},${b.unit.z.toFixed(6)},${b.radius.toFixed(4)}`,
   )
 
+/**
+ * Props added AFTER the migration. The proof below reconstructs the old
+ * world, so anything that did not exist then has to come back out of it.
+ * Add an id here in the same commit that adds the prop.
+ */
+const ADDED_SINCE_MIGRATION = ['signpost']
+
+const isRecent = (b: (typeof blockers)[number]) =>
+  ADDED_SINCE_MIGRATION.some((id) => {
+    const p = placement(id)
+    const u = latLongToUnit(p.lat, p.long)
+    return Math.abs(u.x - b.unit.x) < 1e-9 && Math.abs(u.z - b.unit.z) < 1e-9
+  })
+
 describe('world parity', () => {
   it('keeps every blocker where it was', () => {
-    expect(blockers.length).toBe(85)
-    expect(digest(dumpBlockers(blockers))).toBe('2dc96d2b')
+    expect(blockers.length).toBe(86)
+    expect(digest(dumpBlockers(blockers))).toBe('d652b65a')
   })
 
   it('keeps every interactable exactly where it was', () => {
@@ -64,7 +78,7 @@ describe('world parity', () => {
   it('differs from the pre-migration world by exactly the redundant mailbox blocker', () => {
     const mailbox = placement('contact')
     const restored = [
-      ...blockers,
+      ...blockers.filter((b) => !isRecent(b)),
       { unit: latLongToUnit(mailbox.lat, mailbox.long), radius: 0.5 },
     ]
     expect(restored.length).toBe(86)

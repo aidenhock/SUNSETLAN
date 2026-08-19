@@ -4,6 +4,7 @@ import * as THREE from 'three'
 import { stepSound } from '../audio/footsteps'
 import { AIDEN } from '../content/characters'
 import { controlsRuntime } from '../controls/usePlanetController'
+import { footprintQueue } from './Footprints'
 import { BlockyCharacter, type MotionState } from './BlockyCharacter'
 import { surfaceUnderfoot } from './planetConfig'
 
@@ -12,12 +13,15 @@ import { surfaceUnderfoot } from './planetConfig'
  * object is allocated. */
 const aidenMotion = (): MotionState => controlsRuntime
 
-/** Foot plant → surface-switched step from the pools (3C). */
-const aidenStep = () =>
+/** Foot plant → surface-switched step from the pools (3C), and a print
+ *  in the sand: same event, so the trail lands in step with the gait. */
+const aidenStep = () => {
   stepSound(
     surfaceUnderfoot(controlsRuntime.surfPolarDeg, controlsRuntime.surfLongDeg, controlsRuntime.wet),
     controlsRuntime.locomotion === 'run',
   )
+  footprintQueue.press()
+}
 
 /** Jump apex (m) from the controller's ballistics: v0² / 2g. */
 const JUMP_APEX_M = (4.5 * 4.5) / (2 * 12)

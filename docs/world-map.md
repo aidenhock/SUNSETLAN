@@ -43,6 +43,7 @@ blockers, the minimap, `planetConfig.MAP`) follows from it.
 | `rowboat` | Beached rowboat | 18 | 210 | 51.57° NE | — |  |
 | `palapa-desk` | Palapa desk (collider only) | 40 | 38 | 0° N | — | Traces the desk built into the palapa; nothing renders from this entry. |
 | `tv-crate` | CRT crate | 21 | 150.8 | 0° N | — | The TV stands on this; the TV entry carries the liftM that puts it on top. |
+| `signpost` | Signpost at spawn | 84 | 20 | 0° N | — | Planks point at landmarks with live distances; both come from this file. |
 
 ## Npcs
 

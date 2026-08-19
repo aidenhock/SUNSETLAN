@@ -340,6 +340,18 @@ Ukulele NPC + note sprites + positional loop (avatar + run animation shipped wit
 **Phase 4 — Content & launch** (kickoff scaffolding shipped — see Status)
 Real photos/projects/music/videos/contact (fill per `CONTENT.md`; images through `scripts/optimize-images.mjs`), custom domain into meta/sitemap, analytics vendor decision (stub ships off by default), final OG re-capture if the look changes (`scripts/capture-og.mjs`).
 
+### Ambient life shipped since the backlog was written
+- **Footprints in the sand** (`scene/Footprints.tsx`): 28 pooled
+  instanced ovals pressed by the foot-plant event, planet-local so they
+  stay put, fading by instance COLOUR toward the sand (never opacity —
+  no new transparent surfaces in front of the water or the fire). Sand
+  band only.
+- **Signpost at spawn** (`scene/signpost.ts`): a placement whose planks
+  derive their yaw (`bearingBetween`) and their lettered distance
+  (`metresBetween`) from the placement file, so it re-points and
+  re-letters itself when anything moves. Lettering is one generated
+  canvas, one row per plank, one draw call.
+
 **Backlog (do not build yet)**
 Roaming NPCs of family & friends — Animal-Crossing-style wander/waypoints + optional recorded voice notes with captions; ship only with each person's explicit okay (public site). Treasure ship offshore with secrets. Footprints in sand. Day/night slider. (Shipped since this list was written: the minimap HUD, and fireflies — in the memorial garden.)
 

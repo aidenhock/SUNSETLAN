@@ -486,6 +486,18 @@
       "long": 296,
       "yawDeg": 1.15,
       "scale": 1.1
+    },
+    {
+      "id": "signpost",
+      "type": "signpost",
+      "kind": "prop",
+      "label": "Signpost at spawn",
+      "lat": 84,
+      "long": 20,
+      "yawDeg": 0,
+      "scale": 1,
+      "blockerRadiusM": 0.5,
+      "notes": "Planks point at landmarks with live distances; both come from this file."
     }
   ]
 }

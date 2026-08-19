@@ -21,6 +21,7 @@ import {
 } from './props'
 import { usePlacementRuntime } from './placementRuntime'
 import { PROP_REGISTRY } from './propRegistry'
+import { buildSignpost, SIGNPOST_TARGETS } from './signpost'
 
 const woodMat = paletteMaterial(PROP_COLORS.woodDark)
 const postGeo = new THREE.CylinderGeometry(0.09, 0.09, 0.84, 5)
@@ -91,6 +92,24 @@ export function Island() {
   // move things and see it immediately; in production the list is the
   // file and never changes.
   const live = usePlacementRuntime((s) => s.list)
+  // The signpost letters itself from the world: its planks point at
+  // landmarks and carry their distances, so it rebuilds when it or any
+  // of them moves — keyed on those numbers, not on every frame.
+  const signKey = live
+    .filter((p) => p.id === 'signpost' || SIGNPOST_TARGETS.some((t) => t.id === p.id))
+    .map((p) => `${p.id}:${p.lat.toFixed(3)},${p.long.toFixed(3)}`)
+    .join('|')
+  const signpost = useMemo(() => {
+    const post = live.find((p) => p.id === 'signpost')
+    return post ? buildSignpost(post, live) : []
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [signKey])
+  const signAt = useMemo(() => {
+    const post = live.find((p) => p.id === 'signpost')
+    return post ? placement(post.lat, post.long, (post.yawDeg * Math.PI) / 180, post.scale) : null
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [signKey])
+
   const groups = useMemo(() => {
     const out: Record<string, THREE.Matrix4[]> = {}
     for (const p of live) {
@@ -202,6 +221,12 @@ export function Island() {
       <mesh geometry={dockGeo} material={woodMat} />
 
       {/* Chunky scatter — one draw call per material part. */}
+      {/* The signpost: post and lettered planks. */}
+      {signAt &&
+        signpost.map((part, i) => (
+          <InstancedProp key={`sign-${i}`} parts={[part]} placements={[signAt]} />
+        ))}
+
       {/* One instanced draw per prop type, straight from the placements. */}
       {Object.entries(groups).map(([type, matrices]) => (
         <InstancedProp key={type} parts={props[type]} placements={matrices} />
