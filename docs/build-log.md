@@ -882,11 +882,13 @@ step with your feet, fading back into the sand after a few seconds.
 It's a small thing and it changes how the island feels: the world
 registers that you were there.
 
-Near where you arrive there's a signpost, its planks each turned toward
-a landmark and lettered with the real distance — the dock 68 m one way,
-the campfire 71 m another. Both numbers come from the same file the
-world is built from, so the sign can't be wrong: move the campfire and
-its plank swings round and re-letters itself.
+Near where you arrive stands a totem of a signpost: six pointed boards
+stacked down a heavy post, each one turned toward a landmark and
+lettered with the real distance — the dock 68 m one way, the campfire
+71 m another. Every board is an arrow, pointing where you'd walk. Both
+numbers come from the same file the world is built from, so the sign
+can't be wrong: move the campfire and its plank swings round and
+re-letters itself.
 
 **Technical:** Footprints are a fixed pool of 28 instanced ovals pressed
 by the avatar's foot-plant — the same event that fires the footstep
@@ -900,11 +902,14 @@ Sand only — grass springs back and a print in the sea is nonsense.
 
 The signpost is a placement like anything else, so it can be dragged in
 the editor. `bearingBetween` gives each plank its yaw from the local
-tangent frame and `metresBetween` the great-circle distance; the
-lettering is drawn into one canvas at build time, a row per plank, with
-every plank's UVs mapped to its own row so the whole sign is one texture
-and one draw call. It rebuilds when the post or any landmark it names
-moves, keyed on those coordinates.
+tangent frame and `metresBetween` the great-circle distance. Each board
+is an extruded arrow shape whose UVs are recomputed from the shape's own
+coordinates — including a mirrored `u` on the back face, so a sign you
+walk past reads correctly from both sides. The lettering is one canvas,
+a row per plank at the plank's own aspect ratio so type never stretches,
+with the font shrunk to fit if a name would run into the point. One
+texture, one draw call. It rebuilds when the post or any landmark it
+names moves.
 
 **Files:**
 - `src/scene/Footprints.tsx` — the pool and the press
@@ -920,6 +925,11 @@ moves, keyed on those coordinates.
   time anything moved; deriving them means the sign is a view of the
   placement file, and a test pins both the maths and the fact that every
   named landmark exists.
+- The first signpost pointed every board ninety degrees off. The plank
+  was built along +X and swung by the bearing, but local +Z is north —
+  the quarter turn was missing, and the boards looked plausible enough
+  from the ground that only the maths caught it. A test now builds a
+  plank at five bearings and checks the tip really lies along each.
 - Sand only for prints, deliberately: leaving a trail across the whole
   island would turn a small delight into a permanent scribble, and
   grass genuinely does spring back.

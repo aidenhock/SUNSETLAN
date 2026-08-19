@@ -27,10 +27,20 @@ export const SIGNPOST_TARGETS: Array<{ id: string; label: string }> = [
   { id: 'rift', label: 'THE RIFT' },
 ]
 
-const PLANK_W = 1.15
-const PLANK_H = 0.24
-const ROW_PX = 64
-const ATLAS_W = 512
+/** A plank: long enough to read from a distance, with a pointed tip. */
+const PLANK_L = 1.85
+const PLANK_H = 0.44
+const PLANK_TIP = 0.34
+const PLANK_THICK = 0.07
+/** Totem: a chunky post with the planks stacked down it. */
+const POST_H = 3.5
+const POST_R = 0.15
+const TOP_PLANK_Y = 3.02
+const PLANK_GAP = 0.5
+/** One atlas row per plank, at the plank's own aspect so type never
+ *  stretches. */
+const ROW_W = 1024
+const ROW_H = Math.round(ROW_W / (PLANK_L / PLANK_H))
 
 /** Great-circle metres between two placements. */
 export function metresBetween(a: { lat: number; long: number }, b: { lat: number; long: number }) {
@@ -64,25 +74,79 @@ export function bearingBetween(
 
 function lettering(rows: string[]): THREE.CanvasTexture {
   const canvas = document.createElement('canvas')
-  canvas.width = ATLAS_W
-  canvas.height = ROW_PX * Math.max(1, rows.length)
+  canvas.width = ROW_W
+  canvas.height = ROW_H * Math.max(1, rows.length)
   const ctx = canvas.getContext('2d')!
   rows.forEach((text, i) => {
-    const y = i * ROW_PX
-    ctx.fillStyle = '#c9a266' // the plank itself
-    ctx.fillRect(0, y, ATLAS_W, ROW_PX)
-    ctx.fillStyle = 'rgba(0,0,0,0.10)'
-    ctx.fillRect(0, y + ROW_PX - 6, ATLAS_W, 6)
-    ctx.fillStyle = '#3b2b18'
-    ctx.font = `700 ${Math.floor(ROW_PX * 0.44)}px ui-sans-serif, system-ui, sans-serif`
+    const y = i * ROW_H
+    // The plank itself, with a grain line and a darker underside so the
+    // board reads as carved wood rather than a flat label.
+    ctx.fillStyle = '#c9a266'
+    ctx.fillRect(0, y, ROW_W, ROW_H)
+    ctx.fillStyle = 'rgba(120, 84, 40, 0.16)'
+    ctx.fillRect(0, y + ROW_H * 0.18, ROW_W, 3)
+    ctx.fillRect(0, y + ROW_H * 0.82, ROW_W, 3)
+    ctx.fillStyle = 'rgba(0,0,0,0.14)'
+    ctx.fillRect(0, y + ROW_H - 10, ROW_W, 10)
+
+    // Type as large as the board allows, shrunk only if a long name
+    // would otherwise run into the arrow tip.
+    const inset = ROW_W * 0.05
+    const usable = ROW_W - inset - ROW_W * (PLANK_TIP / PLANK_L) - inset * 0.5
+    let size = Math.floor(ROW_H * 0.46)
     ctx.textBaseline = 'middle'
     ctx.textAlign = 'left'
-    ctx.fillText(text, 18, y + ROW_PX / 2)
+    do {
+      ctx.font = `800 ${size}px ui-sans-serif, system-ui, sans-serif`
+      if (ctx.measureText(text).width <= usable) break
+      size -= 4
+    } while (size > 16)
+    ctx.fillStyle = '#3b2b18'
+    ctx.fillText(text, inset, y + ROW_H / 2)
   })
   const tex = new THREE.CanvasTexture(canvas)
   tex.colorSpace = THREE.SRGBColorSpace
-  tex.anisotropy = 4
+  tex.anisotropy = 8
   return tex
+}
+
+/**
+ * One plank: a flat arrow, pointed at the far end, lettered from its own
+ * row of the atlas. Built along +X and then swung to its bearing.
+ */
+export function plank(rowIndex: number, rowCount: number, bearing: number, y: number): THREE.BufferGeometry {
+  const shape = new THREE.Shape()
+  const h = PLANK_H / 2
+  shape.moveTo(0, -h)
+  shape.lineTo(PLANK_L - PLANK_TIP, -h)
+  shape.lineTo(PLANK_L, 0) // the point
+  shape.lineTo(PLANK_L - PLANK_TIP, h)
+  shape.lineTo(0, h)
+  shape.closePath()
+  const g = new THREE.ExtrudeGeometry(shape, { depth: PLANK_THICK, bevelEnabled: false })
+  g.translate(0, 0, -PLANK_THICK / 2)
+
+  // UVs straight from the shape's own coordinates, so the lettering sits
+  // on the board no matter which faces Extrude generated.
+  const pos = g.attributes.position as THREE.BufferAttribute
+  const nor = g.attributes.normal as THREE.BufferAttribute
+  const uv = g.attributes.uv as THREE.BufferAttribute
+  for (let i = 0; i < pos.count; i++) {
+    let u = THREE.MathUtils.clamp(pos.getX(i) / PLANK_L, 0, 1)
+    const v = THREE.MathUtils.clamp((pos.getY(i) + h) / PLANK_H, 0, 1)
+    // The BACK face is seen in a mirror, so its lettering has to be
+    // mirrored too or half the sign reads backwards — which is exactly
+    // how it looked before. A real signpost is painted on both sides.
+    if (nor.getZ(i) < -0.5) u = 1 - u
+    uv.setXY(i, u, (rowCount - 1 - rowIndex + v) / rowCount)
+  }
+
+  // Out past the post, up to its slot, then turned to point at the
+  // landmark. Local +Z is north (meridianYaw), and the plank is built
+  // along +X — hence the quarter turn, which the first version missed.
+  g.translate(POST_R * 0.75, y, 0)
+  g.rotateY(bearing - Math.PI / 2)
+  return g
 }
 
 /**
@@ -98,38 +162,36 @@ export function buildSignpost(
     place: list.find((p) => p.id === t.id),
   })).filter((t) => t.place)
 
-  // The post: one chunky column, plus a cap so it reads as finished.
+  // The totem: a heavy squared post with carved bands, and a tapered
+  // cap. Chunky enough to carry six boards without looking like a stick.
   const postParts = [
     tintGeometry(
-      normalizeForMerge(new THREE.CylinderGeometry(0.075, 0.09, 2.1, 6)),
+      normalizeForMerge(new THREE.CylinderGeometry(POST_R, POST_R * 1.15, POST_H, 8)),
       PROP_COLORS.woodDark,
-    ).translate(0, 1.05, 0),
+    ).translate(0, POST_H / 2, 0),
     tintGeometry(
-      normalizeForMerge(new THREE.ConeGeometry(0.13, 0.18, 6)),
-      PROP_COLORS.woodLight ?? '#b98a4f',
-    ).translate(0, 2.18, 0),
+      normalizeForMerge(new THREE.CylinderGeometry(POST_R * 1.5, POST_R * 1.5, 0.12, 8)),
+      '#8a6a45',
+    ).translate(0, 0.09, 0),
+    tintGeometry(
+      normalizeForMerge(new THREE.CylinderGeometry(POST_R * 1.35, POST_R * 1.35, 0.1, 8)),
+      '#8a6a45',
+    ).translate(0, POST_H - 0.22, 0),
+    tintGeometry(
+      normalizeForMerge(new THREE.ConeGeometry(POST_R * 1.5, 0.34, 8)),
+      '#b98a4f',
+    ).translate(0, POST_H + 0.05, 0),
   ]
   const post = mergeGeometries(postParts)!
   postParts.forEach((g) => g.dispose())
 
-  // One plank per landmark: turned to its bearing, lettered with its
-  // distance, stacked down the post.
+  // One lettered arrow per landmark, stacked down the post, each turned
+  // to its own bearing.
   const rows = found.map((t) => `${t.label}   ${Math.round(metresBetween(from, t.place!))} m`)
   const texture = lettering(rows)
-  const plankGeos: THREE.BufferGeometry[] = []
-  found.forEach((t, i) => {
-    const g = new THREE.BoxGeometry(PLANK_W, PLANK_H, 0.05).toNonIndexed()
-    // Map every face to this plank's row; the front face carries the
-    // text, the edges just take the plank colour from the same strip.
-    const uv = g.attributes.uv as THREE.BufferAttribute
-    for (let v = 0; v < uv.count; v++) {
-      uv.setXY(v, uv.getX(v), (found.length - 1 - i + uv.getY(v)) / found.length)
-    }
-    // Push the plank out from the post so it reads as nailed on.
-    g.translate(PLANK_W / 2 + 0.07, 1.85 - i * 0.3, 0)
-    g.rotateY(bearingBetween(from, t.place!))
-    plankGeos.push(g)
-  })
+  const plankGeos = found.map((t, i) =>
+    plank(i, found.length, bearingBetween(from, t.place!), TOP_PLANK_Y - i * PLANK_GAP),
+  )
   const planks = mergeGeometries(plankGeos)!
   plankGeos.forEach((g) => g.dispose())
 
