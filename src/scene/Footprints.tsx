@@ -16,14 +16,23 @@ import { PLANET_RADIUS } from './planetConfig'
  * instanced mesh needs no transparency sorting against the water or the
  * fire, and per-instance alpha isn't a thing anyway. One draw call, a
  * fixed pool, and nothing allocated per step.
+ *
+ * The material is LAMBERT so prints take the scene's light — at full
+ * brightness they read as stickers on the night-side sand.
  */
 
 const POOL = 28
 const LIFE_S = 9
-/** Left/right offset from the walking line, metres. */
-const STRIDE_HALF_M = 0.16
-const PRINT_L = 0.34
-const PRINT_W = 0.19
+/**
+ * Sized off the actual shoe (BlockyCharacter: shoeR = legR × 1.5, scaled
+ * (1, 0.6, 1.3) — about 0.135 wide by 0.176 long), then trimmed a little
+ * because a print is the contact patch, not the whole shoe. The first
+ * pass was roughly double this and read as a trail of surfboards.
+ */
+const PRINT_W = 0.12
+const PRINT_L = 0.17
+/** Left/right offset from the walking line: half the stance width. */
+const STRIDE_HALF_M = 0.075
 
 const DAMP = new THREE.Color('#b09565') // pressed sand: a real shadow in the dip
 const WET = new THREE.Color('#8f7850')
@@ -146,7 +155,10 @@ export function Footprints() {
 
   return (
     <instancedMesh ref={meshRef} args={[geo, undefined, POOL]} frustumCulled={false}>
-      <meshBasicMaterial toneMapped={false} />
+      {/* LIT, not basic: an unlit print keeps full brightness after dark
+          and glows on shaded sand like a sticker. A print is a dent in
+          the ground and has to take the ground's light. */}
+      <meshLambertMaterial />
     </instancedMesh>
   )
 }
