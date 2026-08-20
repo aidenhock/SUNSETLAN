@@ -2,9 +2,6 @@ import { useFrame } from '@react-three/fiber'
 import { useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { controlsRuntime } from '../controls/usePlanetController'
-import { groundAltitudeAt } from '../controls/terrain'
-import { latLongToUnit, surfaceQuaternion } from '../controls/planetMath'
-import { PLANET_RADIUS } from './planetConfig'
 
 /**
  * Footprints in the sand — the cheapest "this world noticed me" there
@@ -39,8 +36,10 @@ const WET = new THREE.Color('#8f7850')
 const SAND = new THREE.Color('#e8d5a3') // what it fades back to
 
 const _m = new THREE.Matrix4()
+const _sideStep = new THREE.Matrix4()
+const _toLocal = new THREE.Matrix4()
+const _invPlanet = new THREE.Quaternion()
 const _q = new THREE.Quaternion()
-const _yawQ = new THREE.Quaternion()
 const _up = new THREE.Vector3(0, 1, 0)
 const _pos = new THREE.Vector3()
 const _scale = new THREE.Vector3(1, 1, 1)
@@ -67,6 +66,26 @@ export const footprintQueue = {
   },
 }
 
+/**
+ * The print's shape, exported so its dimensions can be asserted: this
+ * geometry shipped a metre long because the wrong axis was scaled, and
+ * nothing but a measurement catches that.
+ */
+export function footprintGeometry(): THREE.BufferGeometry {
+
+    // An oval, not a square: at this size the silhouette is the only
+    // thing that says "foot", and a rectangle reads as a dropped tile.
+    //
+    // CircleGeometry is built in the XY plane, so its LENGTH axis is y
+    // until it's laid flat. Scaling z instead did nothing to the shape
+    // and left y at its full unit diameter — a metre-long dash, which is
+    // exactly what shipped.
+    const g = new THREE.CircleGeometry(0.5, 14)
+    g.scale(PRINT_W, PRINT_L, 1)
+    g.rotateX(-Math.PI / 2)
+    return g
+}
+
 export function Footprints() {
   const meshRef = useRef<THREE.InstancedMesh>(null)
   const prints = useMemo<Print[]>(
@@ -81,14 +100,9 @@ export function Footprints() {
   )
   const next = useRef(0)
 
-  const geo = useMemo(() => {
-    // An oval, not a square: at this size the silhouette is the only
-    // thing that says "foot", and a rectangle reads as a dropped tile.
-    const g = new THREE.CircleGeometry(0.5, 12)
-    g.scale(PRINT_W, 1, PRINT_L)
-    g.rotateX(-Math.PI / 2)
-    return g
-  }, [])
+  const geo = useMemo(() => footprintGeometry(), [])
+
+
 
   useFrame((_state, rawDt) => {
     const mesh = meshRef.current
@@ -99,7 +113,6 @@ export function Footprints() {
     while (footprintQueue.pending > 0) {
       footprintQueue.pending--
       const lat = 90 - controlsRuntime.surfPolarDeg
-      const long = controlsRuntime.surfLongDeg
       // Sand only: grass springs back, the dock is wood, and a print in
       // the sea is nonsense.
       const onSand = lat < 24.5 && lat > 12.5
@@ -107,19 +120,21 @@ export function Footprints() {
       const p = prints[next.current]
       next.current = (next.current + 1) % POOL
 
-      const unit = latLongToUnit(lat, long)
-      // Build the print where the avatar stands, in the avatar's facing,
-      // then convert to planet-local so it stays with the ground.
-      _yawQ.setFromAxisAngle(_up, controlsRuntime.avatarYaw)
-      _q.copy(surfaceQuaternion(unit)).multiply(_yawQ)
-      _pos
-        .copy(unit)
-        .multiplyScalar(PLANET_RADIUS + groundAltitudeAt(lat, long) + 0.012)
+      // Build the print IN WORLD SPACE, where the avatar actually is:
+      // it stands at the pole with a plain world yaw, so its heading is
+      // simply rotY(avatarYaw). Then convert to planet-local so the
+      // print stays on the ground as the world turns beneath it.
+      //
+      // The previous version composed surfaceQuaternion(unit) with that
+      // yaw, but surfaceQuaternion carries an ARBITRARY twist (the whole
+      // reason meridianYaw exists), so prints came out pointing any
+      // which way — sideways, as often as not.
+      _pos.set(0, controlsRuntime.groundY + 0.012, 0)
+      _q.setFromAxisAngle(_up, controlsRuntime.avatarYaw)
       _m.compose(_pos, _q, _scale)
       // Step to the side of the walking line, alternating feet.
-      _m.multiply(
-        new THREE.Matrix4().makeTranslation(STRIDE_HALF_M * footprintQueue.foot, 0, 0),
-      )
+      _m.multiply(_sideStep.makeTranslation(STRIDE_HALF_M * footprintQueue.foot, 0, 0))
+      _m.premultiply(_toLocal.makeRotationFromQuaternion(_invPlanet.copy(controlsRuntime.planetQuaternion).invert()))
       footprintQueue.foot = footprintQueue.foot === 1 ? -1 : 1
       p.matrix.copy(_m)
       p.age = 0
