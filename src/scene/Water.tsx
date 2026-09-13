@@ -8,7 +8,10 @@ import {
   laneParams,
   PLANET_RADIUS,
   SAND_ALTITUDE,
+  SOUTH,
   SURF,
+  SURF_SOUTH_END_DEG,
+  SURF_SOUTH_START_DEG,
   TERRAIN,
 } from './planetConfig'
 import { MOON_DISC_ANG_RAD_DEG, skyRuntime, SUN_DISC_ANG_RAD_DEG } from './useSkyState'
@@ -23,6 +26,9 @@ const _fwd = new THREE.Vector3()
 const EYE_HEIGHT = 1.35
 const SUN_RHO = THREE.MathUtils.degToRad(SUN_DISC_ANG_RAD_DEG)
 const MOON_RHO = THREE.MathUtils.degToRad(MOON_DISC_ANG_RAD_DEG)
+/** Southern water is colder and darker. Converted here because custom
+ *  uniforms/literals are NOT colour-managed — `diffuse` is linear. */
+const COLD_WATER = new THREE.Color('#2f7a9a').convertSRGBToLinear()
 
 /**
  * Sphere-wrapping ocean with cheap vertex waves plus the v3.3 surf-foam
@@ -82,12 +88,39 @@ export function Water() {
         const float SURF_AMP = ${SURF.amplitudeM.toFixed(3)};
         const float SURF_START = ${SURF.startDeg.toFixed(1)};
         const float SURF_END = ${SURF.endDeg.toFixed(1)};
+        // Antarctica, mirrored about the equator (SOUTH in planetConfig).
+        const float S_PLATEAU_END = ${SOUTH.plateauEndDeg.toFixed(2)};
+        const float S_SHOULDER_END = ${SOUTH.shoulderEndDeg.toFixed(2)};
+        const float S_WATERLINE = ${SOUTH.waterlineDeg.toFixed(2)};
+        const float S_APRON_END = ${SOUTH.apronEndDeg.toFixed(2)};
+        const float S_SNOW_ALT = ${SOUTH.snowAltitude.toFixed(3)};
+        const float S_SHELF_ALT = ${SOUTH.shelfAltitude.toFixed(3)};
+        const float S_SURF_START = ${SURF_SOUTH_START_DEG.toFixed(1)};
+        const float S_SURF_END = ${SURF_SOUTH_END_DEG.toFixed(1)};
         float profileAlt(float pDeg) {
+          // South of the equator the profile mirrors: evaluate the south
+          // bands at the distance from the SOUTH pole, so foam and depth
+          // work at Antarctica's shore exactly as at the island's.
+          if (pDeg > 90.0) {
+            float sp = 180.0 - pDeg;
+            if (sp <= S_PLATEAU_END) return S_SNOW_ALT;
+            if (sp <= S_SHOULDER_END) return mix(S_SNOW_ALT, S_SHELF_ALT, smoothstep(S_PLATEAU_END, S_SHOULDER_END, sp));
+            if (sp <= S_WATERLINE) return mix(S_SHELF_ALT, 0.0, smoothstep(S_SHOULDER_END, S_WATERLINE, sp));
+            if (sp <= S_APRON_END) return mix(0.0, APRON_ALT, smoothstep(S_WATERLINE, S_APRON_END, sp));
+            return APRON_ALT;
+          }
           if (pDeg <= PLATEAU_END) return GRASS_ALT;
           if (pDeg <= SHOULDER_END) return mix(GRASS_ALT, SAND_ALT, smoothstep(PLATEAU_END, SHOULDER_END, pDeg));
           if (pDeg <= WATERLINE) return mix(SAND_ALT, 0.0, smoothstep(SHOULDER_END, WATERLINE, pDeg));
           if (pDeg <= APRON_END) return mix(0.0, APRON_ALT, smoothstep(WATERLINE, APRON_END, pDeg));
           return APRON_ALT;
+        }
+        /** Port of planetConfig.surfShoreWeight — the two must agree. */
+        float surfShoreWeight(float pDeg) {
+          return max(
+            smoothstep(SURF_START, SURF_END, pDeg),
+            smoothstep(S_SURF_START, S_SURF_END, pDeg)
+          );
         }
       `
       shader.vertexShader =
@@ -102,7 +135,7 @@ export function Water() {
              sin(position.z * 0.28 - uTime * 0.9) +
              sin((position.x + position.y) * 0.22 + uTime * 0.6)) * 0.04;
           // Slow surf cycle, shore-weighted — the waterline itself breathes.
-          wave += sin(uTime * 6.2831853 / SURF_PERIOD) * SURF_AMP * smoothstep(SURF_START, SURF_END, polarDeg);
+          wave += sin(uTime * 6.2831853 / SURF_PERIOD) * SURF_AMP * surfShoreWeight(polarDeg);
           transformed += dir * wave;
           vDepth = wave - profileAlt(polarDeg);
           vSphereDir = dir;
@@ -123,7 +156,13 @@ export function Water() {
           float foam = smoothstep(0.3, 0.8, 1.0 - smoothstep(0.0, bandWidth, vDepth));
           // Only where water actually covers terrain (depth > 0-ish).
           foam *= smoothstep(-0.04, 0.01, vDepth);
-          vec4 diffuseColor = vec4(mix(diffuse, vec3(1.0), foam * 0.9), mix(opacity, 0.97, foam));
+          // Southern water is colder and darker — the tint eases in over
+          // the lower hemisphere so the crossing reads as a journey, not
+          // a line. (Edges written low→high: reversed smoothstep edges
+          // are undefined in GLSL.)
+          float coldMix = 1.0 - smoothstep(-0.85, -0.35, vSphereDir.y);
+          vec3 seaDiffuse = mix(diffuse, vec3(${COLD_WATER.r.toFixed(4)}, ${COLD_WATER.g.toFixed(4)}, ${COLD_WATER.b.toFixed(4)}), coldMix);
+          vec4 diffuseColor = vec4(mix(seaDiffuse, vec3(1.0), foam * 0.9), mix(opacity, 0.97, foam));
 
           // v3.14 CHARACTER-ANCHORED specular glitter (the deliberate
           // water-only exception to the matte rule): perturb the sphere

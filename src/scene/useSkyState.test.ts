@@ -22,8 +22,10 @@ import {
   nightMixFromPoleZ,
   SET_VISIBLE_FLOOR,
   solveDiscPolarDeg,
+  southMixFromPolarDeg,
   SUN_DISC_ANG_RAD_DEG,
 } from './useSkyState'
+import { PLANET_RADIUS, SOUTH } from './planetConfig'
 
 /** nightMix for a visitor standing at (lat, long) — the pole-local z. */
 const mixAt = (lat: number, long: number) => nightMixFromPoleZ(latLongToUnit(lat, long).z)
@@ -181,6 +183,61 @@ describe('nightMixFromPoleZ (two skies)', () => {
     // shore, so the wobbled edges can never fake a waist.
     const step = low.halfNearM - low.halfFarRad * 11.3
     expect(GLITTER.wobbleAmp * low.halfNearM).toBeLessThan(step * 0.55)
+  })
+
+  it('polar night: southMix ramps in across the ocean, full before the ice', () => {
+    expect(southMixFromPolarDeg(0)).toBe(0) // spawn
+    expect(southMixFromPolarDeg(75)).toBe(0) // the island's own waterline
+    expect(southMixFromPolarDeg(95)).toBe(0) // ramp start
+    expect(southMixFromPolarDeg(110)).toBeCloseTo(0.5, 6) // halfway
+    expect(southMixFromPolarDeg(125)).toBe(1) // ramp end, mid-ocean
+    // Full well before Antarctica's shore (polar 158) and its pole.
+    expect(southMixFromPolarDeg(180 - SOUTH.waterlineDeg)).toBe(1)
+    expect(southMixFromPolarDeg(180)).toBe(1)
+    let prev = 0
+    for (let p = 75; p <= 180; p += 2.5) {
+      const m = southMixFromPolarDeg(p)
+      expect(m).toBeGreaterThanOrEqual(prev - 1e-9)
+      prev = m
+    }
+  })
+
+  it('polar night: BOTH discs sink below the ocean limb (visibleFrac 0)', () => {
+    // With southMix full, each disc target is blended all the way to
+    // DISC_POLAR_MIN_DEG — the home-side clamp, high on the far side of
+    // the planet. From the south cap that is far under the ocean limb:
+    // the sea occludes it physically, nothing is masked.
+    const southPole = new THREE.Vector3(0, -(PLANET_RADIUS + 2.4), 0)
+    expect(discElevFromCameraDeg(DISC_POLAR_MIN_DEG, 1, southPole)).toBeLessThan(
+      limbElevationDeg(southPole.length()) - 30,
+    )
+
+    // …and at polar 165, where the real follow camera actually sits.
+    const camLocal = latLongToUnit(90 - 165, 0).multiplyScalar(58.3)
+    const limb = limbElevationDeg(camLocal.length())
+    const mix = southMixFromPolarDeg(165)
+    for (const [sign, rho] of [
+      [1, SUN_DISC_ANG_RAD_DEG],
+      [-1, MOON_DISC_ANG_RAD_DEG],
+    ] as const) {
+      // The blend the hook applies: lerp(rawSolve → DISC_POLAR_MIN_DEG).
+      const raw = solveDiscPolarDeg(
+        latLongToUnit(90 - 165, 0).y,
+        sign * latLongToUnit(90 - 165, 0).z,
+        arcForElevationDeg(discElevationDeg(165)),
+      )
+      const blended = THREE.MathUtils.lerp(raw, DISC_POLAR_MIN_DEG, mix)
+      expect(blended).toBeCloseTo(DISC_POLAR_MIN_DEG, 6)
+      const elevAboveLimb = discElevFromCameraDeg(blended, sign, camLocal) - limb
+      const visibleFrac = THREE.MathUtils.clamp(
+        (elevAboveLimb + rho) / (2 * rho),
+        0,
+        1,
+      )
+      expect(visibleFrac).toBe(0)
+      // …so the glitter lane dies with it (submergence is the only kill).
+      expect(laneParams(elevAboveLimb, THREE.MathUtils.degToRad(rho), visibleFrac).opacity).toBe(0)
+    }
   })
 
   it('clamps keep the far body below the horizon (sun set at deep night)', () => {

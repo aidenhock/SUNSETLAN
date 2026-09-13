@@ -9,11 +9,11 @@ import {
   blockers,
   INTERACT_ARC_M,
   INTERACT_EXIT_ARC_M,
-  MAX_POLAR_RAD,
   MOVE_SPEED,
   PLANET_RADIUS,
   SPRINT_JOY_THRESHOLD,
   SPRINT_SPEED,
+  stepLeavesLandmass,
   surfaceUnderfoot,
   surfOffset,
 } from '../scene/planetConfig'
@@ -258,9 +258,11 @@ export function usePlanetController({ planetRef, avatarRef }: ControllerRefs) {
         applyStep(quat.current, _stepQ, _candQ)
         poleInPlanetSpace(_candQ, _poleCand)
 
-        // Island bounds: cancel steps that leave the cap (allow walking back in).
+        // Landmass bounds: cancel steps that leave whichever cap you are
+        // standing on — the island in the north, Antarctica in the south
+        // (allow walking back in). The predicate is pure in planetConfig.
         const newPolar = Math.acos(THREE.MathUtils.clamp(_poleCand.y, -1, 1))
-        let blocked = newPolar > MAX_POLAR_RAD && newPolar > polarBefore
+        let blocked = stepLeavesLandmass(polarBefore, newPolar)
         // Prop blockers: cancel steps that push inward on a tree/rock/cube
         // (steps that increase distance stay allowed, so you can't get stuck).
         if (!blocked) {

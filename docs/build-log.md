@@ -1028,3 +1028,107 @@ missing file falls back to the drawing instead of showing a broken img.
   eyepiece and a shadow that missed. `prepare-moon.mjs` finds the disc
   by luminance, squares the crop on its centre, and scales it — rerun
   it on any future photo and the maths still lines up.
+
+## 22 · Antarctica {#antarctica}
+
+**Hook:** There is a second place on this planet, and it is on the other
+side of the world, under a sky where the sun never comes up.
+
+**Plain:** Walk south from the island — past the sand, past the
+waterline, out across the open ocean — and the light goes with you. The
+sun sinks into the sea behind your shoulder, the water turns from warm
+lagoon green to something colder and darker, and the stars come out.
+Keep going and the far edge of the world stops being water: an ice
+shelf, then a long white plateau running all the way to the bottom of
+the planet.
+
+This is Antarctica, and it is a real place you can stand on. It has its
+own shoreline, its own snow, and its own little wooden dock reaching out
+into the black water — pointing north, back the way you came, waiting
+for a boat that doesn't exist yet.
+
+The sky here doesn't cycle. Antarctica lives in permanent polar night:
+no sunset side, no moonrise, just stars over a white plain and a horizon
+the colour of deep steel. That isn't a trick with a slider. The sun and
+the moon are still exactly where they always are, hanging over the
+island — you have simply walked far enough around the sphere that the
+ocean's own curve now stands between you and both of them.
+
+**Technical:** The island's ground has always been one analytic
+function: `terrainProfile(polar)`, a chain of smoothsteps from the grass
+plateau down to an apron that ends tucked under the ocean floor. It
+covered polar 0° to 90°. It now covers 0° to 180°. Past the equator it
+evaluates a second set of control points — `SOUTH` in `planetConfig` —
+at the distance from the SOUTH pole, with the identical shape: snow
+plateau, shoulder, ice-shelf ramp crossing exactly zero at the
+waterline, apron down to the same −0.9 m floor. Between the two aprons
+(81° to 153°) the profile is that flat floor, which is why neither cap
+shows a rim: both edges finish half a metre inside the ocean-floor
+sphere. One function still feeds the terrain mesh, the walk controller,
+prop placement and the water shader's depth, so they cannot disagree
+about where the ground is on either landmass.
+
+The island clamp became landmass-aware. `stepLeavesLandmass(before,
+after)` asks which cap you are standing on, measures both angles from
+THAT cap's own pole, and cancels the step only when it takes you further
+out than the wade limit AND further than you already were — so walking
+back in is always legal, in either hemisphere. Dropped mid-ocean you
+simply keep walking toward whichever pole you were already heading for.
+
+Polar night is one number. `southMix` is a smoothstep on the player's
+polar angle, 0 at 95° and 1 at 125° — it ramps in out on the open ocean,
+long before the ice. It takes the maximum with the existing `nightMix`,
+so the whole rig (fog, background, hemisphere pair, ambient, stars,
+emissives) crossfades to night with no second code path. It also blends
+both disc solves toward `DISC_POLAR_MIN_DEG`, the home-side clamp: from
+the south cap the arc to either body is over 95°, the visible-disc
+fraction computes to zero, and the sea occludes them physically —
+nothing is masked. The glitter lanes die with their bodies, because
+submergence was already their only kill.
+
+One thing polar night breaks is the key light. At night the directional
+light follows the moon's world direction, and in the south the moon is
+under the horizon — which would light the world FROM BELOW, the one
+thing the lighting rules forbid. So the light direction eases by
+`southMix` toward a fixed planet-local direction near the south pole,
+rotated into world space with a scratch vector each frame.
+
+**Files:**
+- `src/scene/planetConfig.ts` — `SOUTH`, `SOUTH_DOCK`, `terrainProfile`, `landmassAt`, `maxWadePolarRad`, `stepLeavesLandmass`, `surfShoreWeight`
+- `src/controls/terrain.ts` — `onDockStrip`, `dockStripAt`, `groundAltitudeAt`
+- `src/scene/Island.tsx` — `buildDockGeometry`, the south cap
+- `src/scene/useSkyState.ts` — `southMixFromPolarDeg`, `skyRuntime`
+- `src/scene/Water.tsx` — `profileAlt`, the cold tint
+- `src/scene/CelestialDome.tsx` — `buildStars`
+- `src/ui/Minimap.tsx` — the south cap disc
+- `src/controls/groundHeight.test.ts` — the south profile and clamp checks
+
+**Decisions:**
+- Antarctica is the SAME function, not a second one. The first sketch
+  was a separate `southTerrainProfile` with its own caller — and the
+  moment there are two ground functions there are two answers to "how
+  high is the ground here", which is the exact bug placement rule 4
+  exists to prevent. Mirroring inside the one function meant the water
+  shader's depth port, the walk controller, the minimap and the editor
+  guardrail all crossed the equator for free.
+- The editor's "you placed this in the sea" warning used to be a
+  LATITUDE threshold (`lat < 15`). A latitude only ever knew about one
+  island: it called the dock's own camera tripod drowned while having no
+  opinion at all about the entire southern hemisphere. It now asks
+  `groundAltitudeAt(lat, long) > 0` — which is what "on land" actually
+  means, on either cap.
+- The south cap's pole needed the spoke fade after all. The plan said to
+  leave `poleFadeRad` off, since it exists for the spawn turf — and the
+  first screenshot came back with a perfect radial starburst, the sphere
+  fan's razor triangles turning the facet jitter into spokes. The fix
+  generalised the fade to measure distance to the NEAREST pole, which is
+  a no-op for a cap that only ever reaches 81°.
+- Two dock meshes, not one merge. They share a material and merging
+  would have been the usual draw-call shave, but they sit on opposite
+  sides of a sphere and can never both be in frame — kept apart, each
+  frustum-culls and the measured cost is identical.
+- Reachability is deliberately unfinished. There is no boat yet, so
+  Antarctica is only accessible through `?at=<lat>,<long>`, a dev/e2e
+  teleport that routes through the SAME `controlsRuntime.poseOverride`
+  the screenshot sweeps already use, rather than inventing a second way
+  to move the player.

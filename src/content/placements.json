@@ -179,6 +179,17 @@
       "notes": "Runs lat 24 → 13 down its meridian; DOCK in planetConfig holds the strip."
     },
     {
+      "id": "dock-south",
+      "type": "dock-south",
+      "kind": "structure",
+      "label": "Dock — Antarctica",
+      "lat": -70,
+      "long": 0,
+      "yawDeg": 0,
+      "scale": 1,
+      "notes": "Antarctica's landing, facing north toward the island. Runs lat -70 → -66 down its meridian (south of the equator that is toward INCREASING lat); SOUTH_DOCK in planetConfig holds the strip. No blocker — you walk it."
+    },
+    {
       "id": "campfire",
       "type": "campfire",
       "kind": "prop",

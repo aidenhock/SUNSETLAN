@@ -156,6 +156,9 @@ export const skyRuntime = {
    * submergence gate (v3.12). */
   sunVisibleFrac: 1,
   moonVisibleFrac: 1,
+  /** Antarctica's polar night, 0 (island) → 1 (south cap). Drives
+   *  nightMix, the disc blend, the key light and the horizon colour. */
+  southMix: 0,
 }
 
 /** v3.5 directional sky tokens. Base layer is elevation-only blues; the
@@ -189,6 +192,8 @@ export const SKY = {
   hemiSkyNight: '#2b3355',
   hemiGroundDay: '#e0c9a0',
   hemiGroundNight: '#1c2438',
+  /** Colder horizon under Antarctica's polar night. */
+  southHorizon: '#182636',
 } as const
 
 /**
@@ -201,6 +206,17 @@ export const SKY = {
  */
 export function nightMixFromPoleZ(z: number): number {
   return 1 - THREE.MathUtils.smoothstep(z, -0.72, 0.18)
+}
+
+/**
+ * POLAR NIGHT (Antarctica). Travelling south the sun sets behind you and
+ * stays set: `southMix` ramps in across the open ocean (polar 95° → 125°)
+ * and is full well before the ice shelf. It drives nightMix, pulls both
+ * discs up their meridians until the ocean limb swallows them, turns the
+ * key light into a fixed south-sky direction, and cools the horizon.
+ */
+export function southMixFromPolarDeg(playerPolarDeg: number): number {
+  return THREE.MathUtils.smoothstep(playerPolarDeg, 95, 125)
 }
 
 const DIR_DAY_I = 1.15
@@ -222,8 +238,15 @@ const _discSmooth = {
   sun: solveDiscPolarDeg(1, 0, SPAWN_ARC),
   moon: solveDiscPolarDeg(1, 0, SPAWN_ARC),
 }
+const _southLight = new THREE.Vector3()
+/** Planet-local direction the key light comes from in polar night. At
+ *  the south pole the moon is below the horizon, and lighting the world
+ *  from below is banned — so the light comes from a fixed, high south
+ *  sky instead, rotated into world space each frame. */
+const SOUTH_LIGHT_LOCAL = new THREE.Vector3(0.35, -0.9, 0.25).normalize()
 const _fogDay = new THREE.Color(SKY.fogDay)
 const _fogNight = new THREE.Color(SKY.nightHorizon)
+const _fogSouth = new THREE.Color(SKY.southHorizon)
 const _dirDay = new THREE.Color(SKY.dirDay)
 const _dirNight = new THREE.Color(SKY.dirNight)
 const _hemiSkyDay = new THREE.Color(SKY.hemiSkyDay)
@@ -253,7 +276,14 @@ export function useSkyState({
     const planet = planetRef.current
     if (!planet) return
     poleInPlanetSpace(planet.quaternion, _pole)
-    let nightMix = nightMixFromPoleZ(_pole.z)
+    const playerPolarDeg = THREE.MathUtils.radToDeg(
+      Math.acos(THREE.MathUtils.clamp(_pole.y, -1, 1)),
+    )
+    // Antarctica lives in permanent polar night: sailing south, the sun
+    // sets behind you and never comes back up.
+    const southMix = southMixFromPolarDeg(playerPolarDeg)
+    skyRuntime.southMix = southMix
+    let nightMix = Math.max(nightMixFromPoleZ(_pole.z), southMix)
     // e2e-only override (audio finishing pass: day/night parity checks
     // sample sound levels at pinned nightMix extremes).
     const ov = (window as unknown as { __nightMixOverride?: number }).__nightMixOverride
@@ -262,9 +292,6 @@ export function useSkyState({
 
     // Celestial arc (v3.7): elevation follows shore proximity, smoothed
     // ~0.6 s so the sun sinks with you. Solved on each home meridian.
-    const playerPolarDeg = THREE.MathUtils.radToDeg(
-      Math.acos(THREE.MathUtils.clamp(_pole.y, -1, 1)),
-    )
     const arcDeg = arcForElevationDeg(discElevationDeg(playerPolarDeg))
     let sunTarget = solveDiscPolarDeg(_pole.y, _pole.z, arcDeg)
     let moonTarget = solveDiscPolarDeg(_pole.y, -_pole.z, arcDeg)
@@ -280,6 +307,15 @@ export function useSkyState({
     }
     if (Math.abs(wrapPi(lambda - Math.PI)) <= FLOOR_GATE_RAD) {
       moonTarget = floorDiscPolarDeg(moonTarget, -1, _camLocal, MOON_DISC_ANG_RAD_DEG)
+    }
+    // Polar night: blend BOTH targets back toward the home-side clamp.
+    // Past polar ~150 the arc from the player to either disc exceeds
+    // ~95°, so both bodies sit fully below the ocean limb — visibleFrac
+    // goes to 0 and the glitter lanes die. Sailing south, the sun and
+    // the moon sink behind you; nothing is masked, the sea occludes them.
+    if (southMix > 0) {
+      sunTarget = THREE.MathUtils.lerp(sunTarget, DISC_POLAR_MIN_DEG, southMix)
+      moonTarget = THREE.MathUtils.lerp(moonTarget, DISC_POLAR_MIN_DEG, southMix)
     }
     const k = 1 - Math.exp(-dt / 0.6)
     _discSmooth.sun += (sunTarget - _discSmooth.sun) * k
@@ -313,6 +349,8 @@ export function useSkyState({
       _c.set(ROOM_VOID)
     } else {
       _c.lerpColors(_fogDay, _fogNight, nightMix)
+      // Antarctica's horizon is colder than the island's night.
+      if (southMix > 0) _c.lerp(_fogSouth, southMix)
     }
     if (scene.fog) scene.fog.color.copy(_c)
     if (scene.background instanceof THREE.Color) scene.background.copy(_c)
@@ -330,6 +368,14 @@ export function useSkyState({
         skyRuntime.moonWorld,
         THREE.MathUtils.smoothstep(nightMix, 0.4, 0.6),
       )
+      // In the south both bodies are below the horizon, so following the
+      // moon would light the world FROM BELOW (banned). Ease toward a
+      // fixed high south-sky direction instead — scratch vector, no
+      // allocation.
+      if (southMix > 0) {
+        _southLight.copy(SOUTH_LIGHT_LOCAL).applyQuaternion(planet.quaternion)
+        _lightDir.lerp(_southLight, southMix)
+      }
       if (_lightDir.lengthSq() > 1e-4) {
         d.position.copy(_lightDir.normalize().multiplyScalar(100))
       }

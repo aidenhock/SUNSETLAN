@@ -50,7 +50,8 @@ describe('map markers', () => {
         m.kind !== 'scatter' &&
         m.type !== 'collider' &&
         m.id !== 'cemetery' &&
-        m.id !== 'dock',
+        m.id !== 'dock' &&
+        m.id !== 'dock-south',
     )
     expect(MARKERS.length).toBe(pinnable.length)
   })

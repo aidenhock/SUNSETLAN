@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import { placement, placements } from '../content/placements'
 import { latLongToUnit } from '../controls/planetMath'
-import { DOCK, PLANET_RADIUS } from '../scene/planetConfig'
+import { DOCK, PLANET_RADIUS, SOUTH_DOCK } from '../scene/planetConfig'
 
 /**
  * How the island's contents look from above — a Minecraft-style map
@@ -71,7 +71,9 @@ export const MARKERS: MapMarker[] = placements
       m.kind !== 'scatter' &&
       m.type !== 'collider' &&
       m.id !== 'cemetery' &&
-      m.id !== 'dock',
+      // Both docks are drawn as their strip, not as a dot.
+      m.id !== 'dock' &&
+      m.id !== 'dock-south',
   )
   .map((m) => ({
     unit: latLongToUnit(m.lat, m.long),
@@ -131,6 +133,12 @@ export const CEMETERY_FOOTPRINT: THREE.Vector3[] = (() => {
 export const DOCK_LINE: THREE.Vector3[] = [
   latLongToUnit(DOCK.latMaxDeg, DOCK.longDeg),
   latLongToUnit(DOCK.latMinDeg, DOCK.longDeg),
+]
+
+/** Antarctica's dock, the same way. */
+export const SOUTH_DOCK_LINE: THREE.Vector3[] = [
+  latLongToUnit(SOUTH_DOCK.latMinDeg, SOUTH_DOCK.longDeg),
+  latLongToUnit(SOUTH_DOCK.latMaxDeg, SOUTH_DOCK.longDeg),
 ]
 
 /**

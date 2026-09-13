@@ -11,10 +11,11 @@ import {
   MOON_UNIT,
   SCATTER,
   SEATS,
+  SOUTH_DOCK_LINE,
   SUN_UNIT,
   type MapMarker,
 } from './mapIcons'
-import { GRASS_POLAR_DEG, PLANET_RADIUS } from '../scene/planetConfig'
+import { GRASS_POLAR_DEG, landmassAt, PLANET_RADIUS, SOUTH } from '../scene/planetConfig'
 import { usePlacementRuntime } from '../scene/placementRuntime'
 import { useStore } from '../store/useStore'
 import {
@@ -73,6 +74,10 @@ const ring = (lat: number) =>
   Array.from({ length: RING_SAMPLES }, (_, i) => latLongToUnit(lat, (i / RING_SAMPLES) * 360))
 const GRASS_RING = ring(90 - GRASS_POLAR_DEG)
 const SHORE_RING = ring(WATERLINE_LAT)
+/** Antarctica's shoreline, the same way: 22° of arc from the south pole. */
+const SOUTH_SHORE_RING = ring(-(90 - SOUTH.waterlineDeg))
+const SNOW = '#f4f8ff'
+const SNOW_EDGE = '#b9d4e4'
 
 const _frame: LocalFrame = {
   pole: new THREE.Vector3(),
@@ -198,6 +203,33 @@ export function Minimap({ isTouch }: { isTouch: boolean }) {
       }
       body(sunX, sunY, '#ffe9a8', 'rgba(255,184,112,0.45)')
       body(moonX, moonY, '#e8eeff', 'rgba(159,180,255,0.35)')
+
+      // On Antarctica the island-centred drawing means nothing — every
+      // one of its icons is a hundred metres away over the horizon. Draw
+      // the south cap as its own white disc with its dock, through the
+      // SAME player-centred projection, and stop there.
+      const playerPolar = Math.acos(THREE.MathUtils.clamp(_frame.pole.y, -1, 1))
+      if (landmassAt(playerPolar) === 'south') {
+        polygon(SOUTH_SHORE_RING, heading, pxPerM)
+        ctx.fillStyle = SNOW
+        ctx.fill()
+        ctx.strokeStyle = SNOW_EDGE
+        ctx.lineWidth = 1
+        ctx.stroke()
+        const s0 = project(SOUTH_DOCK_LINE[0], heading, pxPerM)
+        const s0x = c + s0.x
+        const s0y = c + s0.y
+        const s1 = project(SOUTH_DOCK_LINE[1], heading, pxPerM)
+        ctx.beginPath()
+        ctx.moveTo(s0x, s0y)
+        ctx.lineTo(c + s1.x, c + s1.y)
+        ctx.strokeStyle = '#8a6a45'
+        ctx.lineWidth = 2.6 * scale
+        ctx.lineCap = 'round'
+        ctx.stroke()
+        ctx.restore()
+        return
+      }
 
       // Land.
       polygon(SHORE_RING, heading, pxPerM)

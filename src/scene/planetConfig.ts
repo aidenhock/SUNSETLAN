@@ -51,9 +51,99 @@ export const TERRAIN = {
   apronAltitude: -0.9,
 } as const
 
-/** Altitude above sea level at a polar angle (radians from the pole). */
+/**
+ * ANTARCTICA (south pole): the second, smaller landmass on the antipode.
+ * Same chained-smoothstep shape as the north, measured in degrees FROM
+ * THE SOUTH POLE — snow plateau → shoulder → ice-shelf ramp reaching 0
+ * exactly at the waterline → apron down to the same −0.9 floor. The
+ * profile is therefore ONE monotone surface from pole to pole, and the
+ * southern apron ends tucked under the ocean-floor sphere exactly like
+ * the northern one (placement rule 4: never an exposed rim, never a
+ * visible underside).
+ */
+export const SOUTH = {
+  /** Snow plateau ends (deg from the SOUTH pole). */
+  plateauEndDeg: 16,
+  /** Rolling shoulder down to the ice-shelf altitude. */
+  shoulderEndDeg: 18.5,
+  /** Waterline: the profile crosses exactly 0 here (lat −68). */
+  waterlineDeg: 22,
+  /** Submerged apron ends here (lat −63), below the ocean floor. */
+  apronEndDeg: 27,
+  snowAltitude: 0.7,
+  shelfAltitude: 0.35,
+  apronAltitude: -0.9,
+} as const
+
+/** Altitude at `sp` degrees from the SOUTH pole. */
+function southProfile(sp: number): number {
+  if (sp <= SOUTH.plateauEndDeg) return SOUTH.snowAltitude
+  if (sp <= SOUTH.shoulderEndDeg) {
+    return THREE.MathUtils.lerp(
+      SOUTH.snowAltitude,
+      SOUTH.shelfAltitude,
+      THREE.MathUtils.smoothstep(sp, SOUTH.plateauEndDeg, SOUTH.shoulderEndDeg),
+    )
+  }
+  if (sp <= SOUTH.waterlineDeg) {
+    return THREE.MathUtils.lerp(
+      SOUTH.shelfAltitude,
+      0,
+      THREE.MathUtils.smoothstep(sp, SOUTH.shoulderEndDeg, SOUTH.waterlineDeg),
+    )
+  }
+  if (sp <= SOUTH.apronEndDeg) {
+    return THREE.MathUtils.lerp(
+      0,
+      SOUTH.apronAltitude,
+      THREE.MathUtils.smoothstep(sp, SOUTH.waterlineDeg, SOUTH.apronEndDeg),
+    )
+  }
+  return SOUTH.apronAltitude
+}
+
+/** Which landmass a polar angle belongs to — the split is the equator. */
+export function landmassAt(polarRad: number): 'north' | 'south' {
+  return polarRad <= Math.PI / 2 ? 'north' : 'south'
+}
+
+/** Distance (rad) from the landmass's OWN pole: polar in the north,
+ *  π − polar in the south. Both caps measure outward from zero. */
+export function polarFromOwnPole(polarRad: number): number {
+  return polarRad <= Math.PI / 2 ? polarRad : Math.PI - polarRad
+}
+
+/** Antarctica's wade clamp, measured from the south pole. */
+export const SOUTH_MAX_POLAR_RAD =
+  THREE.MathUtils.degToRad(SOUTH.waterlineDeg) + 2.5 / PLANET_RADIUS
+
+/** The furthest polar angle a landmass lets the player reach — the
+ *  north's counts down from the pole, the south's up toward it. */
+export function maxWadePolarRad(landmass: 'north' | 'south'): number {
+  return landmass === 'north' ? MAX_POLAR_RAD : Math.PI - SOUTH_MAX_POLAR_RAD
+}
+
+/**
+ * Island bounds, landmass-aware. A step is cancelled when it carries the
+ * pole FURTHER from its landmass's own pole than that landmass allows,
+ * AND further than it already was — so walking back in is always legal,
+ * and someone dropped mid-ocean keeps walking toward whichever cap they
+ * are heading for. Pure; vitest-pinned in both hemispheres.
+ */
+export function stepLeavesLandmass(polarBefore: number, polarAfter: number): boolean {
+  const lm = landmassAt(polarBefore)
+  const limit = polarFromOwnPole(maxWadePolarRad(lm))
+  const before = polarFromOwnPole(polarBefore)
+  const after = polarFromOwnPole(polarAfter)
+  return after > limit && after > before
+}
+
+/** Altitude above sea level at a polar angle (radians from the pole).
+ *  Covers polar 0..180: the north island up to 90°, Antarctica mirrored
+ *  past it, and the flat −0.9 apron floor in between (81° → 153°). */
 export function terrainProfile(polarRad: number): number {
   const p = THREE.MathUtils.radToDeg(polarRad)
+  if (p > 90) return southProfile(180 - p)
   if (p <= TERRAIN.plateauEndDeg) return GRASS_ALTITUDE
   if (p <= TERRAIN.shoulderEndDeg) {
     return THREE.MathUtils.lerp(
@@ -94,6 +184,25 @@ export const DOCK = {
   segmentCount: 5,
 }
 
+/**
+ * Antarctica's little dock, the mirror of the north's: longitude 0,
+ * entrance on the ice shelf at lat −70 and the far end out over open
+ * water at lat −66 — it runs DOWN its meridian toward the sea, which in
+ * the southern hemisphere means toward INCREASING latitude. It faces
+ * north, back toward the island. Same strip contract: the deck rides
+ * deckHeightM above the local band, consumed by both the visuals and
+ * groundAltitudeAt.
+ */
+export const SOUTH_DOCK = {
+  longDeg: 0,
+  latMinDeg: -70,
+  latMaxDeg: -66,
+  halfWidthM: 1,
+  deckHeightM: 0.6,
+  plankThicknessM: 0.18,
+  segmentCount: 3,
+}
+
 /** Footstep tuning (3C): gains, foot-plant phases in the swing cycle,
  * and the jump double-tap gap. */
 export const FOOTSTEPS = {
@@ -114,10 +223,17 @@ export type Surface = 'grass' | 'sand' | 'dock' | 'wade'
 export function surfaceUnderfoot(polarDeg: number, longDeg: number, wet: boolean): Surface {
   if (wet) return 'wade'
   const lat = 90 - polarDeg
-  if (lat >= DOCK.latMinDeg && lat <= DOCK.latMaxDeg) {
-    const dLongRad = THREE_DEG * Math.abs(((longDeg - DOCK.longDeg + 540) % 360) - 180)
+  for (const dock of [DOCK, SOUTH_DOCK]) {
+    if (lat < dock.latMinDeg || lat > dock.latMaxDeg) continue
+    const dLongRad = THREE_DEG * Math.abs(((longDeg - dock.longDeg + 540) % 360) - 180)
     const offM = PLANET_RADIUS * Math.sin(polarDeg * THREE_DEG) * Math.sin(dLongRad)
-    if (Math.abs(offM) <= DOCK.halfWidthM + 0.2) return 'dock'
+    if (Math.abs(offM) <= dock.halfWidthM + 0.2) return 'dock'
+  }
+  // Antarctica has no sand and no grass; until a snow pool exists it
+  // borrows the two existing surfaces — plateau reads as the soft one,
+  // the ice shelf as the gritty one.
+  if (polarDeg > 90) {
+    return polarDeg >= 180 - SOUTH.plateauEndDeg ? 'grass' : 'sand'
   }
   return polarDeg <= TERRAIN.plateauEndDeg + 2 ? 'grass' : 'sand'
 }
@@ -167,12 +283,26 @@ export const SURF = {
 
 /** Vertical surf offset (m) of the live water surface at polar/time. */
 export function surfOffset(polarRad: number, timeS: number): number {
-  const shore = THREE.MathUtils.smoothstep(
-    THREE.MathUtils.radToDeg(polarRad),
-    SURF.startDeg,
-    SURF.endDeg,
+  return (
+    Math.sin((timeS * Math.PI * 2) / SURF.periodS) *
+    SURF.amplitudeM *
+    surfShoreWeight(THREE.MathUtils.radToDeg(polarRad))
   )
-  return Math.sin((timeS * Math.PI * 2) / SURF.periodS) * SURF.amplitudeM * shore
+}
+
+/** Antarctica's beach band: the shore weighting ramps in over the 7°
+ *  above its waterline, mirroring SURF.startDeg → SURF.endDeg. */
+export const SURF_SOUTH_START_DEG = 180 - SOUTH.waterlineDeg - 7
+export const SURF_SOUTH_END_DEG = 180 - SOUTH.waterlineDeg
+
+/** Shore weighting of the surf cycle — ramps in across EITHER beach
+ *  band. The water shader ports this expression verbatim; if the two
+ *  ever disagree the foam and the wade ripple part company. */
+export function surfShoreWeight(polarDeg: number): number {
+  return Math.max(
+    THREE.MathUtils.smoothstep(polarDeg, SURF.startDeg, SURF.endDeg),
+    THREE.MathUtils.smoothstep(polarDeg, SURF_SOUTH_START_DEG, SURF_SOUTH_END_DEG),
+  )
 }
 
 /**
