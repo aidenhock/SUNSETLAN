@@ -93,10 +93,18 @@ export function buildNodes(config: CharacterConfig) {
   const torsoH = H - headH - legLen
   const headR = headH * 0.51
   const headW = headR * 2
+  // Parka (Antarctica outpost): the SAME teardrop, padded out ~12%. A
+  // separate silhouette would have been a second rig; a fullness factor
+  // is one number every existing config multiplies by exactly 1, so
+  // tee-shorts and dress stay byte-identical.
+  const parka = config.outfit === 'parka'
+  const fullness = parka ? 1.12 : 1
+  const hooded = parka && config.hood === true
+  const trim = colors.trim ?? colors.top
   // Teardrop proportions (v3.16): shoulders ≈0.55× head width sloping out
   // to hips ≈0.78× — the widest point sits near the BASE, never the top.
-  const shoulderR = headW * (config.shoulderFrac ?? 0.2275) * build
-  const hipR = headW * (config.hipFrac ?? 0.365) * build
+  const shoulderR = headW * (config.shoulderFrac ?? 0.2275) * build * fullness
+  const hipR = headW * (config.hipFrac ?? 0.365) * build * fullness
   // Torso depth squash — the side-profile slimness dial.
   const depth = config.torsoDepth ?? 0.78
   const armLen = torsoH * (config.armLenFrac ?? 0.87)
@@ -134,7 +142,7 @@ export function buildNodes(config: CharacterConfig) {
   // arms-through-the-torso from behind). Rounded base → ONE unbroken
   // convex curve to the hip → smooth taper into a domed collar around
   // the neck; both ends on the axis so the lathe caps itself.
-  const collarR = headR * 0.338
+  const collarR = headR * 0.338 * fullness
   // waistSlim pulls the mid-torso in (cos exponent > 1) without touching
   // the shoulder or hip endpoints — the curve stays convex and smooth.
   const slimExp = 1 + (config.waistSlim ?? 0.28)
@@ -167,7 +175,29 @@ export function buildNodes(config: CharacterConfig) {
     colors.top,
     [0, 0, 0],
   )
-  if (config.outfit === 'dress') {
+  if (parka) {
+    // Fur hem band: a short ring sitting PROUD of the teardrop's widest
+    // point, the same trick the tee hem uses — a fur band flush with the
+    // coat would read as a printed stripe rather than a fur edge.
+    add(
+      'torso',
+      new THREE.CylinderGeometry(hipR * 1.1, hipR * 1.14, torsoH * 0.17, 14).applyMatrix4(
+        new THREE.Matrix4().makeScale(1, 1, depth),
+      ),
+      trim,
+      [0, torsoH * 0.055, 0],
+    )
+    // Front placket: the zip line down the chest, in the trouser colour.
+    add(
+      'torso',
+      new THREE.BoxGeometry(hipR * 0.2, torsoH * 0.66, hipR * 0.12),
+      colors.bottom,
+      // Chest-height radius read off the SAME lathe profile (t ≈ 0.51 of
+      // the shoulder run), depth-squashed like the torso and pulled in a
+      // hair so the strip half-embeds instead of hovering.
+      [0, torsoH * 0.5, depth * (collarR + 0.62 * (hipR - collarR)) * 0.97],
+    )
+  } else if (config.outfit === 'dress') {
     // Flared cone skirt from the hips.
     add('torso', new THREE.ConeGeometry(hipR * 1.35, torsoH * 0.45, 14, 1), colors.bottom, [
       0,
@@ -221,14 +251,18 @@ export function buildNodes(config: CharacterConfig) {
   // they read from front AND back, matched sides.
   const earSize = config.earSize ?? 1
   const earTilt = THREE.MathUtils.degToRad(config.earTilt ?? 12)
-  for (const sx of [-1, 1]) {
-    add(
-      'head',
-      blob(hR * 0.19 * earSize, 8, 6, 0.5, 1, 0.9),
-      colors.skin,
-      [sx * hR * 1.05, hH * (config.earY ?? 0.52), -hH * 0.02],
-      [0, 0, -sx * earTilt],
-    )
+  // A hood swallows the ears — they would otherwise poke through the fur
+  // ring, which is exactly where a real hood is tightest.
+  if (!hooded) {
+    for (const sx of [-1, 1]) {
+      add(
+        'head',
+        blob(hR * 0.19 * earSize, 8, 6, 0.5, 1, 0.9),
+        colors.skin,
+        [sx * hR * 1.05, hH * (config.earY ?? 0.52), -hH * 0.02],
+        [0, 0, -sx * earTilt],
+      )
+    }
   }
   // Tiny rounded nose just above the mouth (soft peach).
   if ((config.noseStyle ?? 'round') !== 'none') {
@@ -376,7 +410,27 @@ export function buildNodes(config: CharacterConfig) {
   }
   // Hair — SOLID volumes only (open shells backface-cull see-through),
   // fringes overlapped DEEP into the cap so the hair reads as ONE mass.
-  if (config.hair === 'swoop') {
+  // Hood (parka + hood): a rounded cap in the coat colour over the back
+  // and top of the skull, sat far enough BACK that the face stays clear,
+  // plus a fur RING standing proud of the head that frames the opening.
+  // The ring is what sells it — a cap alone reads as a swim hat.
+  if (hooded) {
+    add('head', blob(hR * 1.16, 12, 9, 1, 0.94, 0.95), colors.top, [
+      0,
+      hH * 0.52,
+      -hR * 0.3,
+    ])
+    add(
+      'head',
+      new THREE.TorusGeometry(hR * 1.02, hR * 0.2, 5, 14).applyMatrix4(
+        // Flattened along the view axis: a full-round tube reads as a
+        // life ring, a squashed one as fur crushed against the face.
+        new THREE.Matrix4().makeScale(1, 1, 0.7),
+      ),
+      trim,
+      [0, hH * 0.48, hR * 0.42],
+    )
+  } else if (config.hair === 'swoop') {
     // High hairline (the cap centered lower swallows the face); the
     // fringe overlaps deep into the cap so the hair reads as one mass.
     add('head', blob(hR * 1.09, 12, 9, 1, 0.76, 1.0), colors.hair, [0, hH * 0.64, -0.015])
@@ -403,13 +457,25 @@ export function buildNodes(config: CharacterConfig) {
   // overlap inside the joint so the silhouette stays smooth. Sleeve
   // (tee, not tank) stays on the upper.
   const armR = 0.036 * (H / 1.25) * (config.limbThick ?? 1)
-  add('arm', new THREE.CapsuleGeometry(armR, armLen * 0.32, 2, 8), colors.skin, [
+  // A parka sleeve runs the whole limb: the upper arm and the FOREARM
+  // both take the coat colour — bare skin below a cuff is what "long
+  // sleeve" looks like when only the sleeve cap is recoloured.
+  const armSkin = parka ? colors.top : colors.skin
+  add('arm', new THREE.CapsuleGeometry(armR, armLen * 0.32, 2, 8), armSkin, [
     0,
     -armLen * 0.21,
     0,
   ])
   const sleeveLen = config.sleeveLen ?? 1
-  if (sleeveLen > 0) {
+  if (parka) {
+    // Padded sleeve over the full upper arm, not a short cap.
+    add(
+      'arm',
+      new THREE.CapsuleGeometry(armR * 1.22, armLen * 0.3, 2, 7),
+      colors.top,
+      [0, -armLen * 0.2, 0],
+    )
+  } else if (sleeveLen > 0) {
     add(
       'arm',
       new THREE.CapsuleGeometry(armR * 1.2, armLen * 0.18 * sleeveLen, 2, 7),
@@ -418,15 +484,31 @@ export function buildNodes(config: CharacterConfig) {
     )
   }
   // Forearm node — local origin AT the elbow.
-  add('forearm', new THREE.CapsuleGeometry(armR * 0.95, armLen * 0.3, 2, 8), colors.skin, [
+  add('forearm', new THREE.CapsuleGeometry(armR * 0.95, armLen * 0.3, 2, 8), armSkin, [
     0,
     -armLen * 0.19,
     0,
   ])
+  if (parka) {
+    // Fur cuff at the wrist, just above the mitten.
+    add(
+      'forearm',
+      new THREE.CylinderGeometry(armR * 1.55, armR * 1.5, armLen * 0.1, 10),
+      trim,
+      [0, -armLen * 0.345, 0],
+    )
+  }
+  // Mittens: the same ball hand, a size up and in its own colour —
+  // a mitten is a hand with the fingers gone, which is what this rig
+  // has always drawn.
   add(
     'forearm',
-    new THREE.SphereGeometry(armR * 1.4 * (config.handScale ?? 1.12), 7, 5),
-    colors.skin,
+    new THREE.SphereGeometry(
+      armR * 1.4 * (config.handScale ?? 1.12) * (parka ? 1.15 : 1),
+      7,
+      5,
+    ),
+    parka ? (colors.mittens ?? colors.top) : colors.skin,
     [0, -armLen * 0.42, 0],
   )
 
@@ -450,7 +532,15 @@ export function buildNodes(config: CharacterConfig) {
   // so the planted feet sit exactly at groundHeightAt (blob-shadow
   // contract).
   const shoeR = legR * 1.5
-  add('leg', blob(shoeR, 10, 7, 1, 0.6, 1.3), colors.shoes, [0, -legLen + shoeR * 0.6, 0.025])
+  // Parka boots are the same lozenge, 40% taller. The lift is derived
+  // from the height scale, so the sole still kisses rig-local −legLen at
+  // any boot height (the blob-shadow contract).
+  const shoeYS = 0.6 * (parka ? 1.4 : 1)
+  add('leg', blob(shoeR, 10, 7, 1, shoeYS, 1.3), colors.shoes, [
+    0,
+    -legLen + shoeR * shoeYS,
+    0.025,
+  ])
 
   const merge = (list: THREE.BufferGeometry[]) => {
     const merged = mergeGeometries(list)

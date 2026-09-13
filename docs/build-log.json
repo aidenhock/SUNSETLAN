@@ -5,8 +5,8 @@
       "step": 1,
       "title": "The world that turns beneath you",
       "hook": "You never actually move — the whole planet rotates under your feet.",
-      "plain": "The character stands frozen at the top of the globe, and\r walking spins the entire world the other way, like log-rolling. It's\r the same trick Mario Galaxy uses. Doing it this way means the camera\r and character never wander off anywhere numerically messy — the world\r comes to you.",
-      "technical": "Input builds a rotation quaternion each frame:\r `rotationStep` turns a camera-relative move direction into a small\r world rotation about a horizontal axis (negative angle — the ground\r must flow backward under the avatar), and `applyStep` premultiplies it\r onto the planet group's quaternion. Everything that needs to know\r \"where am I standing\" pulls the world pole back through the inverse\r rotation (`poleInPlanetSpace`) to get a planet-local direction, which\r maps to lat/long. Blockers, interactable triggers, and the island-edge\r clamp are all angular-distance tests against that direction —\r distance in meters is just angle × radius.",
+      "plain": "The character stands frozen at the top of the globe, and walking spins the entire world the other way, like log-rolling. It's the same trick Mario Galaxy uses. Doing it this way means the camera and character never wander off anywhere numerically messy — the world comes to you.",
+      "technical": "Input builds a rotation quaternion each frame: `rotationStep` turns a camera-relative move direction into a small world rotation about a horizontal axis (negative angle — the ground must flow backward under the avatar), and `applyStep` premultiplies it onto the planet group's quaternion. Everything that needs to know \"where am I standing\" pulls the world pole back through the inverse rotation (`poleInPlanetSpace`) to get a planet-local direction, which maps to lat/long. Blockers, interactable triggers, and the island-edge clamp are all angular-distance tests against that direction — distance in meters is just angle × radius.",
       "files": [
         {
           "path": "src/controls/planetMath.ts",
@@ -20,22 +20,22 @@
             {
               "symbol": "rotationStep",
               "line": 30,
-              "code": "export function rotationStep(\r\n  moveDir: THREE.Vector3,\r\n  angle: number,\r\n  out: THREE.Quaternion = new THREE.Quaternion(),\r\n): THREE.Quaternion {\r\n  _axis.crossVectors(WORLD_UP, moveDir)\r\n  if (_axis.lengthSq() < 1e-12) return out.identity() // no horizontal input\r\n  return out.setFromAxisAngle(_axis.normalize(), -angle)\r\n}\r\n\r\n/** Compose one step onto the current planet orientation (world-space rotation). */\r\nexport function applyStep(\r\n  current: THREE.Quaternion,\r\n  step: THREE.Quaternion,\r"
+              "code": "export function rotationStep(\n  moveDir: THREE.Vector3,\n  angle: number,\n  out: THREE.Quaternion = new THREE.Quaternion(),\n): THREE.Quaternion {\n  _axis.crossVectors(WORLD_UP, moveDir)\n  if (_axis.lengthSq() < 1e-12) return out.identity() // no horizontal input\n  return out.setFromAxisAngle(_axis.normalize(), -angle)\n}\n\n/** Compose one step onto the current planet orientation (world-space rotation). */\nexport function applyStep(\n  current: THREE.Quaternion,\n  step: THREE.Quaternion,"
             },
             {
               "symbol": "applyStep",
               "line": 41,
-              "code": "export function applyStep(\r\n  current: THREE.Quaternion,\r\n  step: THREE.Quaternion,\r\n  out: THREE.Quaternion = new THREE.Quaternion(),\r\n): THREE.Quaternion {\r\n  // p_world = q · p_local, so an extra world rotation premultiplies: q' = step · q.\r\n  return out.multiplyQuaternions(step, current).normalize()\r\n}\r\n\r\n/**\r\n * The planet-local direction currently under the avatar's feet, i.e. the\r\n * world pole pulled back through the planet's rotation.\r\n */\r\nexport function poleInPlanetSpace(\r"
+              "code": "export function applyStep(\n  current: THREE.Quaternion,\n  step: THREE.Quaternion,\n  out: THREE.Quaternion = new THREE.Quaternion(),\n): THREE.Quaternion {\n  // p_world = q · p_local, so an extra world rotation premultiplies: q' = step · q.\n  return out.multiplyQuaternions(step, current).normalize()\n}\n\n/**\n * The planet-local direction currently under the avatar's feet, i.e. the\n * world pole pulled back through the planet's rotation.\n */\nexport function poleInPlanetSpace("
             },
             {
               "symbol": "poleInPlanetSpace",
               "line": 54,
-              "code": "export function poleInPlanetSpace(\r\n  q: THREE.Quaternion,\r\n  out: THREE.Vector3 = new THREE.Vector3(),\r\n): THREE.Vector3 {\r\n  _inv.copy(q).invert()\r\n  return out.copy(WORLD_UP).applyQuaternion(_inv)\r\n}\r\n\r\n/**\r\n * Angular distance (radians) between the avatar's ground-contact point and a\r\n * planet-local direction. Multiply by the planet radius for meters of arc.\r\n */\r\nexport function angularDistanceToPole(q: THREE.Quaternion, localDir: THREE.Vector3): number {\r\n  return poleInPlanetSpace(q, _pole).angleTo(localDir)\r"
+              "code": "export function poleInPlanetSpace(\n  q: THREE.Quaternion,\n  out: THREE.Vector3 = new THREE.Vector3(),\n): THREE.Vector3 {\n  _inv.copy(q).invert()\n  return out.copy(WORLD_UP).applyQuaternion(_inv)\n}\n\n/**\n * Angular distance (radians) between the avatar's ground-contact point and a\n * planet-local direction. Multiply by the planet radius for meters of arc.\n */\nexport function angularDistanceToPole(q: THREE.Quaternion, localDir: THREE.Vector3): number {\n  return poleInPlanetSpace(q, _pole).angleTo(localDir)"
             },
             {
               "symbol": "latLongToUnit",
               "line": 84,
-              "code": "export function latLongToUnit(latDeg: number, longDeg: number): THREE.Vector3 {\r\n  const polar = THREE.MathUtils.degToRad(90 - latDeg)\r\n  const long = THREE.MathUtils.degToRad(longDeg)\r\n  return new THREE.Vector3(\r\n    Math.sin(polar) * Math.sin(long),\r\n    Math.cos(polar),\r\n    Math.sin(polar) * Math.cos(long),\r\n  )\r\n}\r\n\r\n/** Planet-local position tuple for content files. */\r\nexport function latLongToPosition(\r\n  latDeg: number,\r\n  longDeg: number,\r"
+              "code": "export function latLongToUnit(latDeg: number, longDeg: number): THREE.Vector3 {\n  const polar = THREE.MathUtils.degToRad(90 - latDeg)\n  const long = THREE.MathUtils.degToRad(longDeg)\n  return new THREE.Vector3(\n    Math.sin(polar) * Math.sin(long),\n    Math.cos(polar),\n    Math.sin(polar) * Math.cos(long),\n  )\n}\n\n/** Planet-local position tuple for content files. */\nexport function latLongToPosition(\n  latDeg: number,\n  longDeg: number,"
             }
           ]
         },
@@ -65,8 +65,8 @@
       "step": 2,
       "title": "Ground you can trust without physics",
       "hook": "There is no physics engine — the island's shape is a formula.",
-      "plain": "Instead of simulating collisions, the ground height at any\r point is computed from a single mathematical profile: grass plateau,\r beach ramp, underwater slope. Feet, props, and the water all ask the\r same formula, so nothing can ever float or sink by accident — and it\r costs almost nothing to run.",
-      "technical": "`terrainProfile(polar)` defines altitude as chained\r smoothsteps over the angle from the pole; `groundAltitudeAt(lat, long)`\r adds the dock's walkable strip (`onDockStrip` tests cross-track meters\r against the dock meridian) and `groundHeightAt` turns the avatar's\r planet-local direction into a world height every frame, allocation-free.\r Placement rule 1 derives every prop's altitude from the same function\r minus a 0.1 m sink; the terrain MESH is displaced by the same profile,\r so visuals and walkable height are one source of truth.",
+      "plain": "Instead of simulating collisions, the ground height at any point is computed from a single mathematical profile: grass plateau, beach ramp, underwater slope. Feet, props, and the water all ask the same formula, so nothing can ever float or sink by accident — and it costs almost nothing to run.",
+      "technical": "`terrainProfile(polar)` defines altitude as chained smoothsteps over the angle from the pole; `groundAltitudeAt(lat, long)` adds the dock's walkable strip (`onDockStrip` tests cross-track meters against the dock meridian) and `groundHeightAt` turns the avatar's planet-local direction into a world height every frame, allocation-free. Placement rule 1 derives every prop's altitude from the same function minus a 0.1 m sink; the terrain MESH is displaced by the same profile, so visuals and walkable height are one source of truth.",
       "files": [
         {
           "path": "src/scene/planetConfig.ts",
@@ -110,17 +110,17 @@
             {
               "symbol": "groundAltitudeAt",
               "line": 33,
-              "code": "export function groundAltitudeAt(latDeg: number, longDeg: number): number {\r\n  const band = bandAltitudeAt(latDeg)\r\n  if (onDockStrip(latDeg, longDeg)) return band + DOCK.deckHeightM\r\n  return band\r\n}\r\n\r\n/** World-space ground height under the avatar (avatar y-position).\r\n *  Called every frame — no object allocation (lat/long computed inline). */\r\nexport function groundHeightAt(poleLocal: THREE.Vector3): number {\r\n  const polar = Math.acos(THREE.MathUtils.clamp(poleLocal.y, -1, 1))\r\n  const lat = 90 - THREE.MathUtils.radToDeg(polar)\r\n  const long = THREE.MathUtils.radToDeg(Math.atan2(poleLocal.x, poleLocal.z))\r\n  return PLANET_RADIUS + groundAltitudeAt(lat, long)\r\n}\r"
+              "code": "export function groundAltitudeAt(latDeg: number, longDeg: number): number {\n  const band = bandAltitudeAt(latDeg)\n  if (onDockStrip(latDeg, longDeg)) return band + DOCK.deckHeightM\n  return band\n}\n\n/** World-space ground height under the avatar (avatar y-position).\n *  Called every frame — no object allocation (lat/long computed inline). */\nexport function groundHeightAt(poleLocal: THREE.Vector3): number {\n  const polar = Math.acos(THREE.MathUtils.clamp(poleLocal.y, -1, 1))\n  const lat = 90 - THREE.MathUtils.radToDeg(polar)\n  const long = THREE.MathUtils.radToDeg(Math.atan2(poleLocal.x, poleLocal.z))\n  return PLANET_RADIUS + groundAltitudeAt(lat, long)\n}"
             },
             {
               "symbol": "groundHeightAt",
               "line": 41,
-              "code": "export function groundHeightAt(poleLocal: THREE.Vector3): number {\r\n  const polar = Math.acos(THREE.MathUtils.clamp(poleLocal.y, -1, 1))\r\n  const lat = 90 - THREE.MathUtils.radToDeg(polar)\r\n  const long = THREE.MathUtils.radToDeg(Math.atan2(poleLocal.x, poleLocal.z))\r\n  return PLANET_RADIUS + groundAltitudeAt(lat, long)\r\n}\r\n"
+              "code": "export function groundHeightAt(poleLocal: THREE.Vector3): number {\n  const polar = Math.acos(THREE.MathUtils.clamp(poleLocal.y, -1, 1))\n  const lat = 90 - THREE.MathUtils.radToDeg(polar)\n  const long = THREE.MathUtils.radToDeg(Math.atan2(poleLocal.x, poleLocal.z))\n  return PLANET_RADIUS + groundAltitudeAt(lat, long)\n}\n"
             },
             {
               "symbol": "onDockStrip",
               "line": 19,
-              "code": "export function onDockStrip(latDeg: number, longDeg: number): boolean {\r\n  if (latDeg < DOCK.latMinDeg || latDeg > DOCK.latMaxDeg) return false\r\n  const polar = THREE.MathUtils.degToRad(90 - latDeg)\r\n  const dLong = ((longDeg - DOCK.longDeg + 540) % 360) - 180\r\n  const crossTrackM =\r\n    Math.abs(THREE.MathUtils.degToRad(dLong)) * Math.sin(polar) * PLANET_RADIUS\r\n  return crossTrackM <= DOCK.halfWidthM\r\n}\r\n\r\n/**\r\n * Ground altitude above sea level at (lat, long). The dock deck rides\r\n * deckHeightM above its local band (surface-snapped segments), so the same\r\n * function drives the deck visuals and the walkable height.\r\n */\r"
+              "code": "export function onDockStrip(latDeg: number, longDeg: number): boolean {\n  if (latDeg < DOCK.latMinDeg || latDeg > DOCK.latMaxDeg) return false\n  const polar = THREE.MathUtils.degToRad(90 - latDeg)\n  const dLong = ((longDeg - DOCK.longDeg + 540) % 360) - 180\n  const crossTrackM =\n    Math.abs(THREE.MathUtils.degToRad(dLong)) * Math.sin(polar) * PLANET_RADIUS\n  return crossTrackM <= DOCK.halfWidthM\n}\n\n/**\n * Ground altitude above sea level at (lat, long). The dock deck rides\n * deckHeightM above its local band (surface-snapped segments), so the same\n * function drives the deck visuals and the walkable height.\n */"
             }
           ]
         },
@@ -142,8 +142,8 @@
       "step": 3,
       "title": "One continuous terrain surface",
       "hook": "The beach isn't a second object lying on the island — it's the same skin.",
-      "plain": "Grass, sand, and the underwater slope are one continuous\r mesh whose radius follows the ground formula, painted by latitude\r bands. Early versions stacked separate shells for grass and sand, and\r the seams showed at exactly the places players stare at — the\r waterline. One surface means there is no seam to show.",
-      "technical": "A sphere-cap geometry runs from the pole past the\r waterline to an apron that tucks under the opaque ocean-floor sphere;\r `facetTerrain` displaces each vertex by `terrainProfile`, splits\r faces for the flat-shaded look, and paints per-face two-tone vertex\r colors by polar band with seeded jitter that fades near band\r transitions. Wading depth is just walking down the real slope — the\r controller and the mesh share the profile, so there is no step at the\r waterline.",
+      "plain": "Grass, sand, and the underwater slope are one continuous mesh whose radius follows the ground formula, painted by latitude bands. Early versions stacked separate shells for grass and sand, and the seams showed at exactly the places players stare at — the waterline. One surface means there is no seam to show.",
+      "technical": "A sphere-cap geometry runs from the pole past the waterline to an apron that tucks under the opaque ocean-floor sphere; `facetTerrain` displaces each vertex by `terrainProfile`, splits faces for the flat-shaded look, and paints per-face two-tone vertex colors by polar band with seeded jitter that fades near band transitions. Wading depth is just walking down the real slope — the controller and the mesh share the profile, so there is no step at the waterline.",
       "files": [
         {
           "path": "src/scene/Island.tsx",
@@ -200,8 +200,8 @@
       "step": 4,
       "title": "Two skies on one planet",
       "hook": "Walk one way and the sun rises; walk the other and you get the moon — permanently.",
-      "plain": "The sun, moon, stars, and sky colors are children of the\r rotating planet, not the fixed camera. That single choice is what\r makes the island's two moods permanent places instead of a day/night\r timer: sunset lives on one side of the world, night on the other, and\r walking between them crossfades everything.",
-      "technical": "`useSkyState` computes `nightMix` from the pole's\r sunward projection each frame and drives one dome `ShaderMaterial`\r (elevation-based blues, a sunset layer shaped by angular distance from\r the sun's azimuth, a silver moon layer), the fog and clear color, and\r the hemisphere/directional light rig. Sky materials set `fog: false`,\r `depthWrite: false`, and — critically — `toneMapped: false`: the sky\r renders unmapped so its palette tokens are WYSIWYG.",
+      "plain": "The sun, moon, stars, and sky colors are children of the rotating planet, not the fixed camera. That single choice is what makes the island's two moods permanent places instead of a day/night timer: sunset lives on one side of the world, night on the other, and walking between them crossfades everything.",
+      "technical": "`useSkyState` computes `nightMix` from the pole's sunward projection each frame and drives one dome `ShaderMaterial` (elevation-based blues, a sunset layer shaped by angular distance from the sun's azimuth, a silver moon layer), the fog and clear color, and the hemisphere/directional light rig. Sky materials set `fog: false`, `depthWrite: false`, and — critically — `toneMapped: false`: the sky renders unmapped so its palette tokens are WYSIWYG.",
       "files": [
         {
           "path": "src/scene/useSkyState.ts",
@@ -247,8 +247,8 @@
       "step": 5,
       "title": "The sun actually sets",
       "hook": "Stand inland and the sun rides high; walk to the water and it sinks into the sea.",
-      "plain": "The sun and moon aren't painted at fixed heights — their\r elevation follows where you stand, easing from overhead on the plateau\r down to a true ocean set at the waterline, where the water physically\r hides the bottom of the disc. A guard makes sure the disc never fully\r drowns while you're looking at it from the beach.",
-      "technical": "Disc elevation is a smooth function of the player's\r polar angle, easing to a waterline endpoint where the disc sits ~40%\r submerged below the sea horizon — the ocean geometry occludes it, no\r masking. The set FLOOR is enforced in screen terms: each frame the\r ocean limb's angular direction is computed analytically from the\r camera, and if the solved disc would show less than ~55% above the\r limb, a few-step bisection corrects the disc's polar angle before\r smoothing. `e2e/setcheck.mjs` samples rendered frames and asserts the\r visible fraction.",
+      "plain": "The sun and moon aren't painted at fixed heights — their elevation follows where you stand, easing from overhead on the plateau down to a true ocean set at the waterline, where the water physically hides the bottom of the disc. A guard makes sure the disc never fully drowns while you're looking at it from the beach.",
+      "technical": "Disc elevation is a smooth function of the player's polar angle, easing to a waterline endpoint where the disc sits ~40% submerged below the sea horizon — the ocean geometry occludes it, no masking. The set FLOOR is enforced in screen terms: each frame the ocean limb's angular direction is computed analytically from the camera, and if the solved disc would show less than ~55% above the limb, a few-step bisection corrects the disc's polar angle before smoothing. `e2e/setcheck.mjs` samples rendered frames and asserts the visible fraction.",
       "files": [
         {
           "path": "src/scene/useSkyState.ts",
@@ -292,8 +292,8 @@
       "step": 6,
       "title": "A glitter path that belongs to you",
       "hook": "The sparkle lane on the water always points at you — not at the camera.",
-      "plain": "On real water, the glitter path runs from the sun to your\r eyes. Here it runs from the sun to the CHARACTER, so orbiting the\r camera changes your view of the lane without moving it. It's a\r deliberate stylization for a third-person game: the light belongs to\r the person on the beach, and it walks with you.",
-      "technical": "The water's vertex shader displaces 2–3 summed sines;\r the fragment side perturbs the normal analytically from the same sine\r sum (plus normal-only micro-ripples), then computes a Blinn specular\r term per light body — with the VIEWER term being the avatar's fixed\r world eye position passed as a uniform, never `cameraPosition`. A\r great-circle corridor from the disc base through the character clamps\r the footprint (meters-wide, monotonically widening toward shore, edges\r wobbled by time noise), and the whole thing fades into the foam band\r by water depth.",
+      "plain": "On real water, the glitter path runs from the sun to your eyes. Here it runs from the sun to the CHARACTER, so orbiting the camera changes your view of the lane without moving it. It's a deliberate stylization for a third-person game: the light belongs to the person on the beach, and it walks with you.",
+      "technical": "The water's vertex shader displaces 2–3 summed sines; the fragment side perturbs the normal analytically from the same sine sum (plus normal-only micro-ripples), then computes a Blinn specular term per light body — with the VIEWER term being the avatar's fixed world eye position passed as a uniform, never `cameraPosition`. A great-circle corridor from the disc base through the character clamps the footprint (meters-wide, monotonically widening toward shore, edges wobbled by time noise), and the whole thing fades into the foam band by water depth.",
       "files": [
         {
           "path": "src/scene/Water.tsx",
@@ -304,7 +304,7 @@
             {
               "symbol": "onBeforeCompile",
               "line": 29,
-              "code": " * system, all in one Lambert onBeforeCompile:\r\n * - 2–3 summed sines displace along the normal in object space (planet-local\r\n *   — waves rotate with the world), plus a slow shore-weighted surf cycle\r\n *   (SURF in planetConfig, also read by the wade ripple) that advances and\r\n *   recedes the waterline up the sand.\r\n * - The vertex shader evaluates terrainProfile (same control points, ported\r\n *   to GLSL) and passes water depth; the fragment paints a white foam band\r\n *   where the LIVE displaced surface meets the beach, with a noise-broken\r\n *   leading edge. Computed from the displaced surface, foam can never\r\n *   detach or gap — the old separate foam ring mesh is gone.\r\n */\r\nexport function Water() {\r\n  const waterMaterial = useMemo(() => {\r\n    const mat = new THREE.MeshLambertMaterial({\r"
+              "code": " * system, all in one Lambert onBeforeCompile:\n * - 2–3 summed sines displace along the normal in object space (planet-local\n *   — waves rotate with the world), plus a slow shore-weighted surf cycle\n *   (SURF in planetConfig, also read by the wade ripple) that advances and\n *   recedes the waterline up the sand.\n * - The vertex shader evaluates terrainProfile (same control points, ported\n *   to GLSL) and passes water depth; the fragment paints a white foam band\n *   where the LIVE displaced surface meets the beach, with a noise-broken\n *   leading edge. Computed from the displaced surface, foam can never\n *   detach or gap — the old separate foam ring mesh is gone.\n */\nexport function Water() {\n  const waterMaterial = useMemo(() => {\n    const mat = new THREE.MeshLambertMaterial({"
             }
           ],
           "note": "shader, the corridor stencil"
@@ -340,8 +340,8 @@
       "step": 7,
       "title": "A villager built from spheres and math",
       "hook": "Nobody modeled this character — it's assembled from primitive shapes and animated by arithmetic.",
-      "plain": "The avatar is stacked spheres, capsules, and boxes in\r Animal-Crossing proportions: a huge head, a teardrop body, stubby\r limbs. There's no skeleton and no animation files — walking, running,\r jumping, strumming, and sitting are all math driving the joints every\r frame. The whole cast (the player, Koa the ukulele player, future\r NPCs) shares one parameterized rig.",
-      "technical": "`buildNodes(config)` constructs merged vertex-colored\r geometry per body part from a `CharacterConfig` (hair style, glasses,\r outfit, dozens of proportion dials); limbs hang from pivot groups with\r nested elbow pivots. `STATES` holds per-locomotion animation params\r (bob, swing, lean) crossfaded by lerp; foot plants fire from swing\r phase crossings — never timers — which is what drives surface-switched\r footsteps. NPC specifics (Koa's strum, the avatar's seated pose)\r compose through a `poseHook` that runs after the shared animation.",
+      "plain": "The avatar is stacked spheres, capsules, and boxes in Animal-Crossing proportions: a huge head, a teardrop body, stubby limbs. There's no skeleton and no animation files — walking, running, jumping, strumming, and sitting are all math driving the joints every frame. The whole cast (the player, Koa the ukulele player, future NPCs) shares one parameterized rig.",
+      "technical": "`buildNodes(config)` constructs merged vertex-colored geometry per body part from a `CharacterConfig` (hair style, glasses, outfit, dozens of proportion dials); limbs hang from pivot groups with nested elbow pivots. `STATES` holds per-locomotion animation params (bob, swing, lean) crossfaded by lerp; foot plants fire from swing phase crossings — never timers — which is what drives surface-switched footsteps. NPC specifics (Koa's strum, the avatar's seated pose) compose through a `poseHook` that runs after the shared animation.",
       "files": [
         {
           "path": "src/scene/BlockyCharacter.tsx",
@@ -355,7 +355,7 @@
             {
               "symbol": "buildNodes",
               "line": 89,
-              "code": "export function buildNodes(config: CharacterConfig) {\r\n  const { height: H, headsTall, build, colors } = config\r\n  const headH = H / headsTall\r\n  const legLen = H * 0.14\r\n  const torsoH = H - headH - legLen\r\n  const headR = headH * 0.51\r\n  const headW = headR * 2\r\n  // Teardrop proportions (v3.16): shoulders ≈0.55× head width sloping out\r\n  // to hips ≈0.78× — the widest point sits near the BASE, never the top.\r\n  const shoulderR = headW * (config.shoulderFrac ?? 0.2275) * build\r\n  const hipR = headW * (config.hipFrac ?? 0.365) * build\r\n  // Torso depth squash — the side-profile slimness dial.\r\n  const depth = config.torsoDepth ?? 0.78\r\n  const armLen = torsoH * (config.armLenFrac ?? 0.87)\r"
+              "code": "export function buildNodes(config: CharacterConfig) {\r\n  const { height: H, headsTall, build, colors } = config\r\n  const headH = H / headsTall\r\n  const legLen = H * 0.14\r\n  const torsoH = H - headH - legLen\r\n  const headR = headH * 0.51\r\n  const headW = headR * 2\r\n  // Parka (Antarctica outpost): the SAME teardrop, padded out ~12%. A\r\n  // separate silhouette would have been a second rig; a fullness factor\r\n  // is one number every existing config multiplies by exactly 1, so\r\n  // tee-shorts and dress stay byte-identical.\r\n  const parka = config.outfit === 'parka'\r\n  const fullness = parka ? 1.12 : 1\r\n  const hooded = parka && config.hood === true\r"
             },
             {
               "symbol": "STATES",
@@ -369,7 +369,7 @@
             },
             {
               "symbol": "poseHook",
-              "line": 686,
+              "line": 776,
               "code": "      poseHook({\r\n        armL: armL.current,\r\n        armR: armR.current,\r\n        foreL: foreL.current,\r\n        foreR: foreR.current,\r\n        legL: legL.current,\r\n        legR: legR.current,\r\n        head: h,\r\n        t,\r\n      })\r\n    }\r\n  })\r\n\r\n  return (\r"
             }
           ],
@@ -384,12 +384,12 @@
           "excerpts": [
             {
               "symbol": "AIDEN",
-              "line": 96,
+              "line": 104,
               "code": "export const AIDEN: CharacterConfig = {\r\n  height: 1.25,\r\n  headsTall: 2.0,\r\n  build: 1,\r\n  colors: {\r\n    skin: '#f6cf9f',\r\n    hair: '#e8c36a',\r\n    top: '#ffd24d',\r\n    bottom: '#35a7a0',\r\n    shoes: '#fff3d6',\r\n    eyes: '#2b1c12',\r\n  },\r\n  hair: 'swoop',\r\n  outfit: 'tee-shorts',\r"
             },
             {
               "symbol": "KOA",
-              "line": 120,
+              "line": 128,
               "code": "export const KOA: CharacterConfig = {\r\n  height: 1.22,\r\n  headsTall: 2.0,\r\n  build: 1.02,\r\n  colors: {\r\n    skin: '#e8b98a',\r\n    hair: '#5a4632',\r\n    top: '#ff8c5a',\r\n    bottom: '#f5e9d0',\r\n    shoes: '#8a5a3a',\r\n    eyes: '#2b1c14',\r\n  },\r\n  hair: 'swoop',\r\n  outfit: 'tee-shorts',\r"
             }
           ],
@@ -414,8 +414,8 @@
       "step": 8,
       "title": "Sound that starts from silence",
       "hook": "Every wave, gull, footstep, and strum is either Aiden's own recording or synthesized on the spot — and none of it exists until you touch the page.",
-      "plain": "The audio system is fully lazy: nothing loads or even\r constructs an audio context before your first click or keypress. From\r there, each sound category draws from a pool of the owner's recorded\r cuts with a shuffle that never repeats back-to-back; categories with\r no recordings yet fall back to sounds generated by code. Footsteps\r know what you're walking on; the campfire is loud only when you're\r near it.",
-      "technical": "`nextBuffer(category)` resolves from `import.meta.glob`\r pools (drop a file in — zero code changes) through a depth-2\r `ShuffleBag`, decode-once cached, mono-downmixed for positional use.\r Foot plants come from the animation and route through\r `surfaceUnderfoot`; jumps are WebAudio-scheduled double-taps. The\r hard-won parts are defensive: `syncPanner` (three.js only updates\r panners for nodes it started itself — custom-source nodes silently sit\r at the planet's center), and the tab-return protection — hidden tabs\r suspend the context, `onAudioResume` resets every scheduler baseline,\r stall guards skip forward rather than replaying backlogs, and\r `registerVoice` caps concurrent voices per pool.",
+      "plain": "The audio system is fully lazy: nothing loads or even constructs an audio context before your first click or keypress. From there, each sound category draws from a pool of the owner's recorded cuts with a shuffle that never repeats back-to-back; categories with no recordings yet fall back to sounds generated by code. Footsteps know what you're walking on; the campfire is loud only when you're near it.",
+      "technical": "`nextBuffer(category)` resolves from `import.meta.glob` pools (drop a file in — zero code changes) through a depth-2 `ShuffleBag`, decode-once cached, mono-downmixed for positional use. Foot plants come from the animation and route through `surfaceUnderfoot`; jumps are WebAudio-scheduled double-taps. The hard-won parts are defensive: `syncPanner` (three.js only updates panners for nodes it started itself — custom-source nodes silently sit at the planet's center), and the tab-return protection — hidden tabs suspend the context, `onAudioResume` resets every scheduler baseline, stall guards skip forward rather than replaying backlogs, and `registerVoice` caps concurrent voices per pool.",
       "files": [
         {
           "path": "src/audio/core.ts",
@@ -430,27 +430,27 @@
             {
               "symbol": "nextBuffer",
               "line": 118,
-              "code": "export async function nextBuffer(category: Category): Promise<AudioBuffer | null> {\r\n  const ctx = audioRuntime.ctx\r\n  if (!ctx) return null\r\n  const urls = poolUrls.get(category)\r\n  if (urls && urls.length > 0) {\r\n    const pick = bagFor(category, urls.length).next()\r\n    return decodeUrl(urls[pick], POSITIONAL.has(category))\r\n  }\r\n  const make = fallbacks.get(category)\r\n  if (!make) return null\r\n  const key = `proc:${category}`\r\n  let buf = bufferCache.get(key)\r\n  if (!buf) {\r\n    buf = make(ctx)\r"
+              "code": "export async function nextBuffer(category: Category): Promise<AudioBuffer | null> {\n  const ctx = audioRuntime.ctx\n  if (!ctx) return null\n  const urls = poolUrls.get(category)\n  if (urls && urls.length > 0) {\n    const pick = bagFor(category, urls.length).next()\n    return decodeUrl(urls[pick], POSITIONAL.has(category))\n  }\n  const make = fallbacks.get(category)\n  if (!make) return null\n  const key = `proc:${category}`\n  let buf = bufferCache.get(key)\n  if (!buf) {\n    buf = make(ctx)"
             },
             {
               "symbol": "playDoubleTap",
               "line": 206,
-              "code": "export async function playDoubleTap(\r\n  category: Category,\r\n  bus: 'music' | 'world' | 'ui',\r\n  gain: number,\r\n  gapMs: number,\r\n) {\r\n  const rt = audioRuntime\r\n  if (!rt.ctx || !rt.buses) return\r\n  const [a, b] = await Promise.all([nextBuffer(category), nextBuffer(category)])\r\n  if (!a) return\r\n  const t0 = rt.ctx.currentTime + 0.02\r\n  const taps: Array<[AudioBuffer, number]> = [\r\n    [a, t0],\r\n    [b ?? a, t0 + gapMs / 1000],\r"
+              "code": "export async function playDoubleTap(\n  category: Category,\n  bus: 'music' | 'world' | 'ui',\n  gain: number,\n  gapMs: number,\n) {\n  const rt = audioRuntime\n  if (!rt.ctx || !rt.buses) return\n  const [a, b] = await Promise.all([nextBuffer(category), nextBuffer(category)])\n  if (!a) return\n  const t0 = rt.ctx.currentTime + 0.02\n  const taps: Array<[AudioBuffer, number]> = [\n    [a, t0],\n    [b ?? a, t0 + gapMs / 1000],"
             },
             {
               "symbol": "syncPanner",
               "line": 180,
-              "code": "export function syncPanner(node: THREE.PositionalAudio) {\r\n  node.getWorldPosition(_panPos)\r\n  const p = node.panner\r\n  if (p.positionX) {\r\n    p.positionX.value = _panPos.x\r\n    p.positionY.value = _panPos.y\r\n    p.positionZ.value = _panPos.z\r\n  } else {\r\n    p.setPosition(_panPos.x, _panPos.y, _panPos.z)\r\n  }\r\n}\r\n\r\n/** One-shot through an existing PositionalAudio node (world bus). */\r\nexport async function playAt(category: Category, node: THREE.PositionalAudio, gain = 1) {\r"
+              "code": "export function syncPanner(node: THREE.PositionalAudio) {\n  node.getWorldPosition(_panPos)\n  const p = node.panner\n  if (p.positionX) {\n    p.positionX.value = _panPos.x\n    p.positionY.value = _panPos.y\n    p.positionZ.value = _panPos.z\n  } else {\n    p.setPosition(_panPos.x, _panPos.y, _panPos.z)\n  }\n}\n\n/** One-shot through an existing PositionalAudio node (world bus). */\nexport async function playAt(category: Category, node: THREE.PositionalAudio, gain = 1) {"
             },
             {
               "symbol": "registerVoice",
               "line": 160,
-              "code": "  registerVoice(category, src)\r\n  src.start()\r\n}\r\n\r\n/** Route a three.js Audio/PositionalAudio's output through a bus. */\r\nexport function routeToBus(audio: THREE.Audio | THREE.PositionalAudio, bus: 'music' | 'world' | 'ui') {\r\n  const rt = audioRuntime\r\n  if (!rt.buses || !rt.listener) return\r\n  audio.gain.disconnect()\r\n  audio.gain.connect(rt.buses[bus])\r\n}\r\n\r\nconst _panPos = new THREE.Vector3()\r\n/** three's PositionalAudio only updates its panner while `isPlaying`\r"
+              "code": "  registerVoice(category, src)\n  src.start()\n}\n\n/** Route a three.js Audio/PositionalAudio's output through a bus. */\nexport function routeToBus(audio: THREE.Audio | THREE.PositionalAudio, bus: 'music' | 'world' | 'ui') {\n  const rt = audioRuntime\n  if (!rt.buses || !rt.listener) return\n  audio.gain.disconnect()\n  audio.gain.connect(rt.buses[bus])\n}\n\nconst _panPos = new THREE.Vector3()\n/** three's PositionalAudio only updates its panner while `isPlaying`"
             },
             {
               "symbol": "onAudioResume",
               "line": 259,
-              "code": "export function onAudioResume(h: (now: number) => void): () => void {\r\n  resumeHandlers.add(h)\r\n  return () => resumeHandlers.delete(h)\r\n}\r\n\r\nfunction handleVisibility() {\r\n  const rt = audioRuntime\r\n  if (!rt.ctx || !rt.listener) return\r\n  if (document.hidden) {\r\n    audioPause.hidden = true\r\n    // Hard-zero first (suspend() can lag a beat), then freeze the clock.\r\n    rt.listener.gain.gain.cancelScheduledValues(0)\r\n    rt.listener.gain.gain.value = 0\r\n    void rt.ctx.suspend()\r"
+              "code": "export function onAudioResume(h: (now: number) => void): () => void {\n  resumeHandlers.add(h)\n  return () => resumeHandlers.delete(h)\n}\n\nfunction handleVisibility() {\n  const rt = audioRuntime\n  if (!rt.ctx || !rt.listener) return\n  if (document.hidden) {\n    audioPause.hidden = true\n    // Hard-zero first (suspend() can lag a beat), then freeze the clock.\n    rt.listener.gain.gain.cancelScheduledValues(0)\n    rt.listener.gain.gain.value = 0\n    void rt.ctx.suspend()"
             }
           ]
         },
@@ -463,7 +463,7 @@
             {
               "symbol": "ShuffleBag",
               "line": 7,
-              "code": "export class ShuffleBag {\r\n  private history: number[] = []\r\n\r\n  constructor(\r\n    private size: number,\r\n    private rng: () => number = Math.random,\r\n  ) {}\r\n\r\n  /** Update the pool size (files can be hot-added in dev). */\r\n  resize(size: number) {\r\n    this.size = size\r\n    this.history = this.history.filter((i) => i < size)\r\n  }\r\n\r"
+              "code": "export class ShuffleBag {\n  private history: number[] = []\n\n  constructor(\n    private size: number,\n    private rng: () => number = Math.random,\n  ) {}\n\n  /** Update the pool size (files can be hot-added in dev). */\n  resize(size: number) {\n    this.size = size\n    this.history = this.history.filter((i) => i < size)\n  }\n"
             }
           ]
         },
@@ -477,12 +477,12 @@
             {
               "symbol": "stepSound",
               "line": 19,
-              "code": "export function stepSound(surface: Surface, sprint: boolean) {\r\n  // e2e cadence probe.\r\n  const w = window as unknown as { __stepLog?: Array<{ t: number; surface: string }> }\r\n  ;(w.__stepLog ??= []).push({ t: performance.now(), surface })\r\n  if (w.__stepLog.length > 64) w.__stepLog.shift()\r\n  void play2d(\r\n    surfaceToCategory(surface),\r\n    'world',\r\n    sprint ? FOOTSTEPS.stepGainSprint : FOOTSTEPS.stepGainWalk,\r\n  )\r\n}\r\n\r\n/** Takeoff/landing double-tap — two different picks ~90 ms apart;\r\n * landing slightly louder, never one heavy thud. */\r"
+              "code": "export function stepSound(surface: Surface, sprint: boolean) {\n  // e2e cadence probe.\n  const w = window as unknown as { __stepLog?: Array<{ t: number; surface: string }> }\n  ;(w.__stepLog ??= []).push({ t: performance.now(), surface })\n  if (w.__stepLog.length > 64) w.__stepLog.shift()\n  void play2d(\n    surfaceToCategory(surface),\n    'world',\n    sprint ? FOOTSTEPS.stepGainSprint : FOOTSTEPS.stepGainWalk,\n  )\n}\n\n/** Takeoff/landing double-tap — two different picks ~90 ms apart;\n * landing slightly louder, never one heavy thud. */"
             },
             {
               "symbol": "jumpTaps",
               "line": 33,
-              "code": "export function jumpTaps(surface: Surface, landing: boolean) {\r\n  const base = FOOTSTEPS.stepGainWalk * (landing ? 1.25 : 1.05)\r\n  void playDoubleTap(surfaceToCategory(surface), 'world', base, FOOTSTEPS.jumpTapGapMs)\r\n}\r\n"
+              "code": "export function jumpTaps(surface: Surface, landing: boolean) {\n  const base = FOOTSTEPS.stepGainWalk * (landing ? 1.25 : 1.05)\n  void playDoubleTap(surfaceToCategory(surface), 'world', base, FOOTSTEPS.jumpTapGapMs)\n}\n"
             }
           ]
         },
@@ -495,7 +495,7 @@
             {
               "symbol": "CrossfadeLoop",
               "line": 10,
-              "code": "export class CrossfadeLoop {\r\n  private out: GainNode | null = null\r\n  private endTime = 0\r\n  private pending = false\r\n\r\n  constructor(\r\n    private category: Category,\r\n    private fade = 0.5,\r\n  ) {}\r\n\r\n  /** The loop's level node (created lazily, connected to `target`). */\r\n  level(target: AudioNode): GainNode | null {\r\n    const ctx = audioRuntime.ctx\r\n    if (!ctx) return null\r"
+              "code": "export class CrossfadeLoop {\n  private out: GainNode | null = null\n  private endTime = 0\n  private pending = false\n\n  constructor(\n    private category: Category,\n    private fade = 0.5,\n  ) {}\n\n  /** The loop's level node (created lazily, connected to `target`). */\n  level(target: AudioNode): GainNode | null {\n    const ctx = audioRuntime.ctx\n    if (!ctx) return null"
             }
           ]
         },
@@ -510,17 +510,17 @@
             {
               "symbol": "musicTarget",
               "line": 37,
-              "code": "export function musicTarget(arcUkeM: number, arcFireM: number, modalOpen: boolean): number {\r\n  const ukeF = THREE.MathUtils.smoothstep(arcUkeM, 8, 20)\r\n  const fireF = THREE.MathUtils.lerp(0.6, 1, THREE.MathUtils.smoothstep(arcFireM, 4, 10))\r\n  return 0.35 * ukeF * fireF * (modalOpen ? 0.57 : 1)\r\n}\r\n\r\n/** Campfire crackle level — PURE proximity (audio finishing pass):\r\n * full at 3 m, silent past 12 m, and deliberately no nightMix term —\r\n * day/night has nothing to do with what a fire sounds like. */\r\nexport function crackleTarget(arcFireM: number): number {\r\n  return 0.875 * (1 - THREE.MathUtils.smoothstep(arcFireM, 3, 12))\r\n}\r\n\r\n/** Gull cry launch gain: a real gradient on top of the panner — full\r"
+              "code": "export function musicTarget(arcUkeM: number, arcFireM: number, modalOpen: boolean): number {\n  const ukeF = THREE.MathUtils.smoothstep(arcUkeM, 8, 20)\n  const fireF = THREE.MathUtils.lerp(0.6, 1, THREE.MathUtils.smoothstep(arcFireM, 4, 10))\n  return 0.35 * ukeF * fireF * (modalOpen ? 0.57 : 1)\n}\n\n/** Campfire crackle level — PURE proximity (audio finishing pass):\n * full at 3 m, silent past 12 m, and deliberately no nightMix term —\n * day/night has nothing to do with what a fire sounds like. */\nexport function crackleTarget(arcFireM: number): number {\n  return 0.875 * (1 - THREE.MathUtils.smoothstep(arcFireM, 3, 12))\n}\n\n/** Gull cry launch gain: a real gradient on top of the panner — full"
             },
             {
               "symbol": "crackleTarget",
               "line": 46,
-              "code": "export function crackleTarget(arcFireM: number): number {\r\n  return 0.875 * (1 - THREE.MathUtils.smoothstep(arcFireM, 3, 12))\r\n}\r\n\r\n/** Gull cry launch gain: a real gradient on top of the panner — full\r\n * voice inside ~10 m (gulls orbit at 10–13.5 m altitude, so \"standing\r\n * under one\" IS ~12 m), gone past 30 m, so flyovers breathe. */\r\nexport function cryGain(distM: number): number {\r\n  return 1.08 * (1 - THREE.MathUtils.smoothstep(distM, 10, 30))\r\n}\r\n\r\nexport function WorldEmitters() {\r\n  const fireAnchor = useRef<THREE.Group>(null)\r\n  const st = useRef({\r"
+              "code": "export function crackleTarget(arcFireM: number): number {\n  return 0.875 * (1 - THREE.MathUtils.smoothstep(arcFireM, 3, 12))\n}\n\n/** Gull cry launch gain: a real gradient on top of the panner — full\n * voice inside ~10 m (gulls orbit at 10–13.5 m altitude, so \"standing\n * under one\" IS ~12 m), gone past 30 m, so flyovers breathe. */\nexport function cryGain(distM: number): number {\n  return 1.08 * (1 - THREE.MathUtils.smoothstep(distM, 10, 30))\n}\n\nexport function WorldEmitters() {\n  const fireAnchor = useRef<THREE.Group>(null)\n  const st = useRef({"
             },
             {
               "symbol": "cryGain",
               "line": 53,
-              "code": "export function cryGain(distM: number): number {\r\n  return 1.08 * (1 - THREE.MathUtils.smoothstep(distM, 10, 30))\r\n}\r\n\r\nexport function WorldEmitters() {\r\n  const fireAnchor = useRef<THREE.Group>(null)\r\n  const st = useRef({\r\n    fire: new CrossfadeLoop('campfire', 0.6),\r\n    fireNode: null as THREE.PositionalAudio | null,\r\n    cryNode: null as THREE.PositionalAudio | null,\r\n    nextCry: 0,\r\n    fireUnit: latLongToUnit(MAP.campfire.lat, MAP.campfire.long),\r\n    pole: new THREE.Vector3(),\r\n  })\r"
+              "code": "export function cryGain(distM: number): number {\n  return 1.08 * (1 - THREE.MathUtils.smoothstep(distM, 10, 30))\n}\n\nexport function WorldEmitters() {\n  const fireAnchor = useRef<THREE.Group>(null)\n  const st = useRef({\n    fire: new CrossfadeLoop('campfire', 0.6),\n    fireNode: null as THREE.PositionalAudio | null,\n    cryNode: null as THREE.PositionalAudio | null,\n    nextCry: 0,\n    fireUnit: latLongToUnit(MAP.campfire.lat, MAP.campfire.long),\n    pole: new THREE.Vector3(),\n  })"
             }
           ]
         }
@@ -537,8 +537,8 @@
       "step": 9,
       "title": "Why draw calls beat triangles",
       "hook": "The island runs at 60 fps on a phone not by having less stuff — but by asking the GPU fewer times.",
-      "plain": "The performance budget is counted in draw calls — how many\r separate \"please draw this\" requests hit the GPU per frame — because\r on this kind of scene each request costs more than the triangles\r inside it. Repeated props render as single instanced batches; merged\r props fuse into one object per material; the whole world stays under\r 50 requests on mobile.",
-      "technical": "`e2e/measure.mjs` records fps, `renderer.info.render.calls`,\r and triangles at spawn, mid-dock, and the night beach against the\r preview build — the budget gates every feature commit. Repeats\r (palms, rocks, dock planks, campfire stones) go through instancing or\r `mergeByMaterial`; the fire's six animated tongues are ONE\r InstancedMesh; vertex-tinted merges collapse multi-material props to\r a single call. `PerformanceMonitor` drops a `qualityTier` that thins\r particles and stars on sustained decline — but never to zero (the\r empty-sky lesson).",
+      "plain": "The performance budget is counted in draw calls — how many separate \"please draw this\" requests hit the GPU per frame — because on this kind of scene each request costs more than the triangles inside it. Repeated props render as single instanced batches; merged props fuse into one object per material; the whole world stays under 50 requests on mobile.",
+      "technical": "`e2e/measure.mjs` records fps, `renderer.info.render.calls`, and triangles at spawn, mid-dock, and the night beach against the preview build — the budget gates every feature commit. Repeats (palms, rocks, dock planks, campfire stones) go through instancing or `mergeByMaterial`; the fire's six animated tongues are ONE InstancedMesh; vertex-tinted merges collapse multi-material props to a single call. `PerformanceMonitor` drops a `qualityTier` that thins particles and stars on sustained decline — but never to zero (the empty-sky lesson).",
       "files": [
         {
           "path": "e2e/measure.mjs",
@@ -602,8 +602,8 @@
       "step": 10,
       "title": "Content without touching the scene",
       "hook": "Every photo, project, and song on the island can change without anyone opening the 3D code.",
-      "plain": "All portfolio content lives in a handful of plain data\r files — the scene reads them, never the other way around. Photos drop\r into a staging folder and a script resizes and compresses them into\r web and thumbnail sizes; audio recordings drop into category folders\r and join the sound pools automatically; every category shows a\r friendly empty state until it's filled, so a half-finished site never\r looks broken.",
-      "technical": "`src/content/*.ts` exports typed arrays consumed by the\r modals and the `/classic` fallback page. `scripts/optimize-images.mjs`\r runs originals through a headless-Chromium canvas (no image deps) into\r 1800 px WebP plus 480 px thumbs with recorded intrinsic dimensions —\r the gallery never guesses aspect ratios. `scripts/ingest-audio.mjs`\r normalizes and verifies the owner's cuts into pools resolved by\r `import.meta.glob`. `CONTENT.md` documents every field against the\r actual interfaces; `CREDITS.md` tracks provenance — only license-clean\r sources ship.",
+      "plain": "All portfolio content lives in a handful of plain data files — the scene reads them, never the other way around. Photos drop into a staging folder and a script resizes and compresses them into web and thumbnail sizes; audio recordings drop into category folders and join the sound pools automatically; every category shows a friendly empty state until it's filled, so a half-finished site never looks broken.",
+      "technical": "`src/content/*.ts` exports typed arrays consumed by the modals and the `/classic` fallback page. `scripts/optimize-images.mjs` runs originals through a headless-Chromium canvas (no image deps) into 1800 px WebP plus 480 px thumbs with recorded intrinsic dimensions — the gallery never guesses aspect ratios. `scripts/ingest-audio.mjs` normalizes and verifies the owner's cuts into pools resolved by `import.meta.glob`. `CONTENT.md` documents every field against the actual interfaces; `CREDITS.md` tracks provenance — only license-clean sources ship.",
       "files": [
         {
           "path": "src/content/photos.ts",
@@ -614,7 +614,7 @@
             {
               "symbol": "Photo",
               "line": 1,
-              "code": "export interface Photo {\r\n  id: string\r\n  /** Web-sized image (longest edge ~1800 px, WebP via the pipeline). */\r\n  full: string\r\n  /** Grid thumbnail (~480 px, cover-cropped by the tile). */\r\n  thumb: string\r\n  /** Intrinsic dimensions of `full` — layout never guesses ratios. */\r\n  width: number\r\n  height: number\r\n  alt: string\r\n  title: string\r\n  caption?: string\r\n}\r\n\r"
+              "code": "export interface Photo {\n  id: string\n  /** Web-sized image (longest edge ~1800 px, WebP via the pipeline). */\n  full: string\n  /** Grid thumbnail (~480 px, cover-cropped by the tile). */\n  thumb: string\n  /** Intrinsic dimensions of `full` — layout never guesses ratios. */\n  width: number\n  height: number\n  alt: string\n  title: string\n  caption?: string\n}\n"
             }
           ],
           "note": "the interface, curated order"
@@ -651,8 +651,8 @@
       "step": 11,
       "title": "The moai",
       "hook": "The About page is a giant Easter Island head gazing over the plateau at the edge of dusk.",
-      "plain": "Where a big tree used to hold the About portal, a\r three-meter moai now watches the dusk boundary — walk up from any\r side, press E, and read who built the island. It went through three\r forms in a day: a modest carved stone, then the moai in a hedge\r ring, then the moai alone — the owner cut the hedge, and with it the\r invisible fencing that made walking near it feel like snagging on\r nothing.",
-      "technical": "`buildHedgeStone` (the id is historical) assembles the\r moai from rounded boxes per the style bible: an elongated tilted-back\r head, one heavy brow ridge proud of the face, darker recess boxes for\r the eye hollows, a long nose shaft ending in a wide base, two thin\r bars with a shadow seam for the pursed lips, long side ears, and a\r small torso with arm slabs meeting in chip-colored hands — all\r vertex-tinted and merged into ONE draw call, facing the northern\r approach via `meridianYaw`. Collision is a single snug 1.1 m\r slide-along blocker on the statue (arms reach ±0.83 m): impossible to\r walk through, free to circle, with the 2.5 m interact trigger firing\r on every side.",
+      "plain": "Where a big tree used to hold the About portal, a three-meter moai now watches the dusk boundary — walk up from any side, press E, and read who built the island. It went through three forms in a day: a modest carved stone, then the moai in a hedge ring, then the moai alone — the owner cut the hedge, and with it the invisible fencing that made walking near it feel like snagging on nothing.",
+      "technical": "`buildHedgeStone` (the id is historical) assembles the moai from rounded boxes per the style bible: an elongated tilted-back head, one heavy brow ridge proud of the face, darker recess boxes for the eye hollows, a long nose shaft ending in a wide base, two thin bars with a shadow seam for the pursed lips, long side ears, and a small torso with arm slabs meeting in chip-colored hands — all vertex-tinted and merged into ONE draw call, facing the northern approach via `meridianYaw`. Collision is a single snug 1.1 m slide-along blocker on the statue (arms reach ±0.83 m): impossible to walk through, free to circle, with the 2.5 m interact trigger firing on every side.",
       "files": [
         {
           "path": "src/scene/props.ts",
@@ -712,8 +712,8 @@
       "step": 12,
       "title": "The bulletin board",
       "hook": "A corkboard by the path holds the practical papers — starting with the resume.",
-      "plain": "Inland from the mailbox stands an Animal-Crossing-style\r bulletin board: two posts, a little sloped roof, and a cork face full\r of pinned pages. Read it and a Papers panel lists real documents you\r can view in the browser or download — the professional side of the\r island, pinned where visitors walk.",
-      "technical": "`buildBulletinBoard` is one vertex-tinted merge: posts,\r a weathered green frame, an inset cork face, a seated sloped roof, six\r paper quads at slight rotations with colored pin dots, and two curled\r corner flaps. The `papers` modal renders `content/papers.ts` entries\r as plain View (new tab — the browser's own PDF viewer) and Download\r links, so no PDF bytes move until a click; `/classic` mirrors the\r section per the mirror rule. Files live in `public/`.",
+      "plain": "Inland from the mailbox stands an Animal-Crossing-style bulletin board: two posts, a little sloped roof, and a cork face full of pinned pages. Read it and a Papers panel lists real documents you can view in the browser or download — the professional side of the island, pinned where visitors walk.",
+      "technical": "`buildBulletinBoard` is one vertex-tinted merge: posts, a weathered green frame, an inset cork face, a seated sloped roof, six paper quads at slight rotations with colored pin dots, and two curled corner flaps. The `papers` modal renders `content/papers.ts` entries as plain View (new tab — the browser's own PDF viewer) and Download links, so no PDF bytes move until a click; `/classic` mirrors the section per the mirror rule. Files live in `public/`.",
       "files": [
         {
           "path": "src/scene/props.ts",
@@ -737,7 +737,7 @@
             {
               "symbol": "Paper",
               "line": 1,
-              "code": "export interface Paper {\r\n  id: string\r\n  title: string\r\n  blurb: string\r\n  /** Public path (files live in public/, e.g. '/aiden-hock-resume.pdf'). */\r\n  file: string\r\n  type: 'pdf'\r\n}\r\n\r\n/**\r\n * Documents pinned to the bulletin board (and mirrored on /classic).\r\n * NOTE: /aiden-hock-resume.pdf is currently a PLACEHOLDER — the real\r\n * resume's header contains a phone number, which must not ship\r\n * (CLAUDE.md privacy rule). Aiden: strip the phone from the docx (or\r"
+              "code": "export interface Paper {\n  id: string\n  title: string\n  blurb: string\n  /** Public path (files live in public/, e.g. '/aiden-hock-resume.pdf'). */\n  file: string\n  type: 'pdf'\n}\n\n/**\n * Documents pinned to the bulletin board (and mirrored on /classic).\n * NOTE: /aiden-hock-resume.pdf is currently a PLACEHOLDER — the real\n * resume's header contains a phone number, which must not ship\n * (CLAUDE.md privacy rule). Aiden: strip the phone from the docx (or"
             }
           ],
           "note": "the interface"
@@ -759,8 +759,8 @@
       "step": 13,
       "title": "The minimap",
       "hook": "A little map in the corner that keeps you at the centre of the world.",
-      "plain": "The circular minimap is a bird's-eye view of the island with\r you always in the middle and whatever you are facing pointing up — walk\r and the island slides under your marker, turn and the map turns with\r you. Everything is on it from the first second: no fog to clear, no\r progress to grind.\r \r It reads like a map of a real place rather than a list of pins. Grass\r is green and the beach is sand; palms are green blobs and rocks grey\r ones; every landmark is its own colour, and the two big things are\r drawn as the shape you actually walk — the cemetery as its walled plot,\r the dock as the strip running out over the water. Nothing is labelled;\r you learn the island by its shapes. The sea carries the island's two\r moods, warm blue toward the sunset meridian and deep night-blue toward\r the other, with the sun and moon marked out on the water where they\r really hang — and pinned to the rim when they fall off the edge, so the\r map always tells you which way each side is.\r \r M (or the menu) hides it. Step through the rift and the same little\r window switches to a plan of the room you are standing in.",
-      "technical": "A 2D canvas overlay — deliberately not a second three.js\r scene — redrawn every animation frame with zero per-frame allocations,\r so the map tracks continuously instead of catching up when you stop.\r The projection is azimuthal around the PLAYER: `playerFrame` builds the\r tangent frame under the avatar from the live planet quaternion, then\r every target becomes a `rangeTo` (great-circle metres) and a `bearingTo`\r (radians from local north). `cameraHeading` converts the camera's world\r forward into the same frame and `toScreen` subtracts it, so the heading\r points up. The island is drawn by projecting two 64-point latitude\r rings, which stay correct under any rotation; `roomToScreen` does the\r same job for the room's flat rectangle.\r \r Everything on it comes from the world index, so moving a monument moves\r its icon: `mapIcons.ts` holds appearance only (colour, shape, size) and\r derives positions from `monuments.json` and `scatterProps`. Footprints\r are real geometry — the cemetery's four corners come from its recorded\r `size` and facing, each converted at ITS OWN latitude. The sea gradient\r runs along the projected sun→moon axis, so it rotates with the map.",
+      "plain": "The circular minimap is a bird's-eye view of the island with you always in the middle and whatever you are facing pointing up — walk and the island slides under your marker, turn and the map turns with you. Everything is on it from the first second: no fog to clear, no progress to grind.\n It reads like a map of a real place rather than a list of pins. Grass is green and the beach is sand; palms are green blobs and rocks grey ones; every landmark is its own colour, and the two big things are drawn as the shape you actually walk — the cemetery as its walled plot, the dock as the strip running out over the water. Nothing is labelled; you learn the island by its shapes. The sea carries the island's two moods, warm blue toward the sunset meridian and deep night-blue toward the other, with the sun and moon marked out on the water where they really hang — and pinned to the rim when they fall off the edge, so the map always tells you which way each side is.\n M (or the menu) hides it. Step through the rift and the same little window switches to a plan of the room you are standing in.",
+      "technical": "A 2D canvas overlay — deliberately not a second three.js scene — redrawn every animation frame with zero per-frame allocations, so the map tracks continuously instead of catching up when you stop. The projection is azimuthal around the PLAYER: `playerFrame` builds the tangent frame under the avatar from the live planet quaternion, then every target becomes a `rangeTo` (great-circle metres) and a `bearingTo` (radians from local north). `cameraHeading` converts the camera's world forward into the same frame and `toScreen` subtracts it, so the heading points up. The island is drawn by projecting two 64-point latitude rings, which stay correct under any rotation; `roomToScreen` does the same job for the room's flat rectangle.\n Everything on it comes from the world index, so moving a monument moves its icon: `mapIcons.ts` holds appearance only (colour, shape, size) and derives positions from `monuments.json` and `scatterProps`. Footprints are real geometry — the cemetery's four corners come from its recorded `size` and facing, each converted at ITS OWN latitude. The sea gradient runs along the projected sun→moon axis, so it rotates with the map.",
       "files": [
         {
           "path": "src/ui/minimapMath.ts",
@@ -773,17 +773,17 @@
             {
               "symbol": "playerFrame",
               "line": 34,
-              "code": "export function playerFrame(quat: THREE.Quaternion, out?: LocalFrame): LocalFrame {\r\n  const frame = out ?? {\r\n    pole: new THREE.Vector3(),\r\n    north: new THREE.Vector3(),\r\n    east: new THREE.Vector3(),\r\n  }\r\n  poleInPlanetSpace(quat, frame.pole)\r\n  frame.pole.normalize()\r\n  // North = the tangent toward lat 90. Degenerate exactly at the pole,\r\n  // where any tangent is north; +Z keeps the map from flipping there.\r\n  const lat = Math.asin(THREE.MathUtils.clamp(frame.pole.y, -1, 1))\r\n  if (Math.abs(Math.cos(lat)) < 1e-6) {\r\n    frame.north.set(0, 0, 1)\r\n  } else {\r"
+              "code": "export function playerFrame(quat: THREE.Quaternion, out?: LocalFrame): LocalFrame {\n  const frame = out ?? {\n    pole: new THREE.Vector3(),\n    north: new THREE.Vector3(),\n    east: new THREE.Vector3(),\n  }\n  poleInPlanetSpace(quat, frame.pole)\n  frame.pole.normalize()\n  // North = the tangent toward lat 90. Degenerate exactly at the pole,\n  // where any tangent is north; +Z keeps the map from flipping there.\n  const lat = Math.asin(THREE.MathUtils.clamp(frame.pole.y, -1, 1))\n  if (Math.abs(Math.cos(lat)) < 1e-6) {\n    frame.north.set(0, 0, 1)\n  } else {"
             },
             {
               "symbol": "bearingTo",
               "line": 66,
-              "code": "export function bearingTo(frame: LocalFrame, unit: THREE.Vector3): number {\r\n  // Project the target onto the tangent plane at the player.\r\n  _u.copy(unit).addScaledVector(frame.pole, -frame.pole.dot(unit))\r\n  if (_u.lengthSq() < 1e-12) return 0\r\n  _u.normalize()\r\n  return Math.atan2(_u.dot(frame.east), _u.dot(frame.north))\r\n}\r\n\r\n/**\r\n * The camera's heading as a bearing from local north, so the map can be\r\n * rotated to put \"where I am looking\" at the top. `forwardWorld` is the\r\n * camera's forward direction in world space; `quat` the planet's.\r\n */\r\nexport function cameraHeading(\r"
+              "code": "export function bearingTo(frame: LocalFrame, unit: THREE.Vector3): number {\n  // Project the target onto the tangent plane at the player.\n  _u.copy(unit).addScaledVector(frame.pole, -frame.pole.dot(unit))\n  if (_u.lengthSq() < 1e-12) return 0\n  _u.normalize()\n  return Math.atan2(_u.dot(frame.east), _u.dot(frame.north))\n}\n\n/**\n * The camera's heading as a bearing from local north, so the map can be\n * rotated to put \"where I am looking\" at the top. `forwardWorld` is the\n * camera's forward direction in world space; `quat` the planet's.\n */\nexport function cameraHeading("
             },
             {
               "symbol": "toScreen",
               "line": 96,
-              "code": "export function toScreen(\r\n  range: number,\r\n  bearing: number,\r\n  heading: number,\r\n  pxPerM: number,\r\n  out: { x: number; y: number },\r\n): { x: number; y: number } {\r\n  const a = bearing - heading\r\n  const r = range * pxPerM\r\n  out.x = Math.sin(a) * r\r\n  out.y = -Math.cos(a) * r\r\n  return out\r\n}\r\n\r"
+              "code": "export function toScreen(\n  range: number,\n  bearing: number,\n  heading: number,\n  pxPerM: number,\n  out: { x: number; y: number },\n): { x: number; y: number } {\n  const a = bearing - heading\n  const r = range * pxPerM\n  out.x = Math.sin(a) * r\n  out.y = -Math.cos(a) * r\n  return out\n}\n"
             }
           ]
         },
@@ -838,8 +838,8 @@
       "step": 14,
       "title": "The memorial garden",
       "hook": "A quiet fenced corner of the island where remembrances live.",
-      "plain": "Past the terminator on the night-leaning side is a walled\r garden: an iron fence on chunky stone posts, a gate you walk in\r through, a stone path, rows of headstones with flowers in front of\r them, a bench, and lanterns. The front row can be read — \"E — Remember\"\r opens a quiet card with a name, years, relation, and a message. At\r night the garden holds a faint warm glow and slow fireflies; it never\r gets bright. The same remembrances appear on /classic under Memorials.\r Three placeholder stones ship until Aiden writes real ones.",
-      "technical": "The plot is 17 × 13 m — big enough to walk around\r inside, which is far past the ~4 m limit where a flat mesh laid on a\r 55 m sphere sags mid-span and buries its corners. So `buildCemetery`\r builds everything flat in local space and then bends it with\r `wrapToSphere`, which maps each vertex through the same geodesic offset\r the walk controller uses; the whole garden stays ONE vertex-tinted\r merge — one draw call, ~5.1k triangles. Blockers are generated from the\r same rectangle at ~1 m pitch, skipping the gate gap, so they trace the\r fence you can see (the moai lesson) and never touch the interior. The\r night mood is `<Cemetery/>`: a 12-point firefly pool and two\r PointLights, both scaled by `smoothstep(nightMix, 0.45, 0.8)` and\r skipped on low tier.",
+      "plain": "Past the terminator on the night-leaning side is a walled garden: an iron fence on chunky stone posts, a gate you walk in through, a stone path, rows of headstones with flowers in front of them, a bench, and lanterns. The front row can be read — \"E — Remember\" opens a quiet card with a name, years, relation, and a message. At night the garden holds a faint warm glow and slow fireflies; it never gets bright. The same remembrances appear on /classic under Memorials. Three placeholder stones ship until Aiden writes real ones.",
+      "technical": "The plot is 17 × 13 m — big enough to walk around inside, which is far past the ~4 m limit where a flat mesh laid on a 55 m sphere sags mid-span and buries its corners. So `buildCemetery` builds everything flat in local space and then bends it with `wrapToSphere`, which maps each vertex through the same geodesic offset the walk controller uses; the whole garden stays ONE vertex-tinted merge — one draw call, ~5.1k triangles. Blockers are generated from the same rectangle at ~1 m pitch, skipping the gate gap, so they trace the fence you can see (the moai lesson) and never touch the interior. The night mood is `<Cemetery/>`: a 12-point firefly pool and two PointLights, both scaled by `smoothstep(nightMix, 0.45, 0.8)` and skipped on low tier.",
       "files": [
         {
           "path": "src/content/memorials.ts",
@@ -896,9 +896,9 @@
       "id": "matrix-room",
       "step": 15,
       "title": "The room through the rift",
-      "hook": "A tear in the air on the night side opens into a room you can\r\nrun around in.",
-      "plain": "A shard of broken light hangs over the grass past the\r terminator. Step into it and you are standing in a rectangular room:\r walls of falling ones and zeroes running endlessly above and below a\r glass floor, a framed screenshot of every feature on this island hung\r around you, and the rift itself hovering in the middle. The pictures\r hang IN THE ORDER THE WORK HAPPENED, each with its step number over it:\r 01 is at the left of the wall you arrive facing, and the sequence runs\r clockwise, so walking the room walks the history of the island. Walk up\r to any picture and press E to read how that piece was built — in plain\r language first, then the real code. Some features need more than one\r frame to show (the two skies, the sun's arc, the map inside and outside\r this room), so those come as a small set you click through with arrows,\r with dots underneath that light up as you look at each one. Walk back\r into the rift to come home. The minimap comes with you and redraws\r itself as a plan of the room.\r \r The same chapters, pictures, and arrows are on the classic site under\r Build log, as a numbered dropdown you can step through — with its own\r row of dots that fills in as you read your way along.",
-      "technical": "The room is a second walkable space, not a dialog, and\r it keeps the island's central invariant: THE AVATAR NEVER MOVES. The\r room group slides underneath it instead (`useRoomController`), so the\r camera rig, jump arc, avatar animation, and footstep hooks all work\r unchanged; only \"where am I\" changes, and that lives in `roomRuntime`.\r Walls clamp per axis so diagonals slide, and the follow camera marches\r its own ray to the nearest wall so it never ends up outside looking in.\r Entering flips `inRoom`: the planet group and the sky rig stand down\r (the planet's draws stop entirely) and `RoomScene` mounts from a lazy\r chunk. The wallpaper is a generated canvas of 0s and 1s scrolled by\r `map.offset.y` — no new shader, the two-shader rule stands. The mural\r images are the one place this project uses image textures, and they are\r screenshots of itself, captured by `scripts/capture-murals.mjs`; each\r mural declares an ordered `shots[]` and the wall hangs the first, so\r the room still costs one texture per frame no matter how many pictures\r a feature carries. Placement is derived, not authored: each chapter's\r `step` (its position in this file) sets both the number on the plate\r and the wall slot, dealt clockwise by largest-remainder over wall\r length — add a chapter and the whole room re-flows. The plates share\r one generated number atlas and merge into a single draw call. The\r picture viewer itself (`PictureCarousel`) and the glowing progress rail\r (`StepDots`) are shared components: the room's mural modal and the\r classic site's build log render the same code, the way `ContactForm`\r already serves both surfaces.\r Chapter text comes from `docs/build-log.json`, exported from this file\r at build time — the room is documentation rendering itself.",
+      "hook": "A tear in the air on the night side opens into a room you can\nrun around in.",
+      "plain": "A shard of broken light hangs over the grass past the terminator. Step into it and you are standing in a rectangular room: walls of falling ones and zeroes running endlessly above and below a glass floor, a framed screenshot of every feature on this island hung around you, and the rift itself hovering in the middle. The pictures hang IN THE ORDER THE WORK HAPPENED, each with its step number over it: 01 is at the left of the wall you arrive facing, and the sequence runs clockwise, so walking the room walks the history of the island. Walk up to any picture and press E to read how that piece was built — in plain language first, then the real code. Some features need more than one frame to show (the two skies, the sun's arc, the map inside and outside this room), so those come as a small set you click through with arrows, with dots underneath that light up as you look at each one. Walk back into the rift to come home. The minimap comes with you and redraws itself as a plan of the room.\n The same chapters, pictures, and arrows are on the classic site under Build log, as a numbered dropdown you can step through — with its own row of dots that fills in as you read your way along.",
+      "technical": "The room is a second walkable space, not a dialog, and it keeps the island's central invariant: THE AVATAR NEVER MOVES. The room group slides underneath it instead (`useRoomController`), so the camera rig, jump arc, avatar animation, and footstep hooks all work unchanged; only \"where am I\" changes, and that lives in `roomRuntime`. Walls clamp per axis so diagonals slide, and the follow camera marches its own ray to the nearest wall so it never ends up outside looking in. Entering flips `inRoom`: the planet group and the sky rig stand down (the planet's draws stop entirely) and `RoomScene` mounts from a lazy chunk. The wallpaper is a generated canvas of 0s and 1s scrolled by `map.offset.y` — no new shader, the two-shader rule stands. The mural images are the one place this project uses image textures, and they are screenshots of itself, captured by `scripts/capture-murals.mjs`; each mural declares an ordered `shots[]` and the wall hangs the first, so the room still costs one texture per frame no matter how many pictures a feature carries. Placement is derived, not authored: each chapter's `step` (its position in this file) sets both the number on the plate and the wall slot, dealt clockwise by largest-remainder over wall length — add a chapter and the whole room re-flows. The plates share one generated number atlas and merge into a single draw call. The picture viewer itself (`PictureCarousel`) and the glowing progress rail (`StepDots`) are shared components: the room's mural modal and the classic site's build log render the same code, the way `ContactForm` already serves both surfaces. Chapter text comes from `docs/build-log.json`, exported from this file at build time — the room is documentation rendering itself.",
       "files": [
         {
           "path": "src/controls/useRoomController.ts",
@@ -966,9 +966,9 @@
       "id": "self-hosted-fonts",
       "step": 16,
       "title": "Making the type real",
-      "hook": "The site had specified its typefaces for months and never\r\nactually loaded them.",
-      "plain": "Two fonts were named in the stylesheet — Bricolage Grotesque\r for headings, Atkinson Hyperlegible (a typeface designed for low\r vision) for body text — but nothing ever fetched them, so every visitor\r saw their operating system's default. They now ship with the site\r itself rather than being requested from Google, which means no third\r party learns you visited. Alongside that: icons at every size a browser\r or phone launcher asks for, a web manifest, and the canonical link\r search engines want.",
-      "technical": "`scripts/fetch-fonts.mjs` downloads the latin woff2\r subsets into `public/fonts/` and generates `src/fonts.css` with\r `@font-face` rules and `font-display: swap`; `src/index.css` imports it\r next to the `@theme` tokens that name the families. Latin-only keeps\r the payload at 109 KB — latin-ext, vietnamese, and cyrillic would\r roughly triple it for glyphs this site never renders.\r `scripts/make-favicons.mjs` renders `favicon.svg` at 16/32/192/512 and\r 180 (apple-touch) through headless Chromium, the same\r no-new-dependency trick `optimize-images.mjs` uses.",
+      "hook": "The site had specified its typefaces for months and never\nactually loaded them.",
+      "plain": "Two fonts were named in the stylesheet — Bricolage Grotesque for headings, Atkinson Hyperlegible (a typeface designed for low vision) for body text — but nothing ever fetched them, so every visitor saw their operating system's default. They now ship with the site itself rather than being requested from Google, which means no third party learns you visited. Alongside that: icons at every size a browser or phone launcher asks for, a web manifest, and the canonical link search engines want.",
+      "technical": "`scripts/fetch-fonts.mjs` downloads the latin woff2 subsets into `public/fonts/` and generates `src/fonts.css` with `@font-face` rules and `font-display: swap`; `src/index.css` imports it next to the `@theme` tokens that name the families. Latin-only keeps the payload at 109 KB — latin-ext, vietnamese, and cyrillic would roughly triple it for glyphs this site never renders. `scripts/make-favicons.mjs` renders `favicon.svg` at 16/32/192/512 and 180 (apple-touch) through headless Chromium, the same no-new-dependency trick `optimize-images.mjs` uses.",
       "files": [
         {
           "path": "scripts/fetch-fonts.mjs",
@@ -991,7 +991,7 @@
             {
               "symbol": "@font-face",
               "line": 4,
-              "code": "@font-face {\r\n  font-family: 'Atkinson Hyperlegible';\r\n  font-style: normal;\r\n  font-weight: 400;\r\n  font-display: swap;\r\n  src: url('/fonts/atkinson-hyperlegible-400.woff2') format('woff2');\r\n  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;\r\n}\r\n\r\n@font-face {\r\n  font-family: 'Atkinson Hyperlegible';\r\n  font-style: normal;\r\n  font-weight: 700;\r\n  font-display: swap;\r"
+              "code": "@font-face {\n  font-family: 'Atkinson Hyperlegible';\n  font-style: normal;\n  font-weight: 400;\n  font-display: swap;\n  src: url('/fonts/atkinson-hyperlegible-400.woff2') format('woff2');\n  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;\n}\n\n@font-face {\n  font-family: 'Atkinson Hyperlegible';\n  font-style: normal;\n  font-weight: 700;\n  font-display: swap;"
             }
           ],
           "note": "generated rules"
@@ -1013,9 +1013,9 @@
       "id": "world-index",
       "step": 17,
       "title": "The world index",
-      "hook": "Every object on the island now lives at coordinates you can\r\nedit in one file.",
-      "plain": "Where the dock is, which way the moai faces, how high the\r rift floats — all of it used to be scattered through the code that\r draws each thing. Now there is a single list, `monuments.json`, with a\r line per object: latitude, longitude, the direction it faces, and how\r far off the ground it sits. Move a number, and the model, its collision,\r its dot on the minimap, and the printed world map all follow. There is\r a readable version of the list at `docs/world-map.md`.",
-      "technical": "`src/content/monuments.json` is the data (plain JSON so\r node scripts and the app read the same file); `monuments.ts` wraps it\r with types and `monument()` / `monumentPos()` / `monumentYaw()`, which\r throw loudly on an unknown id rather than silently placing something at\r the origin. `planetConfig.MAP` is now DERIVED from it, so every existing\r consumer of MAP inherited the indirection for free, and `interactables.ts`\r takes its rotations from `facingDeg` instead of hardcoded radians.\r `scripts/world-map.mjs` regenerates the docs table. Vitest guards the\r things that silently break a world: duplicate ids, coordinates off the\r island, and interactables whose monument has gone missing.",
+      "hook": "Every object on the island now lives at coordinates you can\nedit in one file.",
+      "plain": "Where the dock is, which way the moai faces, how high the rift floats — all of it used to be scattered through the code that draws each thing. Now there is a single list, `monuments.json`, with a line per object: latitude, longitude, the direction it faces, and how far off the ground it sits. Move a number, and the model, its collision, its dot on the minimap, and the printed world map all follow. There is a readable version of the list at `docs/world-map.md`.",
+      "technical": "`src/content/monuments.json` is the data (plain JSON so node scripts and the app read the same file); `monuments.ts` wraps it with types and `monument()` / `monumentPos()` / `monumentYaw()`, which throw loudly on an unknown id rather than silently placing something at the origin. `planetConfig.MAP` is now DERIVED from it, so every existing consumer of MAP inherited the indirection for free, and `interactables.ts` takes its rotations from `facingDeg` instead of hardcoded radians. `scripts/world-map.mjs` regenerates the docs table. Vitest guards the things that silently break a world: duplicate ids, coordinates off the island, and interactables whose monument has gone missing.",
       "files": [
         {
           "path": "src/content/monuments.json",
@@ -1070,9 +1070,9 @@
       "id": "rotate-nudge",
       "step": 18,
       "title": "Turning the phone",
-      "hook": "The island wants a wide screen, and no website can turn your\r\nphone for you.",
-      "plain": "On a phone held upright, the world opens with a card asking\r you to turn it sideways — the island is far wider than it is tall, and\r landscape gives you the whole horizon. Turn the phone and the card\r disappears by itself. On Android there's a button that does it for you.\r On an iPhone there isn't one, because Safari doesn't let a website\r rotate anything; so instead, if you've turned the phone and nothing\r happened, the card explains the real cause — Portrait Orientation Lock\r — and where to switch it off. There is always a \"play in portrait\r anyway\" button, because the island really does play upright, and\r someone whose rotation is locked must never be shut out of a portfolio.\r The classic site never shows any of this: it's a document, and upright\r is right for it.",
-      "technical": "`RotateNudge` mounts on the world route only (App, next\r to `ModalRoot`, outside the `inert` wrapper so it shows over an open\r modal). It watches one media query — `(orientation: portrait) and\r (max-width: 820px) and (pointer: coarse)` — which keeps tablets out of\r it and hides the card the instant the device turns. The lock path is\r pure feature detection: fullscreen the document element, then\r `screen.orientation.lock('landscape')`, with any failure falling\r through to the help text rather than an error. Safari implements\r neither call, which is why the button is absent there rather than\r broken. Dismissal is `sessionStorage`, so it lasts the visit and not\r beyond. The e2e helper pre-dismisses it so the gameplay suites still\r drive the world directly, and the nudge has its own test.",
+      "hook": "The island wants a wide screen, and no website can turn your\nphone for you.",
+      "plain": "On a phone held upright, the world opens with a card asking you to turn it sideways — the island is far wider than it is tall, and landscape gives you the whole horizon. Turn the phone and the card disappears by itself. On Android there's a button that does it for you. On an iPhone there isn't one, because Safari doesn't let a website rotate anything; so instead, if you've turned the phone and nothing happened, the card explains the real cause — Portrait Orientation Lock — and where to switch it off. There is always a \"play in portrait anyway\" button, because the island really does play upright, and someone whose rotation is locked must never be shut out of a portfolio. The classic site never shows any of this: it's a document, and upright is right for it.",
+      "technical": "`RotateNudge` mounts on the world route only (App, next to `ModalRoot`, outside the `inert` wrapper so it shows over an open modal). It watches one media query — `(orientation: portrait) and (max-width: 820px) and (pointer: coarse)` — which keeps tablets out of it and hides the card the instant the device turns. The lock path is pure feature detection: fullscreen the document element, then `screen.orientation.lock('landscape')`, with any failure falling through to the help text rather than an error. Safari implements neither call, which is why the button is absent there rather than broken. Dismissal is `sessionStorage`, so it lasts the visit and not beyond. The e2e helper pre-dismisses it so the gameplay suites still drive the world directly, and the nudge has its own test.",
       "files": [
         {
           "path": "src/ui/RotateNudge.tsx",
@@ -1130,8 +1130,8 @@
       "step": 19,
       "title": "A world you can drag",
       "hook": "The island is now editable from inside itself.",
-      "plain": "Everything on the island — every prop, portal, palm and rock\r — lives in one file of coordinates. In development you can open the\r world with `?editor` (or press F2) and rearrange it.\r \r The main tool is a plan view: the island seen from above, holding still,\r with everything on it as a dot you can drag. Blocker radii are drawn at\r their true size, so two things fighting over the same ground is obvious\r at a glance; a stalk on the selected item turns it; the wheel zooms and\r the background pans. Faint lines tie a monument's parts to it, so you\r can see what will come along before you drag. You can still click props\r in the 3D world to select them, and nudge with the arrow keys, but the\r laying-out happens on the map.\r \r Sliders set size and collision, there's a palette to place new props,\r duplicate and delete, and full undo. When it looks right, one button\r writes the file back to disk.\r \r It warns before you make a mess: something placed past the waterline,\r two things whose collisions overlap enough to wedge the player, or a\r placement that pushes the scene over its draw-call budget.\r \r None of this ships. The editor is stripped from production builds\r entirely, and a check in the build asserts it.",
-      "technical": "Placements moved out of three scattered sources into\r `content/placements.json`, and the scene reads them through\r `scene/placementRuntime.ts` — a small store initialised from the file.\r In production nothing mutates it, so the world IS the file; in the\r editor every change goes through a command stack (whole-list snapshots,\r since 41 entries are cheap) and rebuilds the blocker array IN PLACE, so\r a dragged prop's collision moves with it and the cemetery's generated\r fence regenerates around the plot. Picking is analytic rather than a\r raycast against terrain: the screen ray meets a sphere of the planet's\r radius, and that point converts straight back to lat/long — the numbers\r the file stores. Altitude is never editable; it always comes from\r `groundAltitudeAt − SINK_M`. The panel and the 3D helpers are behind\r `import.meta.env.DEV`, which Vite folds to `false` in a build so Rollup\r drops the dynamic imports and emits no chunk.",
+      "plain": "Everything on the island — every prop, portal, palm and rock — lives in one file of coordinates. In development you can open the world with `?editor` (or press F2) and rearrange it.\n The main tool is a plan view: the island seen from above, holding still, with everything on it as a dot you can drag. Blocker radii are drawn at their true size, so two things fighting over the same ground is obvious at a glance; a stalk on the selected item turns it; the wheel zooms and the background pans. Faint lines tie a monument's parts to it, so you can see what will come along before you drag. You can still click props in the 3D world to select them, and nudge with the arrow keys, but the laying-out happens on the map.\n Sliders set size and collision, there's a palette to place new props, duplicate and delete, and full undo. When it looks right, one button writes the file back to disk.\n It warns before you make a mess: something placed past the waterline, two things whose collisions overlap enough to wedge the player, or a placement that pushes the scene over its draw-call budget.\n None of this ships. The editor is stripped from production builds entirely, and a check in the build asserts it.",
+      "technical": "Placements moved out of three scattered sources into `content/placements.json`, and the scene reads them through `scene/placementRuntime.ts` — a small store initialised from the file. In production nothing mutates it, so the world IS the file; in the editor every change goes through a command stack (whole-list snapshots, since 41 entries are cheap) and rebuilds the blocker array IN PLACE, so a dragged prop's collision moves with it and the cemetery's generated fence regenerates around the plot. Picking is analytic rather than a raycast against terrain: the screen ray meets a sphere of the planet's radius, and that point converts straight back to lat/long — the numbers the file stores. Altitude is never editable; it always comes from `groundAltitudeAt − SINK_M`. The panel and the 3D helpers are behind `import.meta.env.DEV`, which Vite folds to `false` in a build so Rollup drops the dynamic imports and emits no chunk.",
       "files": [
         {
           "path": "src/content/placements.json",
@@ -1180,12 +1180,12 @@
             {
               "symbol": "project",
               "line": 28,
-              "code": "export function project(view: MapView, lat: number, long: number): { x: number; y: number } {\r\n  const r = (90 - lat) * view.scale\r\n  const a = long * DEG\r\n  return {\r\n    x: view.cx + view.panX + Math.sin(a) * r,\r\n    y: view.cy + view.panY - Math.cos(a) * r,\r\n  }\r\n}\r\n\r\nexport function unproject(view: MapView, x: number, y: number): { lat: number; long: number } {\r\n  const dx = x - view.cx - view.panX\r\n  const dy = y - view.cy - view.panY\r\n  const r = Math.hypot(dx, dy)\r\n  return {\r"
+              "code": "export function project(view: MapView, lat: number, long: number): { x: number; y: number } {\n  const r = (90 - lat) * view.scale\n  const a = long * DEG\n  return {\n    x: view.cx + view.panX + Math.sin(a) * r,\n    y: view.cy + view.panY - Math.cos(a) * r,\n  }\n}\n\nexport function unproject(view: MapView, x: number, y: number): { lat: number; long: number } {\n  const dx = x - view.cx - view.panX\n  const dy = y - view.cy - view.panY\n  const r = Math.hypot(dx, dy)\n  return {"
             },
             {
               "symbol": "unproject",
               "line": 37,
-              "code": "export function unproject(view: MapView, x: number, y: number): { lat: number; long: number } {\r\n  const dx = x - view.cx - view.panX\r\n  const dy = y - view.cy - view.panY\r\n  const r = Math.hypot(dx, dy)\r\n  return {\r\n    lat: 90 - r / view.scale,\r\n    long: ((Math.atan2(dx, -dy) / DEG) % 360 + 360) % 360,\r\n  }\r\n}\r\n\r\n/** Metres → pixels, for drawing blocker radii at their true size. */\r\nexport const metresPerDegree = (Math.PI * PLANET_RADIUS) / 180\r\nexport const pxPerMetre = (view: MapView) => view.scale / metresPerDegree\r\n"
+              "code": "export function unproject(view: MapView, x: number, y: number): { lat: number; long: number } {\n  const dx = x - view.cx - view.panX\n  const dy = y - view.cy - view.panY\n  const r = Math.hypot(dx, dy)\n  return {\n    lat: 90 - r / view.scale,\n    long: ((Math.atan2(dx, -dy) / DEG) % 360 + 360) % 360,\n  }\n}\n\n/** Metres → pixels, for drawing blocker radii at their true size. */\nexport const metresPerDegree = (Math.PI * PLANET_RADIUS) / 180\nexport const pxPerMetre = (view: MapView) => view.scale / metresPerDegree\n"
             }
           ]
         },
@@ -1208,9 +1208,9 @@
       "id": "reasons-to-walk",
       "step": 20,
       "title": "Reasons to walk, and a world that notices",
-      "hook": "The sand keeps your footprints, and a sign at the top of the\r\nworld tells you how far everything is.",
-      "plain": "Walk the beach and you leave prints behind you, pressed in\r step with your feet, fading back into the sand after a few seconds.\r It's a small thing and it changes how the island feels: the world\r registers that you were there.\r \r Near where you arrive stands a totem of a signpost, a carved hawk with\r its wings spread at the top and six pointed boards stacked down a heavy\r post, each one turned toward a landmark and\r lettered with the real distance — the dock 68 m one way, the campfire\r 71 m another. Every board is an arrow, pointing where you'd walk. Both\r numbers come from the same file the world is built from, so the sign\r can't be wrong: move the campfire and its plank swings round and\r re-letters itself.",
-      "technical": "Footprints are a fixed pool of 28 instanced ovals pressed\r by the avatar's foot-plant — the same event that fires the footstep\r sound, so the trail lands in step with the gait rather than on a timer.\r They are built in world space at the moment of the step and converted to\r planet-local, so they stay on the ground as the world turns under you.\r They fade by lerping their instance colour back toward the sand rather\r than by opacity: an opaque instanced mesh needs no transparency sorting\r against the water or the fire, and per-instance alpha isn't a thing.\r Sand only — grass springs back and a print in the sea is nonsense.\r \r The signpost is a placement like anything else, so it can be dragged in\r the editor. `bearingBetween` gives each plank its yaw from the local\r tangent frame and `metresBetween` the great-circle distance. Each board\r is an extruded arrow shape whose UVs are recomputed from the shape's own\r coordinates — including a mirrored `u` on the back face, so a sign you\r walk past reads correctly from both sides. The lettering is one canvas,\r a row per plank at the plank's own aspect ratio so type never stretches,\r with the font shrunk to fit if a name would run into the point. One\r texture, one draw call. It rebuilds when the post or any landmark it\r names moves.",
+      "hook": "The sand keeps your footprints, and a sign at the top of the\nworld tells you how far everything is.",
+      "plain": "Walk the beach and you leave prints behind you, pressed in step with your feet, fading back into the sand after a few seconds. It's a small thing and it changes how the island feels: the world registers that you were there.\n Near where you arrive stands a totem of a signpost, a carved hawk with its wings spread at the top and six pointed boards stacked down a heavy post, each one turned toward a landmark and lettered with the real distance — the dock 68 m one way, the campfire 71 m another. Every board is an arrow, pointing where you'd walk. Both numbers come from the same file the world is built from, so the sign can't be wrong: move the campfire and its plank swings round and re-letters itself.",
+      "technical": "Footprints are a fixed pool of 28 instanced ovals pressed by the avatar's foot-plant — the same event that fires the footstep sound, so the trail lands in step with the gait rather than on a timer. They are built in world space at the moment of the step and converted to planet-local, so they stay on the ground as the world turns under you. They fade by lerping their instance colour back toward the sand rather than by opacity: an opaque instanced mesh needs no transparency sorting against the water or the fire, and per-instance alpha isn't a thing. Sand only — grass springs back and a print in the sea is nonsense.\n The signpost is a placement like anything else, so it can be dragged in the editor. `bearingBetween` gives each plank its yaw from the local tangent frame and `metresBetween` the great-circle distance. Each board is an extruded arrow shape whose UVs are recomputed from the shape's own coordinates — including a mirrored `u` on the back face, so a sign you walk past reads correctly from both sides. The lettering is one canvas, a row per plank at the plank's own aspect ratio so type never stretches, with the font shrunk to fit if a name would run into the point. One texture, one draw call. It rebuilds when the post or any landmark it names moves.",
       "files": [
         {
           "path": "src/scene/Footprints.tsx",
@@ -1271,9 +1271,9 @@
       "id": "telescope",
       "step": 21,
       "title": "Tonight's moon",
-      "hook": "A telescope on the night beach shows the moon as it actually\r\nis tonight — and it never phones anyone to find out.",
-      "plain": "Walk to the dark side of the island and there's a telescope\r on a tripod — and it FOLLOWS THE MOON. The moon here isn't pinned to the\r sky; it rises and sets depending on where you're standing, so a\r telescope aimed at a fixed angle would spend most of its life pointing\r at nothing. This one turns to keep the moon in its sights, slowly, and\r settles back to a resting tilt when the moon is down. Look through it and you get the real\r moon for today: its phase, how much of it is lit, how many days old it\r is, and whether it's filling out or thinning, with the shadow drawn\r across the disc where it really falls.\r \r The obvious way to build that is to fetch a picture of the moon from\r somewhere. This island doesn't do that. Nothing here calls out to\r another server while you're visiting — that's why the fonts are stored\r with the site and why analytics ships switched off — and a live image\r would mean some other company seeing everyone who comes here, plus a\r telescope that shows a broken picture the day that service changes.\r \r It turns out you don't need to ask anyone. The moon's cycle is 29.53\r days long and we know when one started, so today's phase is arithmetic,\r accurate to within a few hours — far finer than an eye can read off a\r disc. The picture in the eyepiece is Aiden's own photograph of the full moon,\r with tonight's shadow laid across it. Under it is every number the\r drawing is made from — how lit it is, how old, how far through the\r cycle, which way it's heading, and when the next full and new moons\r fall — with a dropdown that explains what each one actually means.",
-      "technical": "`moonPhase(date)` takes days since a known new moon\r (2000-01-06 18:14 UTC) modulo the synodic month; illumination is\r `(1 − cos 2πt)/2`, and the eight phase names take narrow bands around\r the quarters so \"first quarter\" means roughly the day it is rather than\r a whole week. `drawMoonPhase` paints the disc — the photograph if\r `public/moon/moon.jpg` exists, else a procedural stand-in with maria —\r then the shadow: a half-disc plus a terminator ellipse of horizontal\r semi-axis `R·|cos 2πt|`, added for a crescent and carved out for a\r gibbous. The shadow is dark blue rather than black because earthshine\r keeps the unlit limb faintly present and a pure silhouette reads as a\r hole in the image. The photo load is optional by construction: a\r missing file falls back to the drawing instead of showing a broken img.",
+      "hook": "A telescope on the night beach shows the moon as it actually\nis tonight — and it never phones anyone to find out.",
+      "plain": "Walk to the dark side of the island and there's a telescope on a tripod — and it FOLLOWS THE MOON. The moon here isn't pinned to the sky; it rises and sets depending on where you're standing, so a telescope aimed at a fixed angle would spend most of its life pointing at nothing. This one turns to keep the moon in its sights, slowly, and settles back to a resting tilt when the moon is down. Look through it and you get the real moon for today: its phase, how much of it is lit, how many days old it is, and whether it's filling out or thinning, with the shadow drawn across the disc where it really falls.\n The obvious way to build that is to fetch a picture of the moon from somewhere. This island doesn't do that. Nothing here calls out to another server while you're visiting — that's why the fonts are stored with the site and why analytics ships switched off — and a live image would mean some other company seeing everyone who comes here, plus a telescope that shows a broken picture the day that service changes.\n It turns out you don't need to ask anyone. The moon's cycle is 29.53 days long and we know when one started, so today's phase is arithmetic, accurate to within a few hours — far finer than an eye can read off a disc. The picture in the eyepiece is Aiden's own photograph of the full moon, with tonight's shadow laid across it. Under it is every number the drawing is made from — how lit it is, how old, how far through the cycle, which way it's heading, and when the next full and new moons fall — with a dropdown that explains what each one actually means.",
+      "technical": "`moonPhase(date)` takes days since a known new moon (2000-01-06 18:14 UTC) modulo the synodic month; illumination is `(1 − cos 2πt)/2`, and the eight phase names take narrow bands around the quarters so \"first quarter\" means roughly the day it is rather than a whole week. `drawMoonPhase` paints the disc — the photograph if `public/moon/moon.jpg` exists, else a procedural stand-in with maria — then the shadow: a half-disc plus a terminator ellipse of horizontal semi-axis `R·|cos 2πt|`, added for a crescent and carved out for a gibbous. The shadow is dark blue rather than black because earthshine keeps the unlit limb faintly present and a pure silhouette reads as a hole in the image. The photo load is optional by construction: a missing file falls back to the drawing instead of showing a broken img.",
       "files": [
         {
           "path": "src/scene/moonPhase.ts",
@@ -1358,9 +1358,9 @@
       "id": "palm-sway",
       "step": 22,
       "title": "Wind: the palms sway",
-      "hook": "Every palm on the island leans in the same wind, and no two\r\never move together.",
-      "plain": "Stand still and watch the trees — each crown of fronds and\r coconuts breathes in a slow lean, with a quicker flutter riding on top,\r the way real palm crowns shiver in a gust while the trunk barely moves.\r Every palm answers to the same wind (the same one that drags the\r clouds across the sky and drifts the campfire's smoke), but each one is\r a beat out of step with its neighbors, so a row of palms never sways\r like a chorus line.",
-      "technical": "`wind.ts` is the one wind: a fixed planet-local axis\r (moved here from the clouds, which now import it instead of owning it)\r and a pure `windLean(t, phase)` — a slow breathing sine plus a faster\r two-tone flutter, tuned to a few degrees so a palm never reads as\r blown over. `buildPalm` tags its frond and coconut parts (not the\r trunk) with a `sway.pivot` — the crown's own prop-local point — so\r `PropPart` carries an optional sway field through the merge pipeline\r unchanged (three parts, same tris, same materials).\r \r The hard part is that \"downwind\" means something different at every\r placement: the wind is one fixed direction, but each palm sits on the\r sphere at its own tilt. `SwayInstances` (instancing.tsx) solves this\r once per instance at mount, not per frame: it reads the placement\r matrix's own translation to get the instance's planet-local position,\r asks `windDirAt` for the tangent wind direction there, then pulls that\r world direction back into the prop's own local frame through the\r INVERSE of the placement's rotation. Crossing local up with that local\r wind gives the one axis that leans the crown toward it. A per-instance\r phase (`i * 2.399`, an irrational-ish stride) keeps the pool from\r breathing in unison. Every frame, `swayMatrix` composes `placement ×\r T(pivot) × R(axis, angle) × T(−pivot)` — the pivot point itself never\r moves, only the crown swinging around it — writing straight into the\r instance matrix with module-level scratch only, so a windy island costs\r zero allocations per frame. `InstancedProp` picks `SwayInstances` for\r any part tagged `sway` and `StaticInstances` for the rest, so nothing\r else that renders a prop had to change.",
+      "hook": "Every palm on the island leans in the same wind, and no two\never move together.",
+      "plain": "Stand still and watch the trees — each crown of fronds and coconuts breathes in a slow lean, with a quicker flutter riding on top, the way real palm crowns shiver in a gust while the trunk barely moves. Every palm answers to the same wind (the same one that drags the clouds across the sky and drifts the campfire's smoke), but each one is a beat out of step with its neighbors, so a row of palms never sways like a chorus line.",
+      "technical": "`wind.ts` is the one wind: a fixed planet-local axis (moved here from the clouds, which now import it instead of owning it) and a pure `windLean(t, phase)` — a slow breathing sine plus a faster two-tone flutter, tuned to a few degrees so a palm never reads as blown over. `buildPalm` tags its frond and coconut parts (not the trunk) with a `sway.pivot` — the crown's own prop-local point — so `PropPart` carries an optional sway field through the merge pipeline unchanged (three parts, same tris, same materials).\n The hard part is that \"downwind\" means something different at every placement: the wind is one fixed direction, but each palm sits on the sphere at its own tilt. `SwayInstances` (instancing.tsx) solves this once per instance at mount, not per frame: it reads the placement matrix's own translation to get the instance's planet-local position, asks `windDirAt` for the tangent wind direction there, then pulls that world direction back into the prop's own local frame through the INVERSE of the placement's rotation. Crossing local up with that local wind gives the one axis that leans the crown toward it. A per-instance phase (`i * 2.399`, an irrational-ish stride) keeps the pool from breathing in unison. Every frame, `swayMatrix` composes `placement × T(pivot) × R(axis, angle) × T(−pivot)` — the pivot point itself never moves, only the crown swinging around it — writing straight into the instance matrix with module-level scratch only, so a windy island costs zero allocations per frame. `InstancedProp` picks `SwayInstances` for any part tagged `sway` and `StaticInstances` for the rest, so nothing else that renders a prop had to change.",
       "files": [
         {
           "path": "src/scene/wind.ts",
@@ -1374,22 +1374,22 @@
             {
               "symbol": "WIND_AXIS",
               "line": 11,
-              "code": "export const WIND_AXIS = new THREE.Vector3(0.35, 0.8, 0.49).normalize()\n\n/** Palm crown lean tuning, in radians. Kept subtle by design — a palm\n * must never look like it is being blown over. */\nexport const WIND = {\n  axis: WIND_AXIS,\n  baseRad: 0.045,\n  gustRad: 0.035,\n  breatheHz: 0.18,\n  flutterHz: 1.1,\n} as const\n\nconst _fallbackA = new THREE.Vector3(1, 0, 0)\nconst _fallbackB = new THREE.Vector3(0, 1, 0)"
+              "code": "export const WIND_AXIS = new THREE.Vector3(0.35, 0.8, 0.49).normalize()\r\n\r\n/** Palm crown lean tuning, in radians. Kept subtle by design — a palm\r\n * must never look like it is being blown over. */\r\nexport const WIND = {\r\n  axis: WIND_AXIS,\r\n  baseRad: 0.045,\r\n  gustRad: 0.035,\r\n  breatheHz: 0.18,\r\n  flutterHz: 1.1,\r\n} as const\r\n\r\nconst _fallbackA = new THREE.Vector3(1, 0, 0)\r\nconst _fallbackB = new THREE.Vector3(0, 1, 0)\r"
             },
             {
               "symbol": "WIND",
               "line": 15,
-              "code": "export const WIND = {\n  axis: WIND_AXIS,\n  baseRad: 0.045,\n  gustRad: 0.035,\n  breatheHz: 0.18,\n  flutterHz: 1.1,\n} as const\n\nconst _fallbackA = new THREE.Vector3(1, 0, 0)\nconst _fallbackB = new THREE.Vector3(0, 1, 0)\n\n/**\n * The tangent wind direction at a planet-local unit position — the same\n * great-circle drift direction the clouds use: `normalize(cross(WIND_AXIS,"
+              "code": "export const WIND = {\r\n  axis: WIND_AXIS,\r\n  baseRad: 0.045,\r\n  gustRad: 0.035,\r\n  breatheHz: 0.18,\r\n  flutterHz: 1.1,\r\n} as const\r\n\r\nconst _fallbackA = new THREE.Vector3(1, 0, 0)\r\nconst _fallbackB = new THREE.Vector3(0, 1, 0)\r\n\r\n/**\r\n * The tangent wind direction at a planet-local unit position — the same\r\n * great-circle drift direction the clouds use: `normalize(cross(WIND_AXIS,\r"
             },
             {
               "symbol": "windDirAt",
               "line": 32,
-              "code": "export function windDirAt(unit: THREE.Vector3, out: THREE.Vector3): THREE.Vector3 {\n  out.crossVectors(WIND_AXIS, unit)\n  if (out.lengthSq() < 1e-10) {\n    out.crossVectors(WIND_AXIS, _fallbackA)\n    if (out.lengthSq() < 1e-10) out.crossVectors(WIND_AXIS, _fallbackB)\n  }\n  return out.normalize()\n}\n\n/**\n * The crown lean angle (radians) at time `t` for a palm with phase\n * `phase` — a slow breathing lean with a small faster flutter riding on\n * top, so no two palms move in unison. Pure, deterministic.\n */"
+              "code": "export function windDirAt(unit: THREE.Vector3, out: THREE.Vector3): THREE.Vector3 {\r\n  out.crossVectors(WIND_AXIS, unit)\r\n  if (out.lengthSq() < 1e-10) {\r\n    out.crossVectors(WIND_AXIS, _fallbackA)\r\n    if (out.lengthSq() < 1e-10) out.crossVectors(WIND_AXIS, _fallbackB)\r\n  }\r\n  return out.normalize()\r\n}\r\n\r\n/**\r\n * The crown lean angle (radians) at time `t` for a palm with phase\r\n * `phase` — a slow breathing lean with a small faster flutter riding on\r\n * top, so no two palms move in unison. Pure, deterministic.\r\n */\r"
             },
             {
               "symbol": "windLean",
               "line": 46,
-              "code": "export function windLean(t: number, phase: number): number {\n  const breathe = 0.5 + 0.5 * Math.sin(2 * Math.PI * WIND.breatheHz * t + phase)\n  const flutter =\n    Math.sin(2 * Math.PI * WIND.flutterHz * t + phase * 1.7) +\n    0.6 * Math.sin(2 * Math.PI * WIND.flutterHz * 0.37 * t + phase * 2.3)\n  return WIND.baseRad * breathe + WIND.gustRad * 0.5 * flutter * 0.5\n}\n"
+              "code": "export function windLean(t: number, phase: number): number {\r\n  const breathe = 0.5 + 0.5 * Math.sin(2 * Math.PI * WIND.breatheHz * t + phase)\r\n  const flutter =\r\n    Math.sin(2 * Math.PI * WIND.flutterHz * t + phase * 1.7) +\r\n    0.6 * Math.sin(2 * Math.PI * WIND.flutterHz * 0.37 * t + phase * 2.3)\r\n  return WIND.baseRad * breathe + WIND.gustRad * 0.5 * flutter * 0.5\r\n}\r\n"
             }
           ]
         },
@@ -1444,6 +1444,123 @@
         "The trunk was left out of the sway on purpose. A test that swayed the whole tree read like the ground itself was moving; keeping the trunk rigid and only the crown loose is what makes it look like weight and flex rather than the model wobbling.",
         "`WIND_AXIS` moved out of Clouds.tsx into its own module rather than being duplicated. The fire's ember drift already depended on the clouds' constant by import — three consumers of one \"the wind\" is the point where it stops being a clouds implementation detail and becomes shared physics.",
         "The formula's gust term can dip a hair negative at its extreme (a fraction of a degree) even though the design intent is \"always downwind\" — the two sine terms aren't phase-locked, so a rare instant can catch the base breath at its trough and the flutter at its trough together. Left as specified rather than clamped: the dip is small enough that it reads as stillness, not a wrong-way lean, and clamping would have been an undocumented change to a spec that says implement exactly."
+      ]
+    },
+    {
+      "id": "villagers",
+      "step": 23,
+      "title": "Villagers, and coats to put them in",
+      "hook": "Two people in fur-lined parkas, built for a corner of the\nisland that is still being dug out — and a villager you can now hand to\nany empty patch of ground.",
+      "plain": "There is going to be an outpost at the bottom of the world, and nobody lives there yet. So this step made the residents first: Nanuq in a lagoon-blue parka and Sila in coral, both with cream fur at the hem, the cuffs and around the hood, mittens instead of bare hands, and tall boots. They are the same little villagers as everyone else on this island — same body, same face, same walk — wearing a coat.\n That mattered more than it sounds. Every character here is one rig with a page of settings, and a parka is a real test of whether that claim holds up. It does: the coat is a handful of extra settings, not a second character. The torso is the same teardrop, padded out about a tenth. The sleeves are the same arms, coloured all the way down. The hood is a rounded cap over the back of the head with a ring of fur standing proud around the face — and when the hood is up, the hair and the ears simply do not get drawn, because they are under it.\n Alongside the coats came the thing that actually makes a villager a villager: something to do. Nanuq wanders. He stands for a few seconds, picks somewhere within a few metres, ambles over, and stands again — the unhurried loop Animal Crossing villagers have always walked. He will not paddle into the sea, and he will not wander off; there is an invisible leash around where he was placed. Sila stays put. Both of them turn their heads to watch you when you come near, and stop bothering once you are far enough away.\n Nobody is standing anywhere yet — the outpost's land does not exist. When it does, putting a villager on it is one line in the placement file.",
+      "technical": "`CharacterConfig.outfit` gains `'parka'`, plus optional `colors.trim`, `colors.mittens` and a `hood` flag. Inside `buildNodes` the coat is a single `fullness` multiplier of 1.12 on the hip, shoulder and collar radii — which is exactly 1 for every existing config, so the tee-shorts and dress builds come out byte-identical and the old rig test passes untouched. The fur hem is a short ring sitting a little wider than the teardrop's widest point, the same radial-clearance trick the tee hem uses so nothing goes coplanar; the placket reads its chest z-offset off the same lathe profile the torso is built from. Boots are the existing shoe blob at 1.4× height with the lift derived from that scale, so the soles still kiss rig-local y = 0 and the blob shadow contract holds.\n `npcWander.ts` is the brain, and it is pure: `pickWanderTarget` samples up to twelve points in the home disc (`sqrt` of the random radius, so they spread evenly instead of clustering at the centre) and keeps the first walkable one; `advanceNpc` runs a pause/walk state machine, heading being the honest north/east bearing to the target. Arc distance is metres throughout, converted with π·R/180 and a `cos(lat)` squeeze on longitude.\n `Npc.tsx` is the body. It reads its placement live from the placement store, so the editor can drag it, and writes its group's position and quaternion directly every frame — no React render per step, no allocation in the loop. Altitude is `groundAltitudeAt` exactly, with no sink: props bite into the ground on purpose, people do not.",
+      "files": [
+        {
+          "path": "src/scene/npcWander.ts",
+          "symbols": [
+            "pickWanderTarget",
+            "advanceNpc",
+            "NpcState"
+          ],
+          "excerpts": [
+            {
+              "symbol": "pickWanderTarget",
+              "line": 61,
+              "code": "export function pickWanderTarget(\r\n  home: { lat: number; long: number },\r\n  radiusM: number,\r\n  rand: () => number,\r\n  walkable: (lat: number, long: number) => boolean,\r\n): { lat: number; long: number } {\r\n  for (let i = 0; i < 12; i++) {\r\n    const bearing = rand() * Math.PI * 2\r\n    const r = Math.sqrt(rand()) * radiusM\r\n    const lat = home.lat + (Math.cos(bearing) * r) / METRES_PER_DEG\r\n    const long = home.long + (Math.sin(bearing) * r) / metresPerDegLong(lat)\r\n    if (walkable(lat, long)) return { lat, long }\r\n  }\r\n  return { lat: home.lat, long: home.long }\r"
+            },
+            {
+              "symbol": "advanceNpc",
+              "line": 88,
+              "code": "export function advanceNpc(\r\n  s: NpcState,\r\n  dt: number,\r\n  home: { lat: number; long: number },\r\n  opts: NpcWanderOpts,\r\n): void {\r\n  const pauseFor = () => opts.pauseMin + opts.rand() * (opts.pauseMax - opts.pauseMin)\r\n  s.timer -= dt\r\n\r\n  if (s.state === 'pause') {\r\n    if (s.timer > 0) return\r\n    s.target = pickWanderTarget(home, opts.radiusM, opts.rand, opts.walkable)\r\n    s.state = 'walk'\r\n    s.timer = 0\r"
+            },
+            {
+              "symbol": "NpcState",
+              "line": 27,
+              "code": "export interface NpcState {\r\n  lat: number\r\n  long: number\r\n  /** Facing, radians from local north, positive east. */\r\n  heading: number\r\n  state: 'pause' | 'walk'\r\n  /** Seconds left in the current state. */\r\n  timer: number\r\n  target: { lat: number; long: number } | null\r\n}\r\n\r\nexport interface NpcWanderOpts {\r\n  radiusM: number\r\n  speedMps: number\r"
+            }
+          ]
+        },
+        {
+          "path": "src/scene/Npc.tsx",
+          "symbols": [
+            "NpcBehavior"
+          ],
+          "excerpts": [
+            {
+              "symbol": "NpcBehavior",
+              "line": 30,
+              "code": "export type NpcBehavior = { kind: 'idle' } | { kind: 'wander'; radiusM: number; speedMps?: number }\r\n\r\n/** Above this much water the ground is walkable — the villagers do not paddle. */\r\nconst DRY_ALT_M = 0.05\r\nconst DEFAULT_SPEED = 1.1\r\nconst PAUSE_MIN = 1.6\r\nconst PAUSE_MAX = 4.8\r\n/** Beyond this arc the head goes neutral rather than tracking the player. */\r\nconst LOOK_RANGE_M = 9\r\n/** Beyond this arc their footsteps are not worth a voice. */\r\nconst STEP_RANGE_M = 10\r\n\r\n/** Deterministic per-villager seed, so a given villager always wanders\r\n *  the same way — a random seed makes a bug reproducible only by luck. */\r"
+            }
+          ],
+          "note": "the component, the look-at maths"
+        },
+        {
+          "path": "src/scene/npcRegistry.ts",
+          "symbols": [
+            "NPC_REGISTRY"
+          ],
+          "excerpts": [
+            {
+              "symbol": "NPC_REGISTRY",
+              "line": 13,
+              "code": "export const NPC_REGISTRY: Record<string, { config: CharacterConfig; behavior: NpcBehavior }> = {\r\n  'npc-nanuq': { config: NANUQ, behavior: { kind: 'wander', radiusM: 4 } },\r\n  'npc-sila': { config: SILA, behavior: { kind: 'idle' } },\r\n}\r\n\r\nexport const isNpcType = (type: string) => type in NPC_REGISTRY\r\n"
+            }
+          ],
+          "note": "placement type → villager"
+        },
+        {
+          "path": "src/scene/BlockyCharacter.tsx",
+          "symbols": [
+            "buildNodes"
+          ],
+          "excerpts": [
+            {
+              "symbol": "buildNodes",
+              "line": 89,
+              "code": "export function buildNodes(config: CharacterConfig) {\r\n  const { height: H, headsTall, build, colors } = config\r\n  const headH = H / headsTall\r\n  const legLen = H * 0.14\r\n  const torsoH = H - headH - legLen\r\n  const headR = headH * 0.51\r\n  const headW = headR * 2\r\n  // Parka (Antarctica outpost): the SAME teardrop, padded out ~12%. A\r\n  // separate silhouette would have been a second rig; a fullness factor\r\n  // is one number every existing config multiplies by exactly 1, so\r\n  // tee-shorts and dress stay byte-identical.\r\n  const parka = config.outfit === 'parka'\r\n  const fullness = parka ? 1.12 : 1\r\n  const hooded = parka && config.hood === true\r"
+            }
+          ],
+          "note": "the parka branch"
+        },
+        {
+          "path": "src/content/characters.ts",
+          "symbols": [
+            "NANUQ",
+            "SILA"
+          ],
+          "excerpts": [
+            {
+              "symbol": "NANUQ",
+              "line": 172,
+              "code": "export const NANUQ: CharacterConfig = {\r\n  height: 1.26,\r\n  headsTall: 2.0,\r\n  build: 1.05,\r\n  colors: {\r\n    skin: '#d9a06c',\r\n    hair: '#211610',\r\n    top: '#5aa7d6',\r\n    bottom: '#3d5a68',\r\n    shoes: '#5a4632',\r\n    eyes: '#2b1c14',\r\n    trim: '#fff3d6',\r\n    mittens: '#2b3a42',\r\n  },\r"
+            },
+            {
+              "symbol": "SILA",
+              "line": 194,
+              "code": "export const SILA: CharacterConfig = {\r\n  height: 1.2,\r\n  headsTall: 2.0,\r\n  build: 0.96,\r\n  colors: {\r\n    skin: '#e8b98a',\r\n    hair: '#2b1c14',\r\n    top: '#ff8c5a',\r\n    bottom: '#8f4f33',\r\n    shoes: '#5a4632',\r\n    eyes: '#2b1c14',\r\n    trim: '#fff3d6',\r\n    mittens: '#8f4f33',\r\n  },\r"
+            }
+          ]
+        },
+        {
+          "path": "src/scene/npcWander.test.ts",
+          "symbols": [],
+          "excerpts": [],
+          "note": "the leash, the arrival, the coastline"
+        },
+        {
+          "path": "src/scene/characterRig.test.ts",
+          "symbols": [],
+          "excerpts": [],
+          "note": "parka budgets and grounded soles"
+        }
+      ],
+      "decisions": [
+        "The coat is a FLAG on the existing rig, never a second rig. The test that the old models still build identically is the whole point: a fullness factor that multiplies by exactly 1.0 for everyone else cannot regress a character it was not written for.",
+        "The walkable test gates the STEP, not just the target. Two points can both be on dry land with water between them — a curved coastline does this constantly — and a villager wading out to sea on a straight line between two safe spots is the bug everybody would have seen first.",
+        "The head look-at is computed by pushing the player's position through the villager's OWN quaternion rather than by hand-rolling a bearing in the tangent frame. The tangent version is two lines shorter and has a sign in it, and the signpost chapter is a standing record of what a sign in this frame costs: `atan2(x, z)` in rig space is what the rig already expects, so it cannot be inverted and leave a villager politely turning its back on you.",
+        "Headings here are true north/east bearings and the renderer negates them. This frame turns local +Z toward WEST for a positive rotation about +Y, which is why the authored `yawDeg` is negated on the way in too — a villager has to spawn facing the same way a prop with that same yaw would, or laying out a scene becomes guesswork.",
+        "The wander is seeded off the placement id, so a given villager always walks the same route. A random seed makes a wandering bug reproducible only by luck, which is another way of saying not reproducible.",
+        "Nobody is placed yet, deliberately. The land is another task's job, and a villager standing in the sea while waiting for it would have shipped on `main` for however long that took.",
+        "Footsteps and head-tracking both have a range gate (10 m and 9 m). Villagers audible across the island would turn the soundscape to gravel, and a head that tracks you from forty metres reads as being stared at rather than noticed."
       ]
     }
   ]

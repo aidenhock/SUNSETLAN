@@ -1,17 +1,29 @@
 import { Canvas, useThree } from '@react-three/fiber'
 import { useEffect } from 'react'
 import * as THREE from 'three'
-import { AIDEN, ROSE } from '../content/characters'
+import { AIDEN, KOA, NANUQ, ROSE, SILA, type CharacterConfig } from '../content/characters'
 import { BlockyCharacter, type MotionState } from './BlockyCharacter'
+
+/** The line-up, left to right. `&solo=<name>` centres one of them. */
+const CAST: Array<{ name: string; config: CharacterConfig }> = [
+  { name: 'aiden', config: AIDEN },
+  { name: 'koa', config: KOA },
+  { name: 'rose', config: ROSE },
+  { name: 'nanuq', config: NANUQ },
+  { name: 'sila', config: SILA },
+]
+/** Spacing between characters, metres. */
+const GAP = 0.72
 
 /**
  * ?chartest — dev/e2e-only isolated character viewer for the Character 2.0
- * sweep: both villager models side by side on a plain ground, day lighting
- * rig, no planet. URL params drive the framing and pose so the e2e sweep
- * is deterministic:
- *   ?chartest&az=<deg>    camera azimuth around the pair (0 = front)
+ * sweep: the whole cast side by side on a plain ground, day lighting rig,
+ * no planet. URL params drive the framing and pose so the e2e sweep is
+ * deterministic:
+ *   ?chartest&az=<deg>    camera azimuth around the line-up (0 = front)
  *   &pose=idle|walk|run|air
- *   &solo=aiden|rose      one centered character (side-profile shots)
+ *   &solo=<name>          one centered character (side-profile shots);
+ *                         names are the CAST entries below
  * The camera azimuth feeds MotionState, so the head look-at responds
  * exactly as in-game (the look-at demo IS an az sweep).
  */
@@ -23,7 +35,9 @@ export function CharacterShowcase() {
   // &pitch= drives camPitch so max-deflection look-at states are testable.
   const camPitch = Number(flags.get('pitch') ?? '0.18')
   const az = THREE.MathUtils.degToRad(azDeg)
-  const dist = 3.4
+  const shown = solo ? CAST.filter((c) => c.name === solo) : CAST
+  // Pull the camera back far enough to hold whoever is on stage.
+  const dist = solo ? 3.0 : 3.4 + (shown.length - 2) * 0.72
   const camPos: [number, number, number] = [Math.sin(az) * dist, 1.35, Math.cos(az) * dist]
   const motion = (): MotionState => ({
     locomotion: pose === 'air' ? 'idle' : pose,
@@ -44,16 +58,11 @@ export function CharacterShowcase() {
           <circleGeometry args={[6, 32]} />
           <meshLambertMaterial color="#e8c97a" />
         </mesh>
-        {solo !== 'rose' && (
-          <group position={[solo === 'aiden' ? 0 : -0.55, 0, 0]}>
-            <BlockyCharacter config={AIDEN} motion={motion} />
+        {shown.map((c, i) => (
+          <group key={c.name} position={[(i - (shown.length - 1) / 2) * GAP, 0, 0]}>
+            <BlockyCharacter config={c.config} motion={motion} />
           </group>
-        )}
-        {solo !== 'aiden' && (
-          <group position={[solo === 'rose' ? 0 : 0.55, 0, 0]}>
-            <BlockyCharacter config={ROSE} motion={motion} />
-          </group>
-        )}
+        ))}
       </Canvas>
     </div>
   )

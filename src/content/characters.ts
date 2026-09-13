@@ -22,13 +22,21 @@ export interface CharacterConfig {
     bottom: string
     shoes: string
     eyes: string
+    /** Fur trim on a parka — hem band, cuffs, hood ring (defaults to top). */
+    trim?: string
+    /** Mitten color for the parka outfit (defaults to top). */
+    mittens?: string
   }
   /** Hair shape — 'swoop' = side-swept fringe under a cap; 'bob' = the
    * feminine villager cap dropping past the ears with a straight fringe. */
   hair: 'swoop' | 'bob' | 'none'
   /** 'tee-shorts' = egg tee + shorts band; 'dress' = bodice + flared
-   * cone skirt (the feminine villager silhouette). */
-  outfit: 'tee-shorts' | 'dress'
+   * cone skirt (the feminine villager silhouette); 'parka' = a fuller
+   * teardrop in the top color with a fur hem, full sleeves with fur
+   * cuffs, mittens and tall boots (the Antarctica outpost). */
+  outfit: 'tee-shorts' | 'dress' | 'parka'
+  /** Fur-lined hood up, framing the face — hides the hair and the ears. */
+  hood?: boolean
   /** Flattened pink cheek discs (AC blush). */
   blush?: boolean
   /** Ear lobe scale (default 1). */
@@ -151,5 +159,56 @@ export const ROSE: CharacterConfig = {
   },
   hair: 'bob',
   outfit: 'dress',
+  blush: true,
+}
+
+// ---- Inuit-inspired villagers for the Antarctica outpost -------------
+// Two parka'd villagers for the south-pole outpost. Both wear the hood
+// up, so their hair never renders — the field stays set anyway, because
+// a hood is a garment and not a haircut: lowering it must not leave a
+// bald villager behind.
+
+/** Nanuq — the outpost's wanderer: lagoon-blue parka, cream fur trim. */
+export const NANUQ: CharacterConfig = {
+  height: 1.26,
+  headsTall: 2.0,
+  build: 1.05,
+  colors: {
+    skin: '#d9a06c',
+    hair: '#211610',
+    top: '#5aa7d6',
+    bottom: '#3d5a68',
+    shoes: '#5a4632',
+    eyes: '#2b1c14',
+    trim: '#fff3d6',
+    mittens: '#2b3a42',
+  },
+  hair: 'swoop',
+  outfit: 'parka',
+  hood: true,
+  eyeStyle: 'dark',
+  blush: true,
+}
+
+/** Sila — the outpost's watcher: coral parka, the same cream fur. */
+export const SILA: CharacterConfig = {
+  height: 1.2,
+  headsTall: 2.0,
+  build: 0.96,
+  colors: {
+    skin: '#e8b98a',
+    hair: '#2b1c14',
+    top: '#ff8c5a',
+    bottom: '#8f4f33',
+    shoes: '#5a4632',
+    eyes: '#2b1c14',
+    trim: '#fff3d6',
+    mittens: '#8f4f33',
+  },
+  hair: 'bob',
+  outfit: 'parka',
+  hood: true,
+  eyeStyle: 'normal',
+  irisColor: '#6b4a2b',
   blush: true,
 }
