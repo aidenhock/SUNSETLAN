@@ -3,6 +3,7 @@ import * as THREE from 'three'
 import { groundAltitudeAt, onDockStrip } from '../controls/terrain'
 import {
   advanceBoat,
+  BOAT_BLOCKERS,
   boatStepBlocked,
   DOCK_NAMES,
   mooringLatLong,
@@ -143,6 +144,19 @@ describe('boatStepBlocked', () => {
       const polar = Math.acos(THREE.MathUtils.clamp(u.y, -1, 1))
       // Standing still there is legal, and so is heading further out.
       expect(boatStepBlocked(polar, polar + 0.0005 * (polar < Math.PI / 2 ? 1 : -1))).toBe(false)
+    }
+  })
+})
+
+describe('pier blockers', () => {
+  it('leave every mooring OUTSIDE them, so a freshly boarded boat can move', () => {
+    // A blocked step zeroes the throttle; a boat parked inside its own
+    // blocker with the bow toward the pier would never leave the dock.
+    for (const name of DOCK_NAMES) {
+      const m = mooringUnit(name)
+      for (const b of BOAT_BLOCKERS) {
+        expect(m.angleTo(b.unit) * 55).toBeGreaterThan(b.radius + 0.05)
+      }
     }
   })
 })

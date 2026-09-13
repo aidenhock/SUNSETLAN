@@ -130,9 +130,10 @@ export function Hud({ isTouch }: { isTouch: boolean }) {
       }
       // Mid-tween the boat owns the player; the key does nothing.
       if (s.boat.state !== 'moored') return
-      // Priority: stand up if seated; the boat wins over the interactables
-      // (the dock-end tripod's trigger overlaps its mooring); the sit
-      // prompt takes the key only when nothing else wants it.
+      // Priority: stand up if seated; the boat takes E only when it is
+      // NEARER than any interactable (the controller decides — the dock-end
+      // tripod and the mooring overlap); the sit prompt takes the key only
+      // when nothing else wants it.
       if (seatedSeat) standUp()
       else if (s.nearbyBoat) s.boardBoat()
       else if (nearbyId) openModal(nearbyId)

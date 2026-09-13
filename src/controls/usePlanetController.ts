@@ -277,7 +277,17 @@ export function usePlanetController({ planetRef, avatarRef }: ControllerRefs) {
         boatTween.current = { t: 0, from: qs.from, to: qs.to }
         landingLeg.current = 1
         if (boat.state === 'boarding') {
-          boatMotion.current.heading = yaw.current
+          // Start pointing the way the moored bow points — AWAY from the
+          // land — in the world frame the tween will leave us in. Starting
+          // on the avatar's yaw could aim straight into the pier's
+          // blocker, and a blocked step zeroes the throttle: stuck.
+          _boatDir
+            .copy(WORLD_UP)
+            .addScaledVector(MOORING_UNITS[boat.at], -MOORING_UNITS[boat.at].y)
+            .normalize()
+          if (boat.at === 'north') _boatDir.negate()
+          _boatDir.applyQuaternion(qs.to)
+          boatMotion.current.heading = Math.atan2(_boatDir.x, _boatDir.z)
           boatMotion.current.speed = 0
         }
         void play2d('splash', 'world', 0.45)
@@ -447,8 +457,12 @@ export function usePlanetController({ planetRef, avatarRef }: ControllerRefs) {
     // the dock end would otherwise fight the boat for E — while boating
     // every land prompt is simply off.
     let nearest: string | null = null
+    // Arc to the chosen interactable (∞ when none) — the boat prompt only
+    // takes E when the boat is NEARER than it, so the Photos tripod on the
+    // dock end stays reachable beside the mooring.
+    let nearestArc = Infinity
     if (!boating) {
-      let nearestArc = INTERACT_ARC_M
+      nearestArc = INTERACT_ARC_M
       for (const it of interactableUnits) {
         const arc = _poleAfter.angleTo(it.unit) * PLANET_RADIUS
         if (arc <= nearestArc) {
@@ -456,12 +470,19 @@ export function usePlanetController({ planetRef, avatarRef }: ControllerRefs) {
           nearestArc = arc
         }
       }
-      if (nearest === null && store.nearbyId) {
-        // Nothing inside the enter radius: keep the current one until it
-        // passes the exit radius so the prompt doesn't flicker at the edge.
-        const current = interactableUnits.find((it) => it.id === store.nearbyId)
-        if (current && _poleAfter.angleTo(current.unit) * PLANET_RADIUS <= INTERACT_EXIT_ARC_M) {
-          nearest = store.nearbyId
+      if (nearest === null) {
+        nearestArc = Infinity
+        if (store.nearbyId) {
+          // Nothing inside the enter radius: keep the current one until it
+          // passes the exit radius so the prompt doesn't flicker at the edge.
+          const current = interactableUnits.find((it) => it.id === store.nearbyId)
+          if (current) {
+            const arc = _poleAfter.angleTo(current.unit) * PLANET_RADIUS
+            if (arc <= INTERACT_EXIT_ARC_M) {
+              nearest = store.nearbyId
+              nearestArc = arc
+            }
+          }
         }
       }
     }
@@ -495,7 +516,7 @@ export function usePlanetController({ planetRef, avatarRef }: ControllerRefs) {
     let nearBoat = false
     if (phase === 'moored' && !boatTween.current && !sitting && !sitTween.current) {
       const arc = _poleAfter.angleTo(MOORING_UNITS[boat.at]) * PLANET_RADIUS
-      nearBoat = arc <= (store.nearbyBoat ? BOAT.boardExitArcM : BOAT.boardArcM)
+      nearBoat = arc <= (store.nearbyBoat ? BOAT.boardExitArcM : BOAT.boardArcM) && arc < nearestArc
     }
     if (nearBoat !== store.nearbyBoat) store.setNearbyBoat(nearBoat)
 

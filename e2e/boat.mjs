@@ -15,8 +15,9 @@ const arg = (flag, fallback) => {
 const BASE = arg('--url', process.env.BOAT_URL || 'http://localhost:5173')
 const OUT = arg('--out', 'boat-shots')
 
-/** The dock's far end, where the boat is moored. */
-const START = '13.6,0'
+/** The deck's EAST edge at the dock's far end — beside the mooring, so
+ * the boat is nearer than the Photos tripod and E boards. */
+const START = '13.4,1.0'
 /** The drive is long: Antarctica is most of a hemisphere away. */
 const ARRIVE_TIMEOUT_MS = 60_000
 

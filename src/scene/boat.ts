@@ -121,7 +121,11 @@ export const BOAT_BLOCKERS: Blocker[] = DOCK_NAMES.flatMap((name) => {
   const span = (d.latMaxDeg - d.latMinDeg) / d.segmentCount
   return Array.from({ length: d.segmentCount }, (_, i) => ({
     unit: latLongToUnit(d.latMaxDeg - span * (i + 0.5), d.longDeg),
-    radius: d.halfWidthM + 0.9,
+    // + 0.6: the mooring (1.7 m off the centreline) must sit OUTSIDE
+    // this radius or the boat starts inside its own blocker and a
+    // heading toward the pier can never leave; the hull (half-width
+    // ~0.55) still clears the deck edge (1.0) at 1.6 m.
+    radius: d.halfWidthM + 0.6,
   }))
 })
 
