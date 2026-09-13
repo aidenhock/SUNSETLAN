@@ -48,12 +48,22 @@ blockers, the minimap, `planetConfig.MAP`) follows from it.
 | `palapa-desk` | Palapa desk (collider only) | 40 | 38 | 0° N | — | Traces the desk built into the palapa; nothing renders from this entry. |
 | `tv-crate` | CRT crate | 21 | 150.8 | 0° N | — | The TV stands on this; the TV entry carries the liftM that puts it on top. |
 | `signpost` | Signpost at spawn | 84 | 20 | 0° N | — | Planks point at landmarks with live distances; both come from this file. |
+| `igloo` | Igloo | -79 | 25 | 45° NE | — | Antarctica's one built thing: a snow-block dome on the plateau, entrance tunnel turned toward the dock side so you meet the doorway walking in from the north. |
+| `iceblock-01` | Ice chunk | -75 | 80 | 20° N | — | Plateau edge. Radius is footprintRadius('iceblock'). |
+| `iceblock-02` | Ice chunk | -74.5 | 150 | 200° S | — | Out on the ice shelf, above the waterline. |
+| `iceblock-03` | Ice chunk | -76 | 230 | 310° NW | — | Plateau edge. |
+| `iceblock-04` | Ice chunk | -74 | 320 | 120° SE | — | Shelf edge on the far side from the dock. |
+| `snowmound-01` | Snow drift | -80 | 45 | 0° N | — | Plateau drift; no blocker, you walk over it. |
+| `snowmound-02` | Snow drift | -78.5 | 300 | 0° N | — | Plateau drift; no blocker. |
+| `snowmound-03` | Snow drift | -82 | 130 | 0° N | — | Plateau drift near the pole; no blocker. |
 
 ## Npcs
 
 | id | what | lat | long | facing | lift | notes |
 |---|---|---|---|---|---|---|
 | `koa` | Koa the ukulele player | 18 | 359.05 | 0° N | — | Seat ON the dock's west edge; altitude derives from the deck strip. |
+| `npc-sila-01` | Sila | -78 | 12 | 249° W | — | Stands on the plateau facing the igloo entrance. |
+| `npc-nanuq-01` | Nanuq | -81 | 60 | 90° E | — | Wanders 4 m of plateau; kept over 6 m from the igloo and far from the dock. |
 
 ## Seats
 

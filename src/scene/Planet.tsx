@@ -8,6 +8,7 @@ import { usePointerLockCamera } from '../controls/usePointerLockCamera'
 import { useLiveInteractables } from '../content/liveInteractables'
 import { useStore } from '../store/useStore'
 import { useMusicMix, WorldEmitters } from './AudioEmitters'
+import { Aurora } from './Aurora'
 import { Avatar } from './Avatar'
 import { BoatWake, DrivingBoat, MooredBoat } from './BoatScene'
 import { CelestialDome } from './CelestialDome'
@@ -16,8 +17,11 @@ import { Cemetery } from './Cemetery'
 import { Crabs } from './Crabs'
 import { Fire } from './Fire'
 import { Footprints } from './Footprints'
+import { Igloo } from './Igloo'
 import { Interactable } from './Interactable'
 import { Island } from './Island'
+import { Penguins } from './Penguins'
+import { Snow } from './Snow'
 import { Npc } from './Npc'
 import { isNpcType, NPC_REGISTRY } from './npcRegistry'
 import { usePlacementRuntime } from './placementRuntime'
@@ -132,6 +136,13 @@ export function PlanetScene({
         <BoatWake />
         <Fire />
         <Cemetery />
+        {/* Antarctica's life. All three animated systems stand down
+            (visible = false, zero frame work) whenever skyRuntime's
+            southMix says the player is nowhere near the south cap. */}
+        <Penguins />
+        <Aurora />
+        <Snow />
+        <Igloo />
         <WorldEmitters />
         {interactables.map((def) => (
           <Interactable key={def.id} def={def} />

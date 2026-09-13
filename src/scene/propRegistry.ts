@@ -1,10 +1,13 @@
 import * as THREE from 'three'
 import {
   buildCrate,
+  buildIceblock,
+  buildIgloo,
   buildPalapa,
   buildPalm,
   buildRock,
   buildRowboat,
+  buildSnowmound,
   paletteMaterial,
   type PropPart,
 } from './props'
@@ -31,6 +34,10 @@ export const PROP_REGISTRY: Record<string, () => PropPart[]> = {
   crate: buildCrate,
   rowboat: buildRowboat,
   palapa: buildPalapa,
+  // Antarctica.
+  igloo: buildIgloo,
+  iceblock: buildIceblock,
+  snowmound: buildSnowmound,
 }
 
 export const isSpawnable = (type: string) => type in PROP_REGISTRY

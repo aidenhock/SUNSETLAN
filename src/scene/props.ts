@@ -1026,3 +1026,148 @@ export function buildHedgeStone(): PropPart[] {
   for (const p of parts) p.dispose()
   return [{ geometry: merged, material: new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }) }]
 }
+
+// ---- Antarctica (south cap) -----------------------------------------
+
+/** Snow-block white, the shade the course rings are cut from, ice, and
+ *  the dark mouth of the entrance tunnel. */
+export const SNOW_COLORS = {
+  block: '#eef5fb',
+  course: '#d9e7f3',
+  ice: '#cfe6f5',
+  iceDeep: '#b9d7ec',
+  mound: '#f4f8ff',
+  opening: '#1b2033',
+} as const
+
+const IGLOO_R = 1.8
+const IGLOO_SQUASH = 0.8
+/** Centre height: the dome is sunk until its crown lands at ~2.0 m. */
+const IGLOO_CY = 0.56
+
+/** Where the dome's wall sits at height `y` — the block courses are cut
+ *  to it, so a ring can never float off the wall or sink into it. */
+function iglooRadiusAt(y: number): number {
+  const off = (y - IGLOO_CY) / IGLOO_SQUASH
+  return Math.sqrt(Math.max(0, IGLOO_R * IGLOO_R - off * off))
+}
+
+/** The tunnel mouth, in prop-local metres. The <Igloo> glue hangs its
+ *  warm light and its glowing opening on the SAME numbers the geometry
+ *  is built from, so the entrance can never glow in the wrong place. */
+export const IGLOO_MOUTH = { y: 0.34, z: 2.48, radius: 0.68, length: 1.1 } as const
+
+/** Shared tinted-piece helper for the snow props: normalize → tint →
+ *  bake the transform, ready for ONE merge (the crate/telescope pattern). */
+function snowPiece(
+  g: THREE.BufferGeometry,
+  color: string,
+  pos: [number, number, number] = [0, 0, 0],
+  rot: [number, number, number] = [0, 0, 0],
+  scale: [number, number, number] = [1, 1, 1],
+): THREE.BufferGeometry {
+  const n = tintGeometry(normalizeForMerge(g), color)
+  g.dispose()
+  n.applyMatrix4(
+    new THREE.Matrix4().compose(
+      new THREE.Vector3(...pos),
+      new THREE.Quaternion().setFromEuler(new THREE.Euler(...rot)),
+      new THREE.Vector3(...scale),
+    ),
+  )
+  return n
+}
+
+/**
+ * Igloo: a chunky snow-block dome ~3.6 m across and ~2.0 m tall — a
+ * flattened low-poly sphere with horizontal block courses cut to the
+ * wall, plus a half-barrel entrance tunnel running out toward local +z
+ * with a dark opening disc inside it. ONE vertex-tinted merge, so the
+ * whole thing costs a single draw call. Base at y = 0 (the dome is sunk
+ * until its widest course meets the snow).
+ */
+export function buildIgloo(): PropPart[] {
+  const parts: THREE.BufferGeometry[] = [
+    // The dome: a faceted icosahedron, squashed and sunk.
+    snowPiece(
+      new THREE.IcosahedronGeometry(IGLOO_R, 1),
+      SNOW_COLORS.block,
+      [0, IGLOO_CY, 0],
+      [0, 0, 0],
+      [1, IGLOO_SQUASH, 1],
+    ),
+  ]
+
+  // Three horizontal block courses so the dome reads as stacked snow
+  // blocks rather than one smooth shell. Each band's radius comes from
+  // the wall at its own top edge (+3 cm proud) — a constant radius set
+  // by eye pokes out at one edge and buries itself at the other.
+  const COURSE_H = 0.1
+  for (const y of [0.32, 0.92, 1.46]) {
+    const r = iglooRadiusAt(y + COURSE_H / 2) + 0.03
+    parts.push(
+      snowPiece(new THREE.CylinderGeometry(r, r, COURSE_H, 12, 1, true), SNOW_COLORS.course, [0, y, 0]),
+    )
+  }
+
+  // Entrance tunnel: a short half-barrel lying along z, open end out.
+  // thetaStart −π/2 across π is the half with +z outward; rotating −π/2
+  // about x lays the axis down the z meridian and stands that half up,
+  // so the flat side rests on the snow and the arch is overhead.
+  const barrel = new THREE.CylinderGeometry(
+    0.75,
+    0.75,
+    IGLOO_MOUTH.length,
+    10,
+    1,
+    true,
+    -Math.PI / 2,
+    Math.PI,
+  )
+  barrel.rotateX(-Math.PI / 2)
+  // Inner end buried in the wall (which stands at r ≈ 1.79 here), outer
+  // end at the mouth — so the tunnel reads as a passage into the dome.
+  parts.push(snowPiece(barrel, SNOW_COLORS.block, [0, 0, IGLOO_MOUTH.z - IGLOO_MOUTH.length / 2]))
+
+  // The dark mouth just inside the tunnel — a half disc on the floor.
+  parts.push(
+    snowPiece(
+      new THREE.CircleGeometry(IGLOO_MOUTH.radius, 12, 0, Math.PI),
+      SNOW_COLORS.opening,
+      [0, 0.01, IGLOO_MOUTH.z - 0.05],
+    ),
+  )
+
+  const merged = mergeGeometries(parts)
+  for (const p of parts) p.dispose()
+  return [
+    { geometry: merged, material: new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }) },
+  ]
+}
+
+/** A faceted ice chunk with a smaller one calved off beside it — the
+ *  south cap's answer to buildRock, as one vertex-tinted merge. */
+export function buildIceblock(): PropPart[] {
+  const parts = [
+    snowPiece(new THREE.IcosahedronGeometry(0.5, 0), SNOW_COLORS.ice, [0, 0.3, 0], [0, 0.5, 0], [1.3, 0.8, 1.0]),
+    snowPiece(
+      new THREE.IcosahedronGeometry(0.28, 0),
+      SNOW_COLORS.iceDeep,
+      [0.42, 0.17, -0.14],
+      [0, 1.2, 0],
+      [1.1, 0.8, 1],
+    ),
+  ]
+  const merged = mergeGeometries(parts)
+  for (const p of parts) p.dispose()
+  return [
+    { geometry: merged, material: new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }) },
+  ]
+}
+
+/** A low soft hump of drifted snow — no blocker, you walk straight over it. */
+export function buildSnowmound(): PropPart[] {
+  const geo = normalizeForMerge(new THREE.SphereGeometry(0.9, 10, 6))
+  geo.applyMatrix4(new THREE.Matrix4().makeScale(1, 0.35, 1))
+  return [{ geometry: geo, material: paletteMaterial(SNOW_COLORS.mound) }]
+}
