@@ -19,6 +19,10 @@ import { PLANET_RADIUS, SINK_M } from './planetConfig'
 export interface PropPart {
   geometry: THREE.BufferGeometry
   material: THREE.MeshLambertMaterial
+  /** Set when this part sways in the wind (Wind: the palms sway) — it
+   * rotates about `pivot` (prop-local) each frame instead of sitting
+   * static. See `SwayInstances` in instancing.tsx. */
+  sway?: { pivot: THREE.Vector3 }
 }
 
 const materialCache = new Map<string, THREE.MeshLambertMaterial>()
@@ -154,7 +158,16 @@ export function buildPalm(): PropPart[] {
   const nut = new THREE.IcosahedronGeometry(0.13, 0)
   pieces.push(at(nut, coconut, [crown.x + 0.16, crown.y - 0.1, crown.z + 0.08]))
   pieces.push(at(nut, coconut, [crown.x - 0.12, crown.y - 0.12, crown.z - 0.1]))
-  return mergeByMaterial(pieces)
+  const parts = mergeByMaterial(pieces)
+  // The crown (fronds + coconuts) sways in the wind; the trunk stays put.
+  // Both crown materials pivot about the SAME point (prop-local), so the
+  // whole crown swings as one rigid mass — see SwayInstances.
+  for (const part of parts) {
+    if (part.material === frond || part.material === coconut) {
+      part.sway = { pivot: crown.clone() }
+    }
+  }
+  return parts
 }
 
 /** Chunky boulder: two faceted icosahedra, flattened. ~0.85 m tall. */

@@ -7,6 +7,7 @@ import { useStore } from '../store/useStore'
 import { mulberry32 } from './geometryUtils'
 import { normalizeForMerge } from './props'
 import { skyRuntime } from './useSkyState'
+import { WIND_AXIS } from './wind'
 
 /**
  * Living clouds (v3.5 — replaces the static instanced clusters). A pooled
@@ -33,8 +34,6 @@ const LIFE_MAX_S = 120
 const AVOID_RAD = THREE.MathUtils.degToRad(18)
 const SPAWN_POLAR_MIN = THREE.MathUtils.degToRad(18)
 const SPAWN_POLAR_MAX = THREE.MathUtils.degToRad(70)
-/** Fixed planet-local wind axis — oblique so paths cross the island. */
-export const WIND_AXIS = new THREE.Vector3(0.35, 0.8, 0.49).normalize()
 
 const VARIANT_SEEDS = [4001, 4013, 4027]
 

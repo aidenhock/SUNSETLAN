@@ -1028,3 +1028,73 @@ missing file falls back to the drawing instead of showing a broken img.
   eyepiece and a shadow that missed. `prepare-moon.mjs` finds the disc
   by luminance, squares the crop on its centre, and scales it — rerun
   it on any future photo and the maths still lines up.
+
+## 22 · Wind: the palms sway {#palm-sway}
+
+**Hook:** Every palm on the island leans in the same wind, and no two
+ever move together.
+
+**Plain:** Stand still and watch the trees — each crown of fronds and
+coconuts breathes in a slow lean, with a quicker flutter riding on top,
+the way real palm crowns shiver in a gust while the trunk barely moves.
+Every palm answers to the same wind (the same one that drags the
+clouds across the sky and drifts the campfire's smoke), but each one is
+a beat out of step with its neighbors, so a row of palms never sways
+like a chorus line.
+
+**Technical:** `wind.ts` is the one wind: a fixed planet-local axis
+(moved here from the clouds, which now import it instead of owning it)
+and a pure `windLean(t, phase)` — a slow breathing sine plus a faster
+two-tone flutter, tuned to a few degrees so a palm never reads as
+blown over. `buildPalm` tags its frond and coconut parts (not the
+trunk) with a `sway.pivot` — the crown's own prop-local point — so
+`PropPart` carries an optional sway field through the merge pipeline
+unchanged (three parts, same tris, same materials).
+
+The hard part is that "downwind" means something different at every
+placement: the wind is one fixed direction, but each palm sits on the
+sphere at its own tilt. `SwayInstances` (instancing.tsx) solves this
+once per instance at mount, not per frame: it reads the placement
+matrix's own translation to get the instance's planet-local position,
+asks `windDirAt` for the tangent wind direction there, then pulls that
+world direction back into the prop's own local frame through the
+INVERSE of the placement's rotation. Crossing local up with that local
+wind gives the one axis that leans the crown toward it. A per-instance
+phase (`i * 2.399`, an irrational-ish stride) keeps the pool from
+breathing in unison. Every frame, `swayMatrix` composes `placement ×
+T(pivot) × R(axis, angle) × T(−pivot)` — the pivot point itself never
+moves, only the crown swinging around it — writing straight into the
+instance matrix with module-level scratch only, so a windy island costs
+zero allocations per frame. `InstancedProp` picks `SwayInstances` for
+any part tagged `sway` and `StaticInstances` for the rest, so nothing
+else that renders a prop had to change.
+
+**Files:**
+- `src/scene/wind.ts` — `WIND_AXIS`, `WIND`, `windDirAt`, `windLean`
+- `src/scene/props.ts` — `buildPalm`, `PropPart.sway`
+- `src/scene/instancing.tsx` — `swayMatrix`, `SwayInstances`, `InstancedProp`
+- `src/scene/wind.test.ts` — the pivot-fixed and downwind-lean pins
+
+**Decisions:**
+- The sway axis is solved once at mount, not recomputed every frame.
+  The placement's rotation doesn't change frame to frame (only the
+  editor's drag does, and that already rebuilds the instance list), so
+  paying for the inverse-quaternion and cross product per frame per
+  palm would be work with no visible payoff.
+- The trunk was left out of the sway on purpose. A test that swayed
+  the whole tree read like the ground itself was moving; keeping the
+  trunk rigid and only the crown loose is what makes it look like
+  weight and flex rather than the model wobbling.
+- `WIND_AXIS` moved out of Clouds.tsx into its own module rather than
+  being duplicated. The fire's ember drift already depended on the
+  clouds' constant by import — three consumers of one "the wind" is
+  the point where it stops being a clouds implementation detail and
+  becomes shared physics.
+- The formula's gust term can dip a hair negative at its extreme (a
+  fraction of a degree) even though the design intent is "always
+  downwind" — the two sine terms aren't phase-locked, so a rare instant
+  can catch the base breath at its trough and the flutter at its
+  trough together. Left as specified rather than clamped: the dip is
+  small enough that it reads as stillness, not a wrong-way lean, and
+  clamping would have been an undocumented change to a spec that says
+  implement exactly.

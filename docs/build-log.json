@@ -20,22 +20,22 @@
             {
               "symbol": "rotationStep",
               "line": 30,
-              "code": "export function rotationStep(\n  moveDir: THREE.Vector3,\n  angle: number,\n  out: THREE.Quaternion = new THREE.Quaternion(),\n): THREE.Quaternion {\n  _axis.crossVectors(WORLD_UP, moveDir)\n  if (_axis.lengthSq() < 1e-12) return out.identity() // no horizontal input\n  return out.setFromAxisAngle(_axis.normalize(), -angle)\n}\n\n/** Compose one step onto the current planet orientation (world-space rotation). */\nexport function applyStep(\n  current: THREE.Quaternion,\n  step: THREE.Quaternion,"
+              "code": "export function rotationStep(\r\n  moveDir: THREE.Vector3,\r\n  angle: number,\r\n  out: THREE.Quaternion = new THREE.Quaternion(),\r\n): THREE.Quaternion {\r\n  _axis.crossVectors(WORLD_UP, moveDir)\r\n  if (_axis.lengthSq() < 1e-12) return out.identity() // no horizontal input\r\n  return out.setFromAxisAngle(_axis.normalize(), -angle)\r\n}\r\n\r\n/** Compose one step onto the current planet orientation (world-space rotation). */\r\nexport function applyStep(\r\n  current: THREE.Quaternion,\r\n  step: THREE.Quaternion,\r"
             },
             {
               "symbol": "applyStep",
               "line": 41,
-              "code": "export function applyStep(\n  current: THREE.Quaternion,\n  step: THREE.Quaternion,\n  out: THREE.Quaternion = new THREE.Quaternion(),\n): THREE.Quaternion {\n  // p_world = q · p_local, so an extra world rotation premultiplies: q' = step · q.\n  return out.multiplyQuaternions(step, current).normalize()\n}\n\n/**\n * The planet-local direction currently under the avatar's feet, i.e. the\n * world pole pulled back through the planet's rotation.\n */\nexport function poleInPlanetSpace("
+              "code": "export function applyStep(\r\n  current: THREE.Quaternion,\r\n  step: THREE.Quaternion,\r\n  out: THREE.Quaternion = new THREE.Quaternion(),\r\n): THREE.Quaternion {\r\n  // p_world = q · p_local, so an extra world rotation premultiplies: q' = step · q.\r\n  return out.multiplyQuaternions(step, current).normalize()\r\n}\r\n\r\n/**\r\n * The planet-local direction currently under the avatar's feet, i.e. the\r\n * world pole pulled back through the planet's rotation.\r\n */\r\nexport function poleInPlanetSpace(\r"
             },
             {
               "symbol": "poleInPlanetSpace",
               "line": 54,
-              "code": "export function poleInPlanetSpace(\n  q: THREE.Quaternion,\n  out: THREE.Vector3 = new THREE.Vector3(),\n): THREE.Vector3 {\n  _inv.copy(q).invert()\n  return out.copy(WORLD_UP).applyQuaternion(_inv)\n}\n\n/**\n * Angular distance (radians) between the avatar's ground-contact point and a\n * planet-local direction. Multiply by the planet radius for meters of arc.\n */\nexport function angularDistanceToPole(q: THREE.Quaternion, localDir: THREE.Vector3): number {\n  return poleInPlanetSpace(q, _pole).angleTo(localDir)"
+              "code": "export function poleInPlanetSpace(\r\n  q: THREE.Quaternion,\r\n  out: THREE.Vector3 = new THREE.Vector3(),\r\n): THREE.Vector3 {\r\n  _inv.copy(q).invert()\r\n  return out.copy(WORLD_UP).applyQuaternion(_inv)\r\n}\r\n\r\n/**\r\n * Angular distance (radians) between the avatar's ground-contact point and a\r\n * planet-local direction. Multiply by the planet radius for meters of arc.\r\n */\r\nexport function angularDistanceToPole(q: THREE.Quaternion, localDir: THREE.Vector3): number {\r\n  return poleInPlanetSpace(q, _pole).angleTo(localDir)\r"
             },
             {
               "symbol": "latLongToUnit",
               "line": 84,
-              "code": "export function latLongToUnit(latDeg: number, longDeg: number): THREE.Vector3 {\n  const polar = THREE.MathUtils.degToRad(90 - latDeg)\n  const long = THREE.MathUtils.degToRad(longDeg)\n  return new THREE.Vector3(\n    Math.sin(polar) * Math.sin(long),\n    Math.cos(polar),\n    Math.sin(polar) * Math.cos(long),\n  )\n}\n\n/** Planet-local position tuple for content files. */\nexport function latLongToPosition(\n  latDeg: number,\n  longDeg: number,"
+              "code": "export function latLongToUnit(latDeg: number, longDeg: number): THREE.Vector3 {\r\n  const polar = THREE.MathUtils.degToRad(90 - latDeg)\r\n  const long = THREE.MathUtils.degToRad(longDeg)\r\n  return new THREE.Vector3(\r\n    Math.sin(polar) * Math.sin(long),\r\n    Math.cos(polar),\r\n    Math.sin(polar) * Math.cos(long),\r\n  )\r\n}\r\n\r\n/** Planet-local position tuple for content files. */\r\nexport function latLongToPosition(\r\n  latDeg: number,\r\n  longDeg: number,\r"
             }
           ]
         },
@@ -110,17 +110,17 @@
             {
               "symbol": "groundAltitudeAt",
               "line": 33,
-              "code": "export function groundAltitudeAt(latDeg: number, longDeg: number): number {\n  const band = bandAltitudeAt(latDeg)\n  if (onDockStrip(latDeg, longDeg)) return band + DOCK.deckHeightM\n  return band\n}\n\n/** World-space ground height under the avatar (avatar y-position).\n *  Called every frame — no object allocation (lat/long computed inline). */\nexport function groundHeightAt(poleLocal: THREE.Vector3): number {\n  const polar = Math.acos(THREE.MathUtils.clamp(poleLocal.y, -1, 1))\n  const lat = 90 - THREE.MathUtils.radToDeg(polar)\n  const long = THREE.MathUtils.radToDeg(Math.atan2(poleLocal.x, poleLocal.z))\n  return PLANET_RADIUS + groundAltitudeAt(lat, long)\n}"
+              "code": "export function groundAltitudeAt(latDeg: number, longDeg: number): number {\r\n  const band = bandAltitudeAt(latDeg)\r\n  if (onDockStrip(latDeg, longDeg)) return band + DOCK.deckHeightM\r\n  return band\r\n}\r\n\r\n/** World-space ground height under the avatar (avatar y-position).\r\n *  Called every frame — no object allocation (lat/long computed inline). */\r\nexport function groundHeightAt(poleLocal: THREE.Vector3): number {\r\n  const polar = Math.acos(THREE.MathUtils.clamp(poleLocal.y, -1, 1))\r\n  const lat = 90 - THREE.MathUtils.radToDeg(polar)\r\n  const long = THREE.MathUtils.radToDeg(Math.atan2(poleLocal.x, poleLocal.z))\r\n  return PLANET_RADIUS + groundAltitudeAt(lat, long)\r\n}\r"
             },
             {
               "symbol": "groundHeightAt",
               "line": 41,
-              "code": "export function groundHeightAt(poleLocal: THREE.Vector3): number {\n  const polar = Math.acos(THREE.MathUtils.clamp(poleLocal.y, -1, 1))\n  const lat = 90 - THREE.MathUtils.radToDeg(polar)\n  const long = THREE.MathUtils.radToDeg(Math.atan2(poleLocal.x, poleLocal.z))\n  return PLANET_RADIUS + groundAltitudeAt(lat, long)\n}\n"
+              "code": "export function groundHeightAt(poleLocal: THREE.Vector3): number {\r\n  const polar = Math.acos(THREE.MathUtils.clamp(poleLocal.y, -1, 1))\r\n  const lat = 90 - THREE.MathUtils.radToDeg(polar)\r\n  const long = THREE.MathUtils.radToDeg(Math.atan2(poleLocal.x, poleLocal.z))\r\n  return PLANET_RADIUS + groundAltitudeAt(lat, long)\r\n}\r\n"
             },
             {
               "symbol": "onDockStrip",
               "line": 19,
-              "code": "export function onDockStrip(latDeg: number, longDeg: number): boolean {\n  if (latDeg < DOCK.latMinDeg || latDeg > DOCK.latMaxDeg) return false\n  const polar = THREE.MathUtils.degToRad(90 - latDeg)\n  const dLong = ((longDeg - DOCK.longDeg + 540) % 360) - 180\n  const crossTrackM =\n    Math.abs(THREE.MathUtils.degToRad(dLong)) * Math.sin(polar) * PLANET_RADIUS\n  return crossTrackM <= DOCK.halfWidthM\n}\n\n/**\n * Ground altitude above sea level at (lat, long). The dock deck rides\n * deckHeightM above its local band (surface-snapped segments), so the same\n * function drives the deck visuals and the walkable height.\n */"
+              "code": "export function onDockStrip(latDeg: number, longDeg: number): boolean {\r\n  if (latDeg < DOCK.latMinDeg || latDeg > DOCK.latMaxDeg) return false\r\n  const polar = THREE.MathUtils.degToRad(90 - latDeg)\r\n  const dLong = ((longDeg - DOCK.longDeg + 540) % 360) - 180\r\n  const crossTrackM =\r\n    Math.abs(THREE.MathUtils.degToRad(dLong)) * Math.sin(polar) * PLANET_RADIUS\r\n  return crossTrackM <= DOCK.halfWidthM\r\n}\r\n\r\n/**\r\n * Ground altitude above sea level at (lat, long). The dock deck rides\r\n * deckHeightM above its local band (surface-snapped segments), so the same\r\n * function drives the deck visuals and the walkable height.\r\n */\r"
             }
           ]
         },
@@ -304,7 +304,7 @@
             {
               "symbol": "onBeforeCompile",
               "line": 29,
-              "code": " * system, all in one Lambert onBeforeCompile:\n * - 2–3 summed sines displace along the normal in object space (planet-local\n *   — waves rotate with the world), plus a slow shore-weighted surf cycle\n *   (SURF in planetConfig, also read by the wade ripple) that advances and\n *   recedes the waterline up the sand.\n * - The vertex shader evaluates terrainProfile (same control points, ported\n *   to GLSL) and passes water depth; the fragment paints a white foam band\n *   where the LIVE displaced surface meets the beach, with a noise-broken\n *   leading edge. Computed from the displaced surface, foam can never\n *   detach or gap — the old separate foam ring mesh is gone.\n */\nexport function Water() {\n  const waterMaterial = useMemo(() => {\n    const mat = new THREE.MeshLambertMaterial({"
+              "code": " * system, all in one Lambert onBeforeCompile:\r\n * - 2–3 summed sines displace along the normal in object space (planet-local\r\n *   — waves rotate with the world), plus a slow shore-weighted surf cycle\r\n *   (SURF in planetConfig, also read by the wade ripple) that advances and\r\n *   recedes the waterline up the sand.\r\n * - The vertex shader evaluates terrainProfile (same control points, ported\r\n *   to GLSL) and passes water depth; the fragment paints a white foam band\r\n *   where the LIVE displaced surface meets the beach, with a noise-broken\r\n *   leading edge. Computed from the displaced surface, foam can never\r\n *   detach or gap — the old separate foam ring mesh is gone.\r\n */\r\nexport function Water() {\r\n  const waterMaterial = useMemo(() => {\r\n    const mat = new THREE.MeshLambertMaterial({\r"
             }
           ],
           "note": "shader, the corridor stencil"
@@ -355,22 +355,22 @@
             {
               "symbol": "buildNodes",
               "line": 89,
-              "code": "export function buildNodes(config: CharacterConfig) {\n  const { height: H, headsTall, build, colors } = config\n  const headH = H / headsTall\n  const legLen = H * 0.14\n  const torsoH = H - headH - legLen\n  const headR = headH * 0.51\n  const headW = headR * 2\n  // Teardrop proportions (v3.16): shoulders ≈0.55× head width sloping out\n  // to hips ≈0.78× — the widest point sits near the BASE, never the top.\n  const shoulderR = headW * (config.shoulderFrac ?? 0.2275) * build\n  const hipR = headW * (config.hipFrac ?? 0.365) * build\n  // Torso depth squash — the side-profile slimness dial.\n  const depth = config.torsoDepth ?? 0.78\n  const armLen = torsoH * (config.armLenFrac ?? 0.87)"
+              "code": "export function buildNodes(config: CharacterConfig) {\r\n  const { height: H, headsTall, build, colors } = config\r\n  const headH = H / headsTall\r\n  const legLen = H * 0.14\r\n  const torsoH = H - headH - legLen\r\n  const headR = headH * 0.51\r\n  const headW = headR * 2\r\n  // Teardrop proportions (v3.16): shoulders ≈0.55× head width sloping out\r\n  // to hips ≈0.78× — the widest point sits near the BASE, never the top.\r\n  const shoulderR = headW * (config.shoulderFrac ?? 0.2275) * build\r\n  const hipR = headW * (config.hipFrac ?? 0.365) * build\r\n  // Torso depth squash — the side-profile slimness dial.\r\n  const depth = config.torsoDepth ?? 0.78\r\n  const armLen = torsoH * (config.armLenFrac ?? 0.87)\r"
             },
             {
               "symbol": "STATES",
               "line": 55,
-              "code": "const STATES: Record<'idle' | 'walk' | 'run' | 'air', Params> = {\n  idle: { bobAmp: 0.026, bobFreq: 2, swingAmp: 0, swingFreq: 0, armRatio: 0, lean: 0, sway: 0.07, air: 0 },\n  walk: { bobAmp: 0.034, bobFreq: 18, swingAmp: 0.58, swingFreq: 9, armRatio: 0.6, lean: 0.035, sway: 0, air: 0 },\n  run: { bobAmp: 0.055, bobFreq: 25, swingAmp: 0.92, swingFreq: 12.5, armRatio: 0.75, lean: 0.16, sway: 0, air: 0 },\n  air: { bobAmp: 0, bobFreq: 0, swingAmp: 0, swingFreq: 0, armRatio: 0, lean: 0.05, sway: 0, air: 1 },\n}\n\n/** Airborne pose angles (rad) — asymmetric so the jump reads dynamic. */\nconst AIR_POSE = { legL: -0.45, legR: 0.25, armL: -0.65, armR: -0.5, splay: 0.22 }\n/** Head look-at (v3.4): clamps from body forward, blend time constant, the\n * subtle glance allowance while moving, and the frontal-cone handoff — eye\n * contact inside ~±70°, the camera's aim point beyond it. */\nconst HEAD_YAW_MAX = THREE.MathUtils.degToRad(60)\nconst HEAD_PITCH_MAX = THREE.MathUtils.degToRad(25)"
+              "code": "const STATES: Record<'idle' | 'walk' | 'run' | 'air', Params> = {\r\n  idle: { bobAmp: 0.026, bobFreq: 2, swingAmp: 0, swingFreq: 0, armRatio: 0, lean: 0, sway: 0.07, air: 0 },\r\n  walk: { bobAmp: 0.034, bobFreq: 18, swingAmp: 0.58, swingFreq: 9, armRatio: 0.6, lean: 0.035, sway: 0, air: 0 },\r\n  run: { bobAmp: 0.055, bobFreq: 25, swingAmp: 0.92, swingFreq: 12.5, armRatio: 0.75, lean: 0.16, sway: 0, air: 0 },\r\n  air: { bobAmp: 0, bobFreq: 0, swingAmp: 0, swingFreq: 0, armRatio: 0, lean: 0.05, sway: 0, air: 1 },\r\n}\r\n\r\n/** Airborne pose angles (rad) — asymmetric so the jump reads dynamic. */\r\nconst AIR_POSE = { legL: -0.45, legR: 0.25, armL: -0.65, armR: -0.5, splay: 0.22 }\r\n/** Head look-at (v3.4): clamps from body forward, blend time constant, the\r\n * subtle glance allowance while moving, and the frontal-cone handoff — eye\r\n * contact inside ~±70°, the camera's aim point beyond it. */\r\nconst HEAD_YAW_MAX = THREE.MathUtils.degToRad(60)\r\nconst HEAD_PITCH_MAX = THREE.MathUtils.degToRad(25)\r"
             },
             {
               "symbol": "AIR_POSE",
               "line": 63,
-              "code": "const AIR_POSE = { legL: -0.45, legR: 0.25, armL: -0.65, armR: -0.5, splay: 0.22 }\n/** Head look-at (v3.4): clamps from body forward, blend time constant, the\n * subtle glance allowance while moving, and the frontal-cone handoff — eye\n * contact inside ~±70°, the camera's aim point beyond it. */\nconst HEAD_YAW_MAX = THREE.MathUtils.degToRad(60)\nconst HEAD_PITCH_MAX = THREE.MathUtils.degToRad(25)\nconst HEAD_GLANCE_MAX = THREE.MathUtils.degToRad(10)\nconst HEAD_CONE_IN = THREE.MathUtils.degToRad(55)\nconst HEAD_CONE_OUT = THREE.MathUtils.degToRad(85)\nconst HEAD_TAU = 0.2\n\nconst wrapPi = (a: number) => Math.atan2(Math.sin(a), Math.cos(a))\n/** Squash & stretch scales, roughly volume-preserving (playbook §2). */\nconst STRETCH = { xz: 0.93, y: 1.14 }"
+              "code": "const AIR_POSE = { legL: -0.45, legR: 0.25, armL: -0.65, armR: -0.5, splay: 0.22 }\r\n/** Head look-at (v3.4): clamps from body forward, blend time constant, the\r\n * subtle glance allowance while moving, and the frontal-cone handoff — eye\r\n * contact inside ~±70°, the camera's aim point beyond it. */\r\nconst HEAD_YAW_MAX = THREE.MathUtils.degToRad(60)\r\nconst HEAD_PITCH_MAX = THREE.MathUtils.degToRad(25)\r\nconst HEAD_GLANCE_MAX = THREE.MathUtils.degToRad(10)\r\nconst HEAD_CONE_IN = THREE.MathUtils.degToRad(55)\r\nconst HEAD_CONE_OUT = THREE.MathUtils.degToRad(85)\r\nconst HEAD_TAU = 0.2\r\n\r\nconst wrapPi = (a: number) => Math.atan2(Math.sin(a), Math.cos(a))\r\n/** Squash & stretch scales, roughly volume-preserving (playbook §2). */\r\nconst STRETCH = { xz: 0.93, y: 1.14 }\r"
             },
             {
               "symbol": "poseHook",
               "line": 686,
-              "code": "      poseHook({\n        armL: armL.current,\n        armR: armR.current,\n        foreL: foreL.current,\n        foreR: foreR.current,\n        legL: legL.current,\n        legR: legR.current,\n        head: h,\n        t,\n      })\n    }\n  })\n\n  return ("
+              "code": "      poseHook({\r\n        armL: armL.current,\r\n        armR: armR.current,\r\n        foreL: foreL.current,\r\n        foreR: foreR.current,\r\n        legL: legL.current,\r\n        legR: legR.current,\r\n        head: h,\r\n        t,\r\n      })\r\n    }\r\n  })\r\n\r\n  return (\r"
             }
           ],
           "note": "the contract"
@@ -385,12 +385,12 @@
             {
               "symbol": "AIDEN",
               "line": 96,
-              "code": "export const AIDEN: CharacterConfig = {\n  height: 1.25,\n  headsTall: 2.0,\n  build: 1,\n  colors: {\n    skin: '#f6cf9f',\n    hair: '#e8c36a',\n    top: '#ffd24d',\n    bottom: '#35a7a0',\n    shoes: '#fff3d6',\n    eyes: '#2b1c12',\n  },\n  hair: 'swoop',\n  outfit: 'tee-shorts',"
+              "code": "export const AIDEN: CharacterConfig = {\r\n  height: 1.25,\r\n  headsTall: 2.0,\r\n  build: 1,\r\n  colors: {\r\n    skin: '#f6cf9f',\r\n    hair: '#e8c36a',\r\n    top: '#ffd24d',\r\n    bottom: '#35a7a0',\r\n    shoes: '#fff3d6',\r\n    eyes: '#2b1c12',\r\n  },\r\n  hair: 'swoop',\r\n  outfit: 'tee-shorts',\r"
             },
             {
               "symbol": "KOA",
               "line": 120,
-              "code": "export const KOA: CharacterConfig = {\n  height: 1.22,\n  headsTall: 2.0,\n  build: 1.02,\n  colors: {\n    skin: '#e8b98a',\n    hair: '#5a4632',\n    top: '#ff8c5a',\n    bottom: '#f5e9d0',\n    shoes: '#8a5a3a',\n    eyes: '#2b1c14',\n  },\n  hair: 'swoop',\n  outfit: 'tee-shorts',"
+              "code": "export const KOA: CharacterConfig = {\r\n  height: 1.22,\r\n  headsTall: 2.0,\r\n  build: 1.02,\r\n  colors: {\r\n    skin: '#e8b98a',\r\n    hair: '#5a4632',\r\n    top: '#ff8c5a',\r\n    bottom: '#f5e9d0',\r\n    shoes: '#8a5a3a',\r\n    eyes: '#2b1c14',\r\n  },\r\n  hair: 'swoop',\r\n  outfit: 'tee-shorts',\r"
             }
           ],
           "note": "the config dials"
@@ -430,27 +430,27 @@
             {
               "symbol": "nextBuffer",
               "line": 118,
-              "code": "export async function nextBuffer(category: Category): Promise<AudioBuffer | null> {\n  const ctx = audioRuntime.ctx\n  if (!ctx) return null\n  const urls = poolUrls.get(category)\n  if (urls && urls.length > 0) {\n    const pick = bagFor(category, urls.length).next()\n    return decodeUrl(urls[pick], POSITIONAL.has(category))\n  }\n  const make = fallbacks.get(category)\n  if (!make) return null\n  const key = `proc:${category}`\n  let buf = bufferCache.get(key)\n  if (!buf) {\n    buf = make(ctx)"
+              "code": "export async function nextBuffer(category: Category): Promise<AudioBuffer | null> {\r\n  const ctx = audioRuntime.ctx\r\n  if (!ctx) return null\r\n  const urls = poolUrls.get(category)\r\n  if (urls && urls.length > 0) {\r\n    const pick = bagFor(category, urls.length).next()\r\n    return decodeUrl(urls[pick], POSITIONAL.has(category))\r\n  }\r\n  const make = fallbacks.get(category)\r\n  if (!make) return null\r\n  const key = `proc:${category}`\r\n  let buf = bufferCache.get(key)\r\n  if (!buf) {\r\n    buf = make(ctx)\r"
             },
             {
               "symbol": "playDoubleTap",
               "line": 206,
-              "code": "export async function playDoubleTap(\n  category: Category,\n  bus: 'music' | 'world' | 'ui',\n  gain: number,\n  gapMs: number,\n) {\n  const rt = audioRuntime\n  if (!rt.ctx || !rt.buses) return\n  const [a, b] = await Promise.all([nextBuffer(category), nextBuffer(category)])\n  if (!a) return\n  const t0 = rt.ctx.currentTime + 0.02\n  const taps: Array<[AudioBuffer, number]> = [\n    [a, t0],\n    [b ?? a, t0 + gapMs / 1000],"
+              "code": "export async function playDoubleTap(\r\n  category: Category,\r\n  bus: 'music' | 'world' | 'ui',\r\n  gain: number,\r\n  gapMs: number,\r\n) {\r\n  const rt = audioRuntime\r\n  if (!rt.ctx || !rt.buses) return\r\n  const [a, b] = await Promise.all([nextBuffer(category), nextBuffer(category)])\r\n  if (!a) return\r\n  const t0 = rt.ctx.currentTime + 0.02\r\n  const taps: Array<[AudioBuffer, number]> = [\r\n    [a, t0],\r\n    [b ?? a, t0 + gapMs / 1000],\r"
             },
             {
               "symbol": "syncPanner",
               "line": 180,
-              "code": "export function syncPanner(node: THREE.PositionalAudio) {\n  node.getWorldPosition(_panPos)\n  const p = node.panner\n  if (p.positionX) {\n    p.positionX.value = _panPos.x\n    p.positionY.value = _panPos.y\n    p.positionZ.value = _panPos.z\n  } else {\n    p.setPosition(_panPos.x, _panPos.y, _panPos.z)\n  }\n}\n\n/** One-shot through an existing PositionalAudio node (world bus). */\nexport async function playAt(category: Category, node: THREE.PositionalAudio, gain = 1) {"
+              "code": "export function syncPanner(node: THREE.PositionalAudio) {\r\n  node.getWorldPosition(_panPos)\r\n  const p = node.panner\r\n  if (p.positionX) {\r\n    p.positionX.value = _panPos.x\r\n    p.positionY.value = _panPos.y\r\n    p.positionZ.value = _panPos.z\r\n  } else {\r\n    p.setPosition(_panPos.x, _panPos.y, _panPos.z)\r\n  }\r\n}\r\n\r\n/** One-shot through an existing PositionalAudio node (world bus). */\r\nexport async function playAt(category: Category, node: THREE.PositionalAudio, gain = 1) {\r"
             },
             {
               "symbol": "registerVoice",
               "line": 160,
-              "code": "  registerVoice(category, src)\n  src.start()\n}\n\n/** Route a three.js Audio/PositionalAudio's output through a bus. */\nexport function routeToBus(audio: THREE.Audio | THREE.PositionalAudio, bus: 'music' | 'world' | 'ui') {\n  const rt = audioRuntime\n  if (!rt.buses || !rt.listener) return\n  audio.gain.disconnect()\n  audio.gain.connect(rt.buses[bus])\n}\n\nconst _panPos = new THREE.Vector3()\n/** three's PositionalAudio only updates its panner while `isPlaying`"
+              "code": "  registerVoice(category, src)\r\n  src.start()\r\n}\r\n\r\n/** Route a three.js Audio/PositionalAudio's output through a bus. */\r\nexport function routeToBus(audio: THREE.Audio | THREE.PositionalAudio, bus: 'music' | 'world' | 'ui') {\r\n  const rt = audioRuntime\r\n  if (!rt.buses || !rt.listener) return\r\n  audio.gain.disconnect()\r\n  audio.gain.connect(rt.buses[bus])\r\n}\r\n\r\nconst _panPos = new THREE.Vector3()\r\n/** three's PositionalAudio only updates its panner while `isPlaying`\r"
             },
             {
               "symbol": "onAudioResume",
               "line": 259,
-              "code": "export function onAudioResume(h: (now: number) => void): () => void {\n  resumeHandlers.add(h)\n  return () => resumeHandlers.delete(h)\n}\n\nfunction handleVisibility() {\n  const rt = audioRuntime\n  if (!rt.ctx || !rt.listener) return\n  if (document.hidden) {\n    audioPause.hidden = true\n    // Hard-zero first (suspend() can lag a beat), then freeze the clock.\n    rt.listener.gain.gain.cancelScheduledValues(0)\n    rt.listener.gain.gain.value = 0\n    void rt.ctx.suspend()"
+              "code": "export function onAudioResume(h: (now: number) => void): () => void {\r\n  resumeHandlers.add(h)\r\n  return () => resumeHandlers.delete(h)\r\n}\r\n\r\nfunction handleVisibility() {\r\n  const rt = audioRuntime\r\n  if (!rt.ctx || !rt.listener) return\r\n  if (document.hidden) {\r\n    audioPause.hidden = true\r\n    // Hard-zero first (suspend() can lag a beat), then freeze the clock.\r\n    rt.listener.gain.gain.cancelScheduledValues(0)\r\n    rt.listener.gain.gain.value = 0\r\n    void rt.ctx.suspend()\r"
             }
           ]
         },
@@ -463,7 +463,7 @@
             {
               "symbol": "ShuffleBag",
               "line": 7,
-              "code": "export class ShuffleBag {\n  private history: number[] = []\n\n  constructor(\n    private size: number,\n    private rng: () => number = Math.random,\n  ) {}\n\n  /** Update the pool size (files can be hot-added in dev). */\n  resize(size: number) {\n    this.size = size\n    this.history = this.history.filter((i) => i < size)\n  }\n"
+              "code": "export class ShuffleBag {\r\n  private history: number[] = []\r\n\r\n  constructor(\r\n    private size: number,\r\n    private rng: () => number = Math.random,\r\n  ) {}\r\n\r\n  /** Update the pool size (files can be hot-added in dev). */\r\n  resize(size: number) {\r\n    this.size = size\r\n    this.history = this.history.filter((i) => i < size)\r\n  }\r\n\r"
             }
           ]
         },
@@ -477,12 +477,12 @@
             {
               "symbol": "stepSound",
               "line": 19,
-              "code": "export function stepSound(surface: Surface, sprint: boolean) {\n  // e2e cadence probe.\n  const w = window as unknown as { __stepLog?: Array<{ t: number; surface: string }> }\n  ;(w.__stepLog ??= []).push({ t: performance.now(), surface })\n  if (w.__stepLog.length > 64) w.__stepLog.shift()\n  void play2d(\n    surfaceToCategory(surface),\n    'world',\n    sprint ? FOOTSTEPS.stepGainSprint : FOOTSTEPS.stepGainWalk,\n  )\n}\n\n/** Takeoff/landing double-tap — two different picks ~90 ms apart;\n * landing slightly louder, never one heavy thud. */"
+              "code": "export function stepSound(surface: Surface, sprint: boolean) {\r\n  // e2e cadence probe.\r\n  const w = window as unknown as { __stepLog?: Array<{ t: number; surface: string }> }\r\n  ;(w.__stepLog ??= []).push({ t: performance.now(), surface })\r\n  if (w.__stepLog.length > 64) w.__stepLog.shift()\r\n  void play2d(\r\n    surfaceToCategory(surface),\r\n    'world',\r\n    sprint ? FOOTSTEPS.stepGainSprint : FOOTSTEPS.stepGainWalk,\r\n  )\r\n}\r\n\r\n/** Takeoff/landing double-tap — two different picks ~90 ms apart;\r\n * landing slightly louder, never one heavy thud. */\r"
             },
             {
               "symbol": "jumpTaps",
               "line": 33,
-              "code": "export function jumpTaps(surface: Surface, landing: boolean) {\n  const base = FOOTSTEPS.stepGainWalk * (landing ? 1.25 : 1.05)\n  void playDoubleTap(surfaceToCategory(surface), 'world', base, FOOTSTEPS.jumpTapGapMs)\n}\n"
+              "code": "export function jumpTaps(surface: Surface, landing: boolean) {\r\n  const base = FOOTSTEPS.stepGainWalk * (landing ? 1.25 : 1.05)\r\n  void playDoubleTap(surfaceToCategory(surface), 'world', base, FOOTSTEPS.jumpTapGapMs)\r\n}\r\n"
             }
           ]
         },
@@ -495,7 +495,7 @@
             {
               "symbol": "CrossfadeLoop",
               "line": 10,
-              "code": "export class CrossfadeLoop {\n  private out: GainNode | null = null\n  private endTime = 0\n  private pending = false\n\n  constructor(\n    private category: Category,\n    private fade = 0.5,\n  ) {}\n\n  /** The loop's level node (created lazily, connected to `target`). */\n  level(target: AudioNode): GainNode | null {\n    const ctx = audioRuntime.ctx\n    if (!ctx) return null"
+              "code": "export class CrossfadeLoop {\r\n  private out: GainNode | null = null\r\n  private endTime = 0\r\n  private pending = false\r\n\r\n  constructor(\r\n    private category: Category,\r\n    private fade = 0.5,\r\n  ) {}\r\n\r\n  /** The loop's level node (created lazily, connected to `target`). */\r\n  level(target: AudioNode): GainNode | null {\r\n    const ctx = audioRuntime.ctx\r\n    if (!ctx) return null\r"
             }
           ]
         },
@@ -510,17 +510,17 @@
             {
               "symbol": "musicTarget",
               "line": 37,
-              "code": "export function musicTarget(arcUkeM: number, arcFireM: number, modalOpen: boolean): number {\n  const ukeF = THREE.MathUtils.smoothstep(arcUkeM, 8, 20)\n  const fireF = THREE.MathUtils.lerp(0.6, 1, THREE.MathUtils.smoothstep(arcFireM, 4, 10))\n  return 0.35 * ukeF * fireF * (modalOpen ? 0.57 : 1)\n}\n\n/** Campfire crackle level — PURE proximity (audio finishing pass):\n * full at 3 m, silent past 12 m, and deliberately no nightMix term —\n * day/night has nothing to do with what a fire sounds like. */\nexport function crackleTarget(arcFireM: number): number {\n  return 0.875 * (1 - THREE.MathUtils.smoothstep(arcFireM, 3, 12))\n}\n\n/** Gull cry launch gain: a real gradient on top of the panner — full"
+              "code": "export function musicTarget(arcUkeM: number, arcFireM: number, modalOpen: boolean): number {\r\n  const ukeF = THREE.MathUtils.smoothstep(arcUkeM, 8, 20)\r\n  const fireF = THREE.MathUtils.lerp(0.6, 1, THREE.MathUtils.smoothstep(arcFireM, 4, 10))\r\n  return 0.35 * ukeF * fireF * (modalOpen ? 0.57 : 1)\r\n}\r\n\r\n/** Campfire crackle level — PURE proximity (audio finishing pass):\r\n * full at 3 m, silent past 12 m, and deliberately no nightMix term —\r\n * day/night has nothing to do with what a fire sounds like. */\r\nexport function crackleTarget(arcFireM: number): number {\r\n  return 0.875 * (1 - THREE.MathUtils.smoothstep(arcFireM, 3, 12))\r\n}\r\n\r\n/** Gull cry launch gain: a real gradient on top of the panner — full\r"
             },
             {
               "symbol": "crackleTarget",
               "line": 46,
-              "code": "export function crackleTarget(arcFireM: number): number {\n  return 0.875 * (1 - THREE.MathUtils.smoothstep(arcFireM, 3, 12))\n}\n\n/** Gull cry launch gain: a real gradient on top of the panner — full\n * voice inside ~10 m (gulls orbit at 10–13.5 m altitude, so \"standing\n * under one\" IS ~12 m), gone past 30 m, so flyovers breathe. */\nexport function cryGain(distM: number): number {\n  return 1.08 * (1 - THREE.MathUtils.smoothstep(distM, 10, 30))\n}\n\nexport function WorldEmitters() {\n  const fireAnchor = useRef<THREE.Group>(null)\n  const st = useRef({"
+              "code": "export function crackleTarget(arcFireM: number): number {\r\n  return 0.875 * (1 - THREE.MathUtils.smoothstep(arcFireM, 3, 12))\r\n}\r\n\r\n/** Gull cry launch gain: a real gradient on top of the panner — full\r\n * voice inside ~10 m (gulls orbit at 10–13.5 m altitude, so \"standing\r\n * under one\" IS ~12 m), gone past 30 m, so flyovers breathe. */\r\nexport function cryGain(distM: number): number {\r\n  return 1.08 * (1 - THREE.MathUtils.smoothstep(distM, 10, 30))\r\n}\r\n\r\nexport function WorldEmitters() {\r\n  const fireAnchor = useRef<THREE.Group>(null)\r\n  const st = useRef({\r"
             },
             {
               "symbol": "cryGain",
               "line": 53,
-              "code": "export function cryGain(distM: number): number {\n  return 1.08 * (1 - THREE.MathUtils.smoothstep(distM, 10, 30))\n}\n\nexport function WorldEmitters() {\n  const fireAnchor = useRef<THREE.Group>(null)\n  const st = useRef({\n    fire: new CrossfadeLoop('campfire', 0.6),\n    fireNode: null as THREE.PositionalAudio | null,\n    cryNode: null as THREE.PositionalAudio | null,\n    nextCry: 0,\n    fireUnit: latLongToUnit(MAP.campfire.lat, MAP.campfire.long),\n    pole: new THREE.Vector3(),\n  })"
+              "code": "export function cryGain(distM: number): number {\r\n  return 1.08 * (1 - THREE.MathUtils.smoothstep(distM, 10, 30))\r\n}\r\n\r\nexport function WorldEmitters() {\r\n  const fireAnchor = useRef<THREE.Group>(null)\r\n  const st = useRef({\r\n    fire: new CrossfadeLoop('campfire', 0.6),\r\n    fireNode: null as THREE.PositionalAudio | null,\r\n    cryNode: null as THREE.PositionalAudio | null,\r\n    nextCry: 0,\r\n    fireUnit: latLongToUnit(MAP.campfire.lat, MAP.campfire.long),\r\n    pole: new THREE.Vector3(),\r\n  })\r"
             }
           ]
         }
@@ -555,12 +555,12 @@
           "excerpts": [
             {
               "symbol": "mergeByMaterial",
-              "line": 93,
+              "line": 97,
               "code": "function mergeByMaterial(pieces: Piece[]): PropPart[] {\r\n  const buckets = new Map<THREE.MeshLambertMaterial, THREE.BufferGeometry[]>()\r\n  for (const p of pieces) {\r\n    const geo = normalizeForMerge(p.geometry).applyMatrix4(p.matrix)\r\n    const list = buckets.get(p.material)\r\n    if (list) list.push(geo)\r\n    else buckets.set(p.material, [geo])\r\n  }\r\n  const parts: PropPart[] = []\r\n  for (const [material, geos] of buckets) {\r\n    const merged = geos.length === 1 ? geos[0] : mergeGeometries(geos)\r\n    geos.forEach((g) => g !== merged && g.dispose())\r\n    parts.push({ geometry: merged, material })\r\n  }\r"
             },
             {
               "symbol": "paletteMaterial",
-              "line": 27,
+              "line": 31,
               "code": "export function paletteMaterial(\r\n  color: string,\r\n  emissive = '#000000',\r\n  emissiveIntensity = 0,\r\n): THREE.MeshLambertMaterial {\r\n  const key = `${color}|${emissive}|${emissiveIntensity}`\r\n  let mat = materialCache.get(key)\r\n  if (!mat) {\r\n    mat = new THREE.MeshLambertMaterial({ color, flatShading: true })\r\n    mat.emissive.set(emissive)\r\n    mat.emissiveIntensity = emissiveIntensity\r\n    materialCache.set(key, mat)\r\n  }\r\n  return mat\r"
             }
           ]
@@ -575,18 +575,18 @@
           "excerpts": [
             {
               "symbol": "StaticInstances",
-              "line": 37,
-              "code": "export function StaticInstances({\n  geometry,\n  material,\n  matrices,\n}: {\n  geometry: THREE.BufferGeometry\n  material: THREE.Material\n  matrices: THREE.Matrix4[]\n}) {\n  const meshRef = useRef<THREE.InstancedMesh>(null)\n  useEffect(() => {\n    const mesh = meshRef.current\n    if (!mesh) return\n    matrices.forEach((m, i) => mesh.setMatrixAt(i, m))"
+              "line": 39,
+              "code": "export function StaticInstances({\r\n  geometry,\r\n  material,\r\n  matrices,\r\n}: {\r\n  geometry: THREE.BufferGeometry\r\n  material: THREE.Material\r\n  matrices: THREE.Matrix4[]\r\n}) {\r\n  const meshRef = useRef<THREE.InstancedMesh>(null)\r\n  useEffect(() => {\r\n    const mesh = meshRef.current\r\n    if (!mesh) return\r\n    matrices.forEach((m, i) => mesh.setMatrixAt(i, m))\r"
             },
             {
               "symbol": "InstancedProp",
-              "line": 61,
-              "code": "export function InstancedProp({\n  parts,\n  placements,\n}: {\n  parts: PropPart[]\n  placements: THREE.Matrix4[]\n}) {\n  return (\n    <>\n      {parts.map((p, i) => (\n        <StaticInstances key={i} geometry={p.geometry} material={p.material} matrices={placements} />\n      ))}\n    </>\n  )"
+              "line": 177,
+              "code": "export function InstancedProp({\r\n  parts,\r\n  placements,\r\n}: {\r\n  parts: PropPart[]\r\n  placements: THREE.Matrix4[]\r\n}) {\r\n  return (\r\n    <>\r\n      {parts.map((p, i) =>\r\n        p.sway ? (\r\n          <SwayInstances\r\n            key={i}\r\n            geometry={p.geometry}\r"
             },
             {
               "symbol": "surfacePartMatrix",
-              "line": 10,
-              "code": "export function surfacePartMatrix(\n  lat: number,\n  long: number,\n  altitude: number,\n  yaw: number,\n  localPos: THREE.Vector3,\n  localQuat: THREE.Quaternion,\n  scale: number,\n): THREE.Matrix4 {\n  const unit = latLongToUnit(lat, long)\n  const q = surfaceQuaternion(unit).multiply(\n    new THREE.Quaternion().setFromAxisAngle(WORLD_UP, meridianYaw(lat, long) + yaw),\n  )\n  const surface = new THREE.Matrix4().compose("
+              "line": 12,
+              "code": "export function surfacePartMatrix(\r\n  lat: number,\r\n  long: number,\r\n  altitude: number,\r\n  yaw: number,\r\n  localPos: THREE.Vector3,\r\n  localQuat: THREE.Quaternion,\r\n  scale: number,\r\n): THREE.Matrix4 {\r\n  const unit = latLongToUnit(lat, long)\r\n  const q = surfaceQuaternion(unit).multiply(\r\n    new THREE.Quaternion().setFromAxisAngle(WORLD_UP, meridianYaw(lat, long) + yaw),\r\n  )\r\n  const surface = new THREE.Matrix4().compose(\r"
             }
           ]
         }
@@ -614,7 +614,7 @@
             {
               "symbol": "Photo",
               "line": 1,
-              "code": "export interface Photo {\n  id: string\n  /** Web-sized image (longest edge ~1800 px, WebP via the pipeline). */\n  full: string\n  /** Grid thumbnail (~480 px, cover-cropped by the tile). */\n  thumb: string\n  /** Intrinsic dimensions of `full` — layout never guesses ratios. */\n  width: number\n  height: number\n  alt: string\n  title: string\n  caption?: string\n}\n"
+              "code": "export interface Photo {\r\n  id: string\r\n  /** Web-sized image (longest edge ~1800 px, WebP via the pipeline). */\r\n  full: string\r\n  /** Grid thumbnail (~480 px, cover-cropped by the tile). */\r\n  thumb: string\r\n  /** Intrinsic dimensions of `full` — layout never guesses ratios. */\r\n  width: number\r\n  height: number\r\n  alt: string\r\n  title: string\r\n  caption?: string\r\n}\r\n\r"
             }
           ],
           "note": "the interface, curated order"
@@ -662,7 +662,7 @@
           "excerpts": [
             {
               "symbol": "buildHedgeStone",
-              "line": 891,
+              "line": 904,
               "code": "export function buildHedgeStone(): PropPart[] {\r\n  const tinted = (g: THREE.BufferGeometry, color: string, pos: [number, number, number], rot: [number, number, number] = [0, 0, 0], scale: [number, number, number] = [1, 1, 1]) => {\r\n    const n = tintGeometry(normalizeForMerge(g), color)\r\n    g.dispose()\r\n    n.applyMatrix4(\r\n      new THREE.Matrix4().compose(\r\n        new THREE.Vector3(...pos),\r\n        new THREE.Quaternion().setFromEuler(new THREE.Euler(...rot)),\r\n        new THREE.Vector3(...scale),\r\n      ),\r\n    )\r\n    return n\r\n  }\r\n  const STONE = '#8a9484'\r"
             }
           ]
@@ -723,7 +723,7 @@
           "excerpts": [
             {
               "symbol": "buildBulletinBoard",
-              "line": 653,
+              "line": 666,
               "code": "export function buildBulletinBoard(): PropPart[] {\r\n  const tinted = (g: THREE.BufferGeometry, color: string, pos: [number, number, number], rot: [number, number, number] = [0, 0, 0], scale: [number, number, number] = [1, 1, 1]) => {\r\n    const n = tintGeometry(normalizeForMerge(g), color)\r\n    g.dispose()\r\n    n.applyMatrix4(\r\n      new THREE.Matrix4().compose(\r\n        new THREE.Vector3(...pos),\r\n        new THREE.Quaternion().setFromEuler(new THREE.Euler(...rot)),\r\n        new THREE.Vector3(...scale),\r\n      ),\r\n    )\r\n    return n\r\n  }\r\n  const FRAME = '#7f9578'\r"
             }
           ]
@@ -737,7 +737,7 @@
             {
               "symbol": "Paper",
               "line": 1,
-              "code": "export interface Paper {\n  id: string\n  title: string\n  blurb: string\n  /** Public path (files live in public/, e.g. '/aiden-hock-resume.pdf'). */\n  file: string\n  type: 'pdf'\n}\n\n/**\n * Documents pinned to the bulletin board (and mirrored on /classic).\n * NOTE: /aiden-hock-resume.pdf is currently a PLACEHOLDER — the real\n * resume's header contains a phone number, which must not ship\n * (CLAUDE.md privacy rule). Aiden: strip the phone from the docx (or"
+              "code": "export interface Paper {\r\n  id: string\r\n  title: string\r\n  blurb: string\r\n  /** Public path (files live in public/, e.g. '/aiden-hock-resume.pdf'). */\r\n  file: string\r\n  type: 'pdf'\r\n}\r\n\r\n/**\r\n * Documents pinned to the bulletin board (and mirrored on /classic).\r\n * NOTE: /aiden-hock-resume.pdf is currently a PLACEHOLDER — the real\r\n * resume's header contains a phone number, which must not ship\r\n * (CLAUDE.md privacy rule). Aiden: strip the phone from the docx (or\r"
             }
           ],
           "note": "the interface"
@@ -773,17 +773,17 @@
             {
               "symbol": "playerFrame",
               "line": 34,
-              "code": "export function playerFrame(quat: THREE.Quaternion, out?: LocalFrame): LocalFrame {\n  const frame = out ?? {\n    pole: new THREE.Vector3(),\n    north: new THREE.Vector3(),\n    east: new THREE.Vector3(),\n  }\n  poleInPlanetSpace(quat, frame.pole)\n  frame.pole.normalize()\n  // North = the tangent toward lat 90. Degenerate exactly at the pole,\n  // where any tangent is north; +Z keeps the map from flipping there.\n  const lat = Math.asin(THREE.MathUtils.clamp(frame.pole.y, -1, 1))\n  if (Math.abs(Math.cos(lat)) < 1e-6) {\n    frame.north.set(0, 0, 1)\n  } else {"
+              "code": "export function playerFrame(quat: THREE.Quaternion, out?: LocalFrame): LocalFrame {\r\n  const frame = out ?? {\r\n    pole: new THREE.Vector3(),\r\n    north: new THREE.Vector3(),\r\n    east: new THREE.Vector3(),\r\n  }\r\n  poleInPlanetSpace(quat, frame.pole)\r\n  frame.pole.normalize()\r\n  // North = the tangent toward lat 90. Degenerate exactly at the pole,\r\n  // where any tangent is north; +Z keeps the map from flipping there.\r\n  const lat = Math.asin(THREE.MathUtils.clamp(frame.pole.y, -1, 1))\r\n  if (Math.abs(Math.cos(lat)) < 1e-6) {\r\n    frame.north.set(0, 0, 1)\r\n  } else {\r"
             },
             {
               "symbol": "bearingTo",
               "line": 66,
-              "code": "export function bearingTo(frame: LocalFrame, unit: THREE.Vector3): number {\n  // Project the target onto the tangent plane at the player.\n  _u.copy(unit).addScaledVector(frame.pole, -frame.pole.dot(unit))\n  if (_u.lengthSq() < 1e-12) return 0\n  _u.normalize()\n  return Math.atan2(_u.dot(frame.east), _u.dot(frame.north))\n}\n\n/**\n * The camera's heading as a bearing from local north, so the map can be\n * rotated to put \"where I am looking\" at the top. `forwardWorld` is the\n * camera's forward direction in world space; `quat` the planet's.\n */\nexport function cameraHeading("
+              "code": "export function bearingTo(frame: LocalFrame, unit: THREE.Vector3): number {\r\n  // Project the target onto the tangent plane at the player.\r\n  _u.copy(unit).addScaledVector(frame.pole, -frame.pole.dot(unit))\r\n  if (_u.lengthSq() < 1e-12) return 0\r\n  _u.normalize()\r\n  return Math.atan2(_u.dot(frame.east), _u.dot(frame.north))\r\n}\r\n\r\n/**\r\n * The camera's heading as a bearing from local north, so the map can be\r\n * rotated to put \"where I am looking\" at the top. `forwardWorld` is the\r\n * camera's forward direction in world space; `quat` the planet's.\r\n */\r\nexport function cameraHeading(\r"
             },
             {
               "symbol": "toScreen",
               "line": 96,
-              "code": "export function toScreen(\n  range: number,\n  bearing: number,\n  heading: number,\n  pxPerM: number,\n  out: { x: number; y: number },\n): { x: number; y: number } {\n  const a = bearing - heading\n  const r = range * pxPerM\n  out.x = Math.sin(a) * r\n  out.y = -Math.cos(a) * r\n  return out\n}\n"
+              "code": "export function toScreen(\r\n  range: number,\r\n  bearing: number,\r\n  heading: number,\r\n  pxPerM: number,\r\n  out: { x: number; y: number },\r\n): { x: number; y: number } {\r\n  const a = bearing - heading\r\n  const r = range * pxPerM\r\n  out.x = Math.sin(a) * r\r\n  out.y = -Math.cos(a) * r\r\n  return out\r\n}\r\n\r"
             }
           ]
         },
@@ -856,12 +856,12 @@
           "excerpts": [
             {
               "symbol": "buildCemetery",
-              "line": 453,
+              "line": 466,
               "code": "export function buildCemetery(plot: {\r\n  lat: number\r\n  long: number\r\n  yawDeg: number\r\n  size?: { widthM: number; depthM: number }\r\n} = placement('cemetery')): PropPart[] {\r\n  const tinted = (g: THREE.BufferGeometry, color: string, pos: [number, number, number], rot: [number, number, number] = [0, 0, 0], scale: [number, number, number] = [1, 1, 1]) => {\r\n    const n = tintGeometry(normalizeForMerge(g), color)\r\n    g.dispose()\r\n    n.applyMatrix4(\r\n      new THREE.Matrix4().compose(\r\n        new THREE.Vector3(...pos),\r\n        new THREE.Quaternion().setFromEuler(new THREE.Euler(...rot)),\r\n        new THREE.Vector3(...scale),\r"
             },
             {
               "symbol": "buildHeadstone",
-              "line": 624,
+              "line": 637,
               "code": "export function buildHeadstone(): PropPart[] {\r\n  const tinted = (g: THREE.BufferGeometry, color: string, pos: [number, number, number], rot: [number, number, number] = [0, 0, 0]) => {\r\n    const n = tintGeometry(normalizeForMerge(g), color)\r\n    g.dispose()\r\n    n.applyMatrix4(\r\n      new THREE.Matrix4().compose(\r\n        new THREE.Vector3(...pos),\r\n        new THREE.Quaternion().setFromEuler(new THREE.Euler(...rot)),\r\n        new THREE.Vector3(1, 1, 1),\r\n      ),\r\n    )\r\n    return n\r\n  }\r\n  const parts = [\r"
             }
           ]
@@ -991,7 +991,7 @@
             {
               "symbol": "@font-face",
               "line": 4,
-              "code": "@font-face {\n  font-family: 'Atkinson Hyperlegible';\n  font-style: normal;\n  font-weight: 400;\n  font-display: swap;\n  src: url('/fonts/atkinson-hyperlegible-400.woff2') format('woff2');\n  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;\n}\n\n@font-face {\n  font-family: 'Atkinson Hyperlegible';\n  font-style: normal;\n  font-weight: 700;\n  font-display: swap;"
+              "code": "@font-face {\r\n  font-family: 'Atkinson Hyperlegible';\r\n  font-style: normal;\r\n  font-weight: 400;\r\n  font-display: swap;\r\n  src: url('/fonts/atkinson-hyperlegible-400.woff2') format('woff2');\r\n  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;\r\n}\r\n\r\n@font-face {\r\n  font-family: 'Atkinson Hyperlegible';\r\n  font-style: normal;\r\n  font-weight: 700;\r\n  font-display: swap;\r"
             }
           ],
           "note": "generated rules"
@@ -1180,12 +1180,12 @@
             {
               "symbol": "project",
               "line": 28,
-              "code": "export function project(view: MapView, lat: number, long: number): { x: number; y: number } {\n  const r = (90 - lat) * view.scale\n  const a = long * DEG\n  return {\n    x: view.cx + view.panX + Math.sin(a) * r,\n    y: view.cy + view.panY - Math.cos(a) * r,\n  }\n}\n\nexport function unproject(view: MapView, x: number, y: number): { lat: number; long: number } {\n  const dx = x - view.cx - view.panX\n  const dy = y - view.cy - view.panY\n  const r = Math.hypot(dx, dy)\n  return {"
+              "code": "export function project(view: MapView, lat: number, long: number): { x: number; y: number } {\r\n  const r = (90 - lat) * view.scale\r\n  const a = long * DEG\r\n  return {\r\n    x: view.cx + view.panX + Math.sin(a) * r,\r\n    y: view.cy + view.panY - Math.cos(a) * r,\r\n  }\r\n}\r\n\r\nexport function unproject(view: MapView, x: number, y: number): { lat: number; long: number } {\r\n  const dx = x - view.cx - view.panX\r\n  const dy = y - view.cy - view.panY\r\n  const r = Math.hypot(dx, dy)\r\n  return {\r"
             },
             {
               "symbol": "unproject",
               "line": 37,
-              "code": "export function unproject(view: MapView, x: number, y: number): { lat: number; long: number } {\n  const dx = x - view.cx - view.panX\n  const dy = y - view.cy - view.panY\n  const r = Math.hypot(dx, dy)\n  return {\n    lat: 90 - r / view.scale,\n    long: ((Math.atan2(dx, -dy) / DEG) % 360 + 360) % 360,\n  }\n}\n\n/** Metres → pixels, for drawing blocker radii at their true size. */\nexport const metresPerDegree = (Math.PI * PLANET_RADIUS) / 180\nexport const pxPerMetre = (view: MapView) => view.scale / metresPerDegree\n"
+              "code": "export function unproject(view: MapView, x: number, y: number): { lat: number; long: number } {\r\n  const dx = x - view.cx - view.panX\r\n  const dy = y - view.cy - view.panY\r\n  const r = Math.hypot(dx, dy)\r\n  return {\r\n    lat: 90 - r / view.scale,\r\n    long: ((Math.atan2(dx, -dy) / DEG) % 360 + 360) % 360,\r\n  }\r\n}\r\n\r\n/** Metres → pixels, for drawing blocker radii at their true size. */\r\nexport const metresPerDegree = (Math.PI * PLANET_RADIUS) / 180\r\nexport const pxPerMetre = (view: MapView) => view.scale / metresPerDegree\r\n"
             }
           ]
         },
@@ -1334,7 +1334,7 @@
           "excerpts": [
             {
               "symbol": "buildTelescope",
-              "line": 361,
+              "line": 374,
               "code": "export function buildTelescope(): PropPart[] {\r\n  const METAL = '#3a4048'\r\n  const METAL_LIGHT = '#5a626e'\r\n  const BRASS = '#b8894a'\r\n  const GLASS = '#1b2740'\r\n\r\n  const tinted = (\r\n    g: THREE.BufferGeometry,\r\n    color: string,\r\n    pos: [number, number, number],\r\n    rot: [number, number, number] = [0, 0, 0],\r\n  ) => {\r\n    const n = tintGeometry(normalizeForMerge(g), color)\r\n    g.dispose()\r"
             }
           ]
@@ -1352,6 +1352,98 @@
         "The tube aims from WHERE IT STANDS, not from the planet's centre. The moon sits on a dome of radius 240 around a world of radius 55, so a surface observer sees it up to 13° off its centre-of-planet direction — the difference between a telescope pointing at the horizon and one pointing at the sky above it. The first version used the raw direction and stood there aiming at the zenith.",
         "The disc said when it was a stand-in, and named the file to drop in — which is how it got replaced within the hour. An unlabelled procedural moon would quietly have become the finished thing.",
         "The photograph is cropped to the limb by script, not by hand. The drawing clips the disc to a circle and lays an ellipse across it, so a photo with sky around the moon would show a black ring inside the eyepiece and a shadow that missed. `prepare-moon.mjs` finds the disc by luminance, squares the crop on its centre, and scales it — rerun it on any future photo and the maths still lines up."
+      ]
+    },
+    {
+      "id": "palm-sway",
+      "step": 22,
+      "title": "Wind: the palms sway",
+      "hook": "Every palm on the island leans in the same wind, and no two\r\never move together.",
+      "plain": "Stand still and watch the trees — each crown of fronds and\r coconuts breathes in a slow lean, with a quicker flutter riding on top,\r the way real palm crowns shiver in a gust while the trunk barely moves.\r Every palm answers to the same wind (the same one that drags the\r clouds across the sky and drifts the campfire's smoke), but each one is\r a beat out of step with its neighbors, so a row of palms never sways\r like a chorus line.",
+      "technical": "`wind.ts` is the one wind: a fixed planet-local axis\r (moved here from the clouds, which now import it instead of owning it)\r and a pure `windLean(t, phase)` — a slow breathing sine plus a faster\r two-tone flutter, tuned to a few degrees so a palm never reads as\r blown over. `buildPalm` tags its frond and coconut parts (not the\r trunk) with a `sway.pivot` — the crown's own prop-local point — so\r `PropPart` carries an optional sway field through the merge pipeline\r unchanged (three parts, same tris, same materials).\r \r The hard part is that \"downwind\" means something different at every\r placement: the wind is one fixed direction, but each palm sits on the\r sphere at its own tilt. `SwayInstances` (instancing.tsx) solves this\r once per instance at mount, not per frame: it reads the placement\r matrix's own translation to get the instance's planet-local position,\r asks `windDirAt` for the tangent wind direction there, then pulls that\r world direction back into the prop's own local frame through the\r INVERSE of the placement's rotation. Crossing local up with that local\r wind gives the one axis that leans the crown toward it. A per-instance\r phase (`i * 2.399`, an irrational-ish stride) keeps the pool from\r breathing in unison. Every frame, `swayMatrix` composes `placement ×\r T(pivot) × R(axis, angle) × T(−pivot)` — the pivot point itself never\r moves, only the crown swinging around it — writing straight into the\r instance matrix with module-level scratch only, so a windy island costs\r zero allocations per frame. `InstancedProp` picks `SwayInstances` for\r any part tagged `sway` and `StaticInstances` for the rest, so nothing\r else that renders a prop had to change.",
+      "files": [
+        {
+          "path": "src/scene/wind.ts",
+          "symbols": [
+            "WIND_AXIS",
+            "WIND",
+            "windDirAt",
+            "windLean"
+          ],
+          "excerpts": [
+            {
+              "symbol": "WIND_AXIS",
+              "line": 11,
+              "code": "export const WIND_AXIS = new THREE.Vector3(0.35, 0.8, 0.49).normalize()\n\n/** Palm crown lean tuning, in radians. Kept subtle by design — a palm\n * must never look like it is being blown over. */\nexport const WIND = {\n  axis: WIND_AXIS,\n  baseRad: 0.045,\n  gustRad: 0.035,\n  breatheHz: 0.18,\n  flutterHz: 1.1,\n} as const\n\nconst _fallbackA = new THREE.Vector3(1, 0, 0)\nconst _fallbackB = new THREE.Vector3(0, 1, 0)"
+            },
+            {
+              "symbol": "WIND",
+              "line": 15,
+              "code": "export const WIND = {\n  axis: WIND_AXIS,\n  baseRad: 0.045,\n  gustRad: 0.035,\n  breatheHz: 0.18,\n  flutterHz: 1.1,\n} as const\n\nconst _fallbackA = new THREE.Vector3(1, 0, 0)\nconst _fallbackB = new THREE.Vector3(0, 1, 0)\n\n/**\n * The tangent wind direction at a planet-local unit position — the same\n * great-circle drift direction the clouds use: `normalize(cross(WIND_AXIS,"
+            },
+            {
+              "symbol": "windDirAt",
+              "line": 32,
+              "code": "export function windDirAt(unit: THREE.Vector3, out: THREE.Vector3): THREE.Vector3 {\n  out.crossVectors(WIND_AXIS, unit)\n  if (out.lengthSq() < 1e-10) {\n    out.crossVectors(WIND_AXIS, _fallbackA)\n    if (out.lengthSq() < 1e-10) out.crossVectors(WIND_AXIS, _fallbackB)\n  }\n  return out.normalize()\n}\n\n/**\n * The crown lean angle (radians) at time `t` for a palm with phase\n * `phase` — a slow breathing lean with a small faster flutter riding on\n * top, so no two palms move in unison. Pure, deterministic.\n */"
+            },
+            {
+              "symbol": "windLean",
+              "line": 46,
+              "code": "export function windLean(t: number, phase: number): number {\n  const breathe = 0.5 + 0.5 * Math.sin(2 * Math.PI * WIND.breatheHz * t + phase)\n  const flutter =\n    Math.sin(2 * Math.PI * WIND.flutterHz * t + phase * 1.7) +\n    0.6 * Math.sin(2 * Math.PI * WIND.flutterHz * 0.37 * t + phase * 2.3)\n  return WIND.baseRad * breathe + WIND.gustRad * 0.5 * flutter * 0.5\n}\n"
+            }
+          ]
+        },
+        {
+          "path": "src/scene/props.ts",
+          "symbols": [
+            "buildPalm",
+            "PropPart.sway"
+          ],
+          "excerpts": [
+            {
+              "symbol": "buildPalm",
+              "line": 119,
+              "code": "export function buildPalm(): PropPart[] {\r\n  const trunk = paletteMaterial(PROP_COLORS.trunk)\r\n  const frond = paletteMaterial(PROP_COLORS.frond)\r\n  const coconut = paletteMaterial(PROP_COLORS.coconut)\r\n  const pieces: Piece[] = []\r\n\r\n  const SEGS = 5\r\n  const SEG_H = 0.62\r\n  const pos = new THREE.Vector3(0, 0, 0)\r\n  for (let i = 0; i < SEGS; i++) {\r\n    const t = i / (SEGS - 1)\r\n    const w = THREE.MathUtils.lerp(0.34, 0.22, t)\r\n    const lean = 0.38 - 0.11 * i // banana curve: leans at the base, upright at the tip\r\n    const dir = new THREE.Vector3(Math.sin(lean), Math.cos(lean), 0)\r"
+            }
+          ]
+        },
+        {
+          "path": "src/scene/instancing.tsx",
+          "symbols": [
+            "swayMatrix",
+            "SwayInstances",
+            "InstancedProp"
+          ],
+          "excerpts": [
+            {
+              "symbol": "swayMatrix",
+              "line": 73,
+              "code": "export function swayMatrix(\r\n  placement: THREE.Matrix4,\r\n  pivot: THREE.Vector3,\r\n  axis: THREE.Vector3,\r\n  angle: number,\r\n  out: THREE.Matrix4 = new THREE.Matrix4(),\r\n): THREE.Matrix4 {\r\n  _swayQ.setFromAxisAngle(axis, angle)\r\n  _swayR.makeRotationFromQuaternion(_swayQ)\r\n  _swayT1.makeTranslation(pivot.x, pivot.y, pivot.z)\r\n  _swayT2.makeTranslation(-pivot.x, -pivot.y, -pivot.z)\r\n  out.copy(placement).multiply(_swayT1).multiply(_swayR).multiply(_swayT2)\r\n  return out\r\n}\r"
+            },
+            {
+              "symbol": "SwayInstances",
+              "line": 113,
+              "code": "export function SwayInstances({\r\n  geometry,\r\n  material,\r\n  matrices,\r\n  pivot,\r\n}: {\r\n  geometry: THREE.BufferGeometry\r\n  material: THREE.Material\r\n  matrices: THREE.Matrix4[]\r\n  pivot: THREE.Vector3\r\n}) {\r\n  const meshRef = useRef<THREE.InstancedMesh>(null)\r\n  const data = useRef<SwayDatum[]>([])\r\n\r"
+            },
+            {
+              "symbol": "InstancedProp",
+              "line": 177,
+              "code": "export function InstancedProp({\r\n  parts,\r\n  placements,\r\n}: {\r\n  parts: PropPart[]\r\n  placements: THREE.Matrix4[]\r\n}) {\r\n  return (\r\n    <>\r\n      {parts.map((p, i) =>\r\n        p.sway ? (\r\n          <SwayInstances\r\n            key={i}\r\n            geometry={p.geometry}\r"
+            }
+          ]
+        },
+        {
+          "path": "src/scene/wind.test.ts",
+          "symbols": [],
+          "excerpts": [],
+          "note": "the pivot-fixed and downwind-lean pins"
+        }
+      ],
+      "decisions": [
+        "The sway axis is solved once at mount, not recomputed every frame. The placement's rotation doesn't change frame to frame (only the editor's drag does, and that already rebuilds the instance list), so paying for the inverse-quaternion and cross product per frame per palm would be work with no visible payoff.",
+        "The trunk was left out of the sway on purpose. A test that swayed the whole tree read like the ground itself was moving; keeping the trunk rigid and only the crown loose is what makes it look like weight and flex rather than the model wobbling.",
+        "`WIND_AXIS` moved out of Clouds.tsx into its own module rather than being duplicated. The fire's ember drift already depended on the clouds' constant by import — three consumers of one \"the wind\" is the point where it stops being a clouds implementation detail and becomes shared physics.",
+        "The formula's gust term can dip a hair negative at its extreme (a fraction of a degree) even though the design intent is \"always downwind\" — the two sine terms aren't phase-locked, so a rare instant can catch the base breath at its trough and the flutter at its trough together. Left as specified rather than clamped: the dip is small enough that it reads as stillness, not a wrong-way lean, and clamping would have been an undocumented change to a spec that says implement exactly."
       ]
     }
   ]
