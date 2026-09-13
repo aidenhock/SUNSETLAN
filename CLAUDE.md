@@ -154,7 +154,31 @@ toward the island.
 home-side clamp so sun and moon sink below the ocean limb, swings the
 key light to a fixed south-sky direction (never lit from below), and
 cools the horizon to `#182636`. Stars now cover the south cap too.
-Penguins, igloo, aurora, snow, villagers and the boat are still to come.
+
+**Who lives there (Antarctica life)** — all of it gated on
+`skyRuntime.southMix`, so from the island it costs nothing:
+- **Igloo** (lat −79/25): a snow-block dome + entrance tunnel, ONE
+  vertex-tinted merge in `PROP_REGISTRY` (`buildIgloo`), with `<Igloo>`
+  glue hanging a night-gated warm point light and a glowing mouth disc
+  off `IGLOO_MOUTH` — the same constants the geometry is cut from.
+  `iceblock` and `snowmound` are the cap's rocks and shells.
+- **Villagers**: Sila idles at the door (−78/12), Nanuq wanders 4 m
+  (−81/60), both from `NPC_REGISTRY` — and two villagers cost ~18 draw
+  calls, which is the cap's real budget pressure.
+- **Penguins** (`Penguins.tsx` + pure `penguinWalk.ts`): 6 birds, 8 box
+  parts each, ALL 48 instances in one InstancedMesh with per-part
+  `instanceColor`. Random-walk clamped to polar 8°–21.5° from the south
+  pole AND to `groundAltitude > 0.05`; startle hop inside 2.5 m.
+- **Aurora** (`Aurora.tsx` + pure `auroraLayout.ts`): three curtains,
+  108 additive vertex-coloured quads in ONE InstancedMesh (no new
+  shader — black = transparent under AdditiveBlending), 26–34 m up at
+  polar 6°–24°, `renderOrder 2`. Quads must OVERLAP their neighbours or
+  the curtain reads as a folded paper chain.
+- **Snow** (`Snow.tsx`): one pooled 500-point Points cloud in a
+  pole-anchored group, the embers technique — drift from `windDirAt`,
+  wrap floor = sphere drop + `terrainProfile`.
+
+The boat is the remaining piece.
 
 ## The room through the rift (a second walkable space)
 

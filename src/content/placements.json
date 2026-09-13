@@ -545,6 +545,123 @@
       "scale": 1,
       "blockerRadiusM": 0.6,
       "notes": "Night beach, near the fire but clear of it."
+    },
+    {
+      "id": "igloo",
+      "type": "igloo",
+      "kind": "prop",
+      "label": "Igloo",
+      "lat": -79,
+      "long": 25,
+      "yawDeg": 45,
+      "scale": 1,
+      "blockerRadiusM": 2.2,
+      "notes": "Antarctica's one built thing: a snow-block dome on the plateau, entrance tunnel turned toward the dock side so you meet the doorway walking in from the north."
+    },
+    {
+      "id": "npc-sila-01",
+      "type": "npc-sila",
+      "kind": "npc",
+      "label": "Sila",
+      "lat": -78,
+      "long": 12,
+      "yawDeg": 249,
+      "scale": 1,
+      "blockerRadiusM": 0.6,
+      "notes": "Stands on the plateau facing the igloo entrance."
+    },
+    {
+      "id": "npc-nanuq-01",
+      "type": "npc-nanuq",
+      "kind": "npc",
+      "label": "Nanuq",
+      "lat": -81,
+      "long": 60,
+      "yawDeg": 90,
+      "scale": 1,
+      "blockerRadiusM": 0.6,
+      "notes": "Wanders 4 m of plateau; kept over 6 m from the igloo and far from the dock."
+    },
+    {
+      "id": "iceblock-01",
+      "type": "iceblock",
+      "kind": "prop",
+      "label": "Ice chunk",
+      "lat": -75,
+      "long": 80,
+      "yawDeg": 20,
+      "scale": 1,
+      "blockerRadiusM": 0.9,
+      "notes": "Plateau edge. Radius is footprintRadius('iceblock')."
+    },
+    {
+      "id": "iceblock-02",
+      "type": "iceblock",
+      "kind": "prop",
+      "label": "Ice chunk",
+      "lat": -74.5,
+      "long": 150,
+      "yawDeg": 200,
+      "scale": 1,
+      "blockerRadiusM": 0.9,
+      "notes": "Out on the ice shelf, above the waterline."
+    },
+    {
+      "id": "iceblock-03",
+      "type": "iceblock",
+      "kind": "prop",
+      "label": "Ice chunk",
+      "lat": -76,
+      "long": 230,
+      "yawDeg": 310,
+      "scale": 1,
+      "blockerRadiusM": 0.9,
+      "notes": "Plateau edge."
+    },
+    {
+      "id": "iceblock-04",
+      "type": "iceblock",
+      "kind": "prop",
+      "label": "Ice chunk",
+      "lat": -74,
+      "long": 320,
+      "yawDeg": 120,
+      "scale": 1,
+      "blockerRadiusM": 0.9,
+      "notes": "Shelf edge on the far side from the dock."
+    },
+    {
+      "id": "snowmound-01",
+      "type": "snowmound",
+      "kind": "prop",
+      "label": "Snow drift",
+      "lat": -80,
+      "long": 45,
+      "yawDeg": 0,
+      "scale": 1.2,
+      "notes": "Plateau drift; no blocker, you walk over it."
+    },
+    {
+      "id": "snowmound-02",
+      "type": "snowmound",
+      "kind": "prop",
+      "label": "Snow drift",
+      "lat": -78.5,
+      "long": 300,
+      "yawDeg": 0,
+      "scale": 1,
+      "notes": "Plateau drift; no blocker."
+    },
+    {
+      "id": "snowmound-03",
+      "type": "snowmound",
+      "kind": "prop",
+      "label": "Snow drift",
+      "lat": -82,
+      "long": 130,
+      "yawDeg": 0,
+      "scale": 0.9,
+      "notes": "Plateau drift near the pole; no blocker."
     }
   ]
 }

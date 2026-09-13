@@ -1305,3 +1305,131 @@ rotated into world space with a scratch vector each frame.
   teleport that routes through the SAME `controlsRuntime.poseOverride`
   the screenshot sweeps already use, rather than inventing a second way
   to move the player.
+
+## 26 · Antarctica comes alive {#antarctica-life}
+
+**Hook:** Somebody lives down here. There is a light on in the igloo,
+there are penguins on the ice, and the whole sky is green.
+
+**Plain:** The south cap used to be a beautiful empty plain. Now it is
+a place with residents.
+
+There is an igloo on the plateau — a dome of stacked snow blocks with a
+low entrance tunnel — and the tunnel glows. Sila stands outside it,
+watching the door. Nanuq wanders a few metres of snow further out,
+stopping and starting the way villagers do. Out toward the ice shelf a
+colony of penguins waddles about: they walk, they stop, they turn, they
+rock side to side with every step, and if you get within about two and a
+half metres one of them panics and hop-shuffles straight away from you.
+They never walk into the sea.
+
+Overhead, the aurora australis. Three enormous curtains of green and
+teal hang across the polar sky, rippling, brightening and dimming in
+slow waves, fading to violet and then to nothing at the top. You can see
+them from the open water on the way in — a green glow standing over the
+horizon before the ice is even visible — and once you are standing on
+the plateau they fill the sky above you.
+
+And it snows. Not hard: a slow, quiet fall across the whole cap, drifting
+sideways on the same wind that pushes the island's clouds.
+
+**Technical:** Everything here obeys the two rules the rest of the world
+obeys: no new shaders, and repeats are instanced.
+
+The **aurora** is mesh animation, nothing else. One `InstancedMesh` of
+108 thin quads on a shared `PlaneGeometry` whose vertex colours run
+green at the foot, teal at the waist, violet at the head and black at the
+top. The material blends additively, which means black IS transparent —
+the curtains fade out at the top with no per-vertex alpha and no shader
+of their own. The layout is pure and tested (`auroraLayout.ts`): three
+paths sweeping 140–160° of longitude around the pole at a polar angle
+that wobbles about 11–16°, each quad standing up along the surface
+normal with its width along the path tangent. Per frame the animation
+writes matrices and `instanceColor` from module scratch: a two-term
+height wave stretches each quad, a small lean rocks it about its own
+tangent, and a travelling brightness wave with a faster ripple on top
+rides the instance colours. Nothing allocates.
+
+The **snow** is the campfire's ember technique turned cold. One
+`THREE.Points` of 500 flakes (220 on low tier) in a group anchored at the
+south pole with local +y pointing outward, so the flakes live in a plain
+26 m × 18 m cylinder and fall straight down. The position attribute is
+allocated once and rewritten in place. Lateral drift is the ONE global
+wind (`windDirAt`) brought into the pole's frame at mount, plus a gentle
+per-flake sway. The floor a flake wraps at is the sphere's own drop away
+from the pole's tangent plane plus the terrain profile, so flakes out
+near the shelf land on the shelf instead of vanishing in mid-air.
+
+The **penguins** are the crabs' southern cousins: six birds, eight box
+parts each, all 48 instances in one `InstancedMesh` with per-part colours
+written once through `instanceColor`. The walk itself is a pure kernel
+(`penguinWalk.ts`) held in (polar-from-the-south-pole, longitude) rather
+than latitude, because that is how the whole south cap is measured. Two
+clamps run on every step, walking or paused: the band (8°–21.5° from the
+pole) and the waterline (`groundAltitude > 0.05` — the shelf ramps to
+zero before the band runs out, so the band alone is not enough). vitest
+drives six birds for twenty thousand steps each and asserts both.
+
+The **igloo** is a placement like everything else, so the editor can drag
+it: one vertex-tinted merge (dome, three block courses cut to the wall at
+their own heights, half-barrel tunnel, dark opening disc) in
+`PROP_REGISTRY`. A small `<Igloo>` glue component reads that placement
+live and hangs the warmth on it — a dim warm point light and a glowing
+half-disc in the mouth, both positioned from `IGLOO_MOUTH`, the same
+constants the geometry is cut from.
+
+All three animated systems early-return and set `visible = false` when
+`skyRuntime.southMix` says the player is nowhere near the cap, so from
+the island they cost nothing at all. On the cap itself the whole scene
+measures 49 draw calls, under the mobile budget of 50.
+
+**Files:**
+- `src/scene/props.ts` — `buildIgloo`, `buildIceblock`, `buildSnowmound`, `IGLOO_MOUTH`
+- `src/scene/auroraLayout.ts` — `buildAuroraLayout`, `AURORA_QUAD_W`
+- `src/scene/Aurora.tsx` — `Aurora`, `curtainGeometry`
+- `src/scene/Snow.tsx` — `Snow`, `poleFrameFloor`
+- `src/scene/penguinWalk.ts` — `advancePenguin`, `clampToBand`, `startlePenguin`
+- `src/scene/Penguins.tsx` — `Penguins`
+- `src/scene/Igloo.tsx` — `Igloo`
+- `src/content/placements.json` — the igloo, Sila, Nanuq, four ice chunks, three drifts
+- `src/scene/antarcticaLife.test.ts` — the band, waterline, dock-clearance and aurora-layout guards
+
+**Decisions:**
+- The aurora is ONE instanced mesh, not three. The design called for a
+  mesh per curtain, and the first build did exactly that — but a curtain
+  is fifty metres of sky, so its bounding sphere covers most of the cap
+  and it never frustum-culls from a camera standing underneath it. Three
+  meshes meant three draw calls, always, and the cap was sitting at 53.
+  Merging them costs nothing visually (same geometry, same material, the
+  curtain index just becomes a phase offset) and bought back the two
+  calls the budget needed.
+- The first curtains read as a folded paper chain. The quads were 2.1 m
+  wide and the path's polar wobble ran at better than two cycles across
+  the span, which pushed the along-path spacing past the quad width —
+  black gaps between hard-edged parallelograms. Gentler wobble plus
+  wider quads (they have to OVERLAP their neighbours) turned the
+  instances into one sheet. Then 0.55 opacity washed the bright ridge to
+  white under additive stacking, so the material sits at 0.4.
+- The igloo's warm light belongs INSIDE the tunnel. Hung on the step,
+  at a hand's width from the opening disc, it blew the disc out to a
+  flat orange plate — a fire door, not a doorway. Behind the disc it
+  lights only the tunnel walls and the snow the mouth spills onto, and
+  the glow disc shrank to under half the opening so the dark hole is
+  still a hole.
+- The penguins' band clamp was not enough on its own. Polar 21.5° from
+  the south pole is inside the shelf on paper, but the shelf ramp is
+  already down to about 2 cm of altitude there — a penguin standing in
+  the surf. The altitude clamp is the binding one and it runs even while
+  a bird is paused, exactly as the crabs' live-waterline clamp does.
+- Two villagers cost eighteen draw calls. `BlockyCharacter` is already
+  merged down to eight meshes plus a blob shadow, which is the right
+  shape for a player avatar and expensive for scenery — and placing the
+  first NPCs in the world is what made that visible. It is why the
+  aurora had to give two calls back, and it is the number to watch if
+  the cap ever gets a third resident.
+- The yaw in the brief did not survive contact with the frame. The igloo
+  was specced at yawDeg 200 "entrance roughly toward the dock side", but
+  in this codebase a positive yaw swings local +z toward WEST (signpost
+  and villagers both found the same sign the hard way), so 200 pointed
+  the tunnel at empty plateau. 45 is what actually faces the dock and
+  the walk-in.
