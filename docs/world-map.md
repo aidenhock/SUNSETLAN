@@ -37,6 +37,7 @@ blockers, the minimap, `planetConfig.MAP`) follows from it.
 |---|---|---|---|---|---|---|
 | `cemetery` | Memorial garden — fenced plot | 47 | 107 | 0° N | — | 17 × 13 m. Gate on the south (downhill) side. Interior fully walkable. |
 | `dock` | Dock | 24 | 0 | 180° S | — | Runs lat 24 → 13 down its meridian; DOCK in planetConfig holds the strip. |
+| `dock-south` | Dock — Antarctica | -70 | 0 | 0° N | — | Antarctica's landing, facing north toward the island. Runs lat -70 → -66 down its meridian (south of the equator that is toward INCREASING lat); SOUTH_DOCK in planetConfig holds the strip. No blocker — you walk it. |
 
 ## Props
 

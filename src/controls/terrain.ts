@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { DOCK, PLANET_RADIUS, terrainProfile } from '../scene/planetConfig'
+import { DOCK, PLANET_RADIUS, SOUTH_DOCK, terrainProfile } from '../scene/planetConfig'
 
 /**
  * Analytic terrain (v3.2). The walkable world is ONE continuous profile —
@@ -15,14 +15,30 @@ function bandAltitudeAt(latDeg: number): number {
   return terrainProfile(THREE.MathUtils.degToRad(90 - latDeg))
 }
 
-/** True when (lat, long) is on the dock's walkable strip. */
-export function onDockStrip(latDeg: number, longDeg: number): boolean {
-  if (latDeg < DOCK.latMinDeg || latDeg > DOCK.latMaxDeg) return false
+/** The walkable strips: the island's dock and Antarctica's. Both are
+ *  the same shape — a lat span along one meridian, half a width wide. */
+export type DockStrip = typeof DOCK
+
+/** True when (lat, long) is on ONE dock's walkable strip. */
+function onStrip(dock: DockStrip, latDeg: number, longDeg: number): boolean {
+  if (latDeg < dock.latMinDeg || latDeg > dock.latMaxDeg) return false
   const polar = THREE.MathUtils.degToRad(90 - latDeg)
-  const dLong = ((longDeg - DOCK.longDeg + 540) % 360) - 180
+  const dLong = ((longDeg - dock.longDeg + 540) % 360) - 180
   const crossTrackM =
     Math.abs(THREE.MathUtils.degToRad(dLong)) * Math.sin(polar) * PLANET_RADIUS
-  return crossTrackM <= DOCK.halfWidthM
+  return crossTrackM <= dock.halfWidthM
+}
+
+/** True when (lat, long) is on EITHER dock's walkable strip. */
+export function onDockStrip(latDeg: number, longDeg: number): boolean {
+  return onStrip(DOCK, latDeg, longDeg) || onStrip(SOUTH_DOCK, latDeg, longDeg)
+}
+
+/** The dock whose strip (lat, long) sits on, or null. */
+export function dockStripAt(latDeg: number, longDeg: number): DockStrip | null {
+  if (onStrip(DOCK, latDeg, longDeg)) return DOCK
+  if (onStrip(SOUTH_DOCK, latDeg, longDeg)) return SOUTH_DOCK
+  return null
 }
 
 /**
@@ -32,7 +48,8 @@ export function onDockStrip(latDeg: number, longDeg: number): boolean {
  */
 export function groundAltitudeAt(latDeg: number, longDeg: number): number {
   const band = bandAltitudeAt(latDeg)
-  if (onDockStrip(latDeg, longDeg)) return band + DOCK.deckHeightM
+  const dock = dockStripAt(latDeg, longDeg)
+  if (dock) return band + dock.deckHeightM
   return band
 }
 

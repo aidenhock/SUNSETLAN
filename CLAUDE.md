@@ -135,6 +135,27 @@ truth.
 
 Blockers regenerate from this table. Interactable prompts/copy unchanged.
 
+### Antarctica (south pole)
+
+A second, smaller landmass on the antipode, reached by boat (not built
+yet; `?at=<lat>,<long>` teleports there in dev/e2e). `terrainProfile`
+now covers polar 0–180: past 90° it mirrors the `SOUTH` bands measured
+from the SOUTH pole — snow plateau to 16°, shoulder to 18.5°, ice-shelf
+ramp crossing zero at the **waterline 22°** (lat −68), apron to 27°
+ending tucked under the ocean floor exactly like the north's. Same
+one-surface rule; the flat −0.9 apron joins the two caps.
+`landmassAt` / `maxWadePolarRad` / `stepLeavesLandmass` make the island
+clamp landmass-aware, so each cap has its own ~2.5 m wade.
+**SOUTH_DOCK** (long 0, lat −70 → −66, 3 segments) is the mirror of the
+island's: entrance on the shelf, far end over water, facing north back
+toward the island.
+**Polar night**: `skyRuntime.southMix` (smoothstep on player polar
+95° → 125°) maxes into `nightMix`, blends both disc solves to the
+home-side clamp so sun and moon sink below the ocean limb, swings the
+key light to a fixed south-sky direction (never lit from below), and
+cools the horizon to `#182636`. Stars now cover the south cap too.
+Penguins, igloo, aurora, snow, villagers and the boat are still to come.
+
 ## The room through the rift (a second walkable space)
 
 Stepping into the rift puts the player INSIDE a room — not a dialog.

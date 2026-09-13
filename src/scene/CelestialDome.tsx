@@ -165,7 +165,13 @@ function buildStars(count: number): [THREE.BufferGeometry, THREE.BufferGeometry]
     v.set(rand() * 2 - 1, rand() * 2 - 1, rand() * 2 - 1)
     if (v.lengthSq() > 1 || v.lengthSq() < 1e-4) continue
     v.normalize()
-    if (v.z > -0.25 || v.y < -0.6) continue
+    // Two skies of stars now: the island's night hemisphere, AND the
+    // sky over Antarctica's cap — polar night needs stars overhead, and
+    // the old filter kept nothing below the planet-local equator. Both
+    // batches fade with nightMix, which southMix drives in the south.
+    const overNightSide = v.z < -0.25 && v.y > -0.6
+    const overSouthCap = v.y < -0.45
+    if (!overNightSide && !overSouthCap) continue
     points.push(v.x * (BODY_R + 4), v.y * (BODY_R + 4), v.z * (BODY_R + 4))
     placed++
   }
@@ -212,7 +218,8 @@ export function CelestialDome() {
   const qualityTier = useStore((s) => s.qualityTier)
   const domeMaterial = useMemo(buildDomeMaterial, [])
   const [starsSmall, starsBig] = useMemo(
-    () => buildStars(qualityTier === 'low' ? 150 : 400),
+    // Counts raised with the widened filter so per-sky density holds.
+    () => buildStars(qualityTier === 'low' ? 200 : 520),
     [qualityTier],
   )
   const starMatSmall = useMemo(() => starMaterial(1.7), [])

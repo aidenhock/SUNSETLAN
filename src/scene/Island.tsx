@@ -9,6 +9,8 @@ import {
   MAP,
   PLANET_RADIUS,
   SINK_M,
+  SOUTH,
+  SOUTH_DOCK,
   TERRAIN,
   terrainProfile,
 } from './planetConfig'
@@ -31,6 +33,44 @@ const V = (x: number, y: number, z: number) => new THREE.Vector3(x, y, z)
 /** Placement matrix at a map spot: analytic ground − sink, meridian-aligned. */
 const placement = (lat: number, long: number, yaw = 0, scale = 1) =>
   surfacePartMatrix(lat, long, groundAltitudeAt(lat, long) - SINK_M, yaw, V(0, 0, 0), IDENTITY_Q, scale)
+
+/**
+ * One dock, as a single merged static wood geometry (draw-call shave):
+ * short surface-snapped plank segments with two posts each, every piece
+ * placed from the analytic strip (placement rules 1 and 2). Shared by
+ * the island's dock and Antarctica's — the only difference is the
+ * DOCK/SOUTH_DOCK record handed in.
+ */
+function buildDockGeometry(dock: typeof DOCK): THREE.BufferGeometry {
+  const segLatSpan = (dock.latMaxDeg - dock.latMinDeg) / dock.segmentCount
+  const segLengthM = THREE.MathUtils.degToRad(segLatSpan) * PLANET_RADIUS + 0.12
+  const plankGeo = new THREE.BoxGeometry(dock.halfWidthM * 2, dock.plankThicknessM, segLengthM)
+  const strip = (g: THREE.BufferGeometry, m: THREE.Matrix4) => {
+    const n = g.index ? g.toNonIndexed() : g.clone()
+    n.deleteAttribute('uv')
+    n.applyMatrix4(m)
+    return n
+  }
+  const parts: THREE.BufferGeometry[] = []
+  for (let i = 0; i < dock.segmentCount; i++) {
+    const lat = dock.latMaxDeg - segLatSpan * (i + 0.5)
+    // groundAltitudeAt already carries the deck height on the strip, so
+    // the plank centre is the deck top minus half a plank.
+    const altitude = groundAltitudeAt(lat, dock.longDeg) - dock.plankThicknessM / 2
+    parts.push(
+      strip(plankGeo, surfacePartMatrix(lat, dock.longDeg, altitude, 0, V(0, 0, 0), IDENTITY_Q, 1)),
+    )
+    for (const x of [-0.8, 0.8]) {
+      parts.push(
+        strip(postGeo, surfacePartMatrix(lat, dock.longDeg, altitude, 0, V(x, -0.42, 0), IDENTITY_Q, 1)),
+      )
+    }
+  }
+  plankGeo.dispose()
+  const merged = mergeGeometries(parts)
+  parts.forEach((p) => p.dispose())
+  return merged
+}
 
 /**
  * The island: jittered, vertex-tinted caps plus chunky primitive props built
@@ -60,6 +100,43 @@ export function Island() {
           speckle: 0.05,
           poleFadeRad: 0.28, // clean turf around spawn; character further out
           seed: 3,
+        },
+      ),
+    [],
+  )
+
+  // ANTARCTICA: the second continuous cap, on the antipode. Same
+  // contract as the island's — one surface following terrainProfile from
+  // the snow plateau down to an apron that ends tucked under the ocean
+  // floor, painted by polar band (thresholds listed in INCREASING polar
+  // order, since the geometry runs 153° → 180°). No pole fade: that one
+  // is for the spawn turf, and here it would bleach the plateau.
+  const southTerrainGeo = useMemo(
+    () =>
+      facetTerrain(
+        new THREE.SphereGeometry(
+          PLANET_RADIUS,
+          64,
+          40,
+          0,
+          Math.PI * 2,
+          THREE.MathUtils.degToRad(180 - SOUTH.apronEndDeg),
+          THREE.MathUtils.degToRad(SOUTH.apronEndDeg),
+        ),
+        {
+          radiusAt: (polar) => PLANET_RADIUS + terrainProfile(polar),
+          bands: [
+            // Submerged apron, then shoulder + ice shelf, then snow.
+            { untilPolarDeg: 180 - SOUTH.waterlineDeg, colorA: '#7fb3c9', colorB: '#6a9fb8', checker: 0.3, bias: 0.55 },
+            { untilPolarDeg: 180 - SOUTH.plateauEndDeg, colorA: '#d7e9f5', colorB: '#c3dced', checker: 0.35, bias: 0.55 },
+            { untilPolarDeg: 180, colorA: '#f4f8ff', colorB: '#e4edf8', checker: 0.5 },
+          ],
+          patchSize: 8,
+          speckle: 0.04,
+          // Small: just enough to kill the south pole's spoke fan (the
+          // island's 0.28 is a spawn-turf decision, not this one).
+          poleFadeRad: 0.18,
+          seed: 11,
         },
       ),
     [],
@@ -121,44 +198,12 @@ export function Island() {
     return out
   }, [live])
 
-  const dock = useMemo(() => {
-    const planks: THREE.Matrix4[] = []
-    const posts: THREE.Matrix4[] = []
-    const latSpan = DOCK.latMaxDeg - DOCK.latMinDeg
-    const segLatSpan = latSpan / DOCK.segmentCount
-    for (let i = 0; i < DOCK.segmentCount; i++) {
-      const lat = DOCK.latMaxDeg - segLatSpan * (i + 0.5)
-      const altitude = groundAltitudeAt(lat, DOCK.longDeg) - DOCK.plankThicknessM / 2
-      planks.push(surfacePartMatrix(lat, DOCK.longDeg, altitude, 0, V(0, 0, 0), IDENTITY_Q, 1))
-      for (const x of [-0.8, 0.8]) {
-        posts.push(surfacePartMatrix(lat, DOCK.longDeg, altitude, 0, V(x, -0.42, 0), IDENTITY_Q, 1))
-      }
-    }
-    return { planks, posts }
-  }, [])
-
-  const plankGeo = useMemo(() => {
-    const segLatSpan = (DOCK.latMaxDeg - DOCK.latMinDeg) / DOCK.segmentCount
-    const segLengthM = THREE.MathUtils.degToRad(segLatSpan) * PLANET_RADIUS + 0.12
-    return new THREE.BoxGeometry(DOCK.halfWidthM * 2, DOCK.plankThicknessM, segLengthM)
-  }, [])
-
-  // Draw-call shave: the dock is fully static, so planks + posts fuse
-  // into ONE wood mesh instead of two instanced draws.
-  const dockGeo = useMemo(() => {
-    const strip = (g: THREE.BufferGeometry, m: THREE.Matrix4) => {
-      const n = g.index ? g.toNonIndexed() : g.clone()
-      n.deleteAttribute('uv')
-      n.applyMatrix4(m)
-      return n
-    }
-    const parts: THREE.BufferGeometry[] = []
-    for (const m of dock.planks) parts.push(strip(plankGeo, m))
-    for (const m of dock.posts) parts.push(strip(postGeo, m))
-    const merged = mergeGeometries(parts)
-    parts.forEach((p) => p.dispose())
-    return merged
-  }, [dock, plankGeo])
+  // Draw-call shave: each dock is fully static, so its planks + posts
+  // fuse into ONE wood mesh instead of two instanced draws. Kept as two
+  // meshes rather than one merge so each frustum-culls on its own —
+  // they are on opposite sides of the planet and never both in shot.
+  const dockGeo = useMemo(() => buildDockGeometry(DOCK), [])
+  const southDockGeo = useMemo(() => buildDockGeometry(SOUTH_DOCK), [])
 
   // The seating logs are FIRE FURNITURE (campfire fix): one merged
   // vertex-tinted mesh — proper bark + lighter end-grain caps — with a
@@ -217,8 +262,24 @@ export function Island() {
         <meshLambertMaterial vertexColors flatShading />
       </mesh>
 
+      {/* Antarctica — the south cap, same continuous-surface contract.
+          Snow is white but the night rig is dim, so the material carries
+          a faint cool emissive: the plateau reads in polar night without
+          any bloom (there is no postprocessing here, ever). */}
+      <mesh geometry={southTerrainGeo}>
+        <meshLambertMaterial
+          vertexColors
+          flatShading
+          emissive="#223a55"
+          emissiveIntensity={0.35}
+        />
+      </mesh>
+
       {/* Dock — one merged static wood mesh (draw-call shave). */}
       <mesh geometry={dockGeo} material={woodMat} />
+
+      {/* Antarctica's dock, built by the same function. */}
+      <mesh geometry={southDockGeo} material={woodMat} />
 
       {/* Chunky scatter — one draw call per material part. */}
       {/* The signpost: post and lettered planks. */}

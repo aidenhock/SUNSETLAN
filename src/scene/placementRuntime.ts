@@ -28,9 +28,6 @@ export const degPerMetreLat = 1 / M_PER_DEG_LAT
 export const degPerMetreLong = (lat: number) =>
   degPerMetreLat / Math.max(0.15, Math.cos((lat * Math.PI) / 180))
 
-/** The waterline, for the "you placed this in the sea" warning. */
-const WATERLINE_LAT = 15
-
 export interface PlacementWarning {
   id: string
   kind: 'underwater' | 'overlap' | 'budget'
@@ -322,13 +319,18 @@ export const usePlacementRuntime = create<PlacementRuntime>((set, get) => {
 export function warningsFor(list: Placement[], drawCalls: number): PlacementWarning[] {
   const out: PlacementWarning[] = []
   for (const p of list) {
-    if (p.lat < WATERLINE_LAT) {
+    // Landmass-aware (Antarctica): "on land" is simply ground above sea
+    // level. A latitude threshold only ever knew about the island, and
+    // it called the dock's own tripod drowned while missing the whole
+    // southern hemisphere.
+    const alt = groundAltitudeAt(p.lat, p.long)
+    if (alt <= 0) {
       out.push({
         id: p.id,
         kind: 'underwater',
-        message: `${p.id} is past the waterline (lat ${p.lat.toFixed(1)} < ${WATERLINE_LAT}) — it will stand in the sea.`,
+        message: `${p.id} is past the waterline (ground ${alt.toFixed(2)} m at lat ${p.lat.toFixed(1)}) — it will stand in the sea.`,
       })
-    } else if (groundAltitudeAt(p.lat, p.long) <= 0.02 && p.type !== 'dock' && p.type !== 'rift') {
+    } else if (alt <= 0.02 && p.type !== 'dock' && p.type !== 'rift') {
       out.push({
         id: p.id,
         kind: 'underwater',

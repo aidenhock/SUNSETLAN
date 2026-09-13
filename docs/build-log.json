@@ -79,23 +79,23 @@
           "excerpts": [
             {
               "symbol": "terrainProfile",
-              "line": 55,
-              "code": "export function terrainProfile(polarRad: number): number {\r\n  const p = THREE.MathUtils.radToDeg(polarRad)\r\n  if (p <= TERRAIN.plateauEndDeg) return GRASS_ALTITUDE\r\n  if (p <= TERRAIN.shoulderEndDeg) {\r\n    return THREE.MathUtils.lerp(\r\n      GRASS_ALTITUDE,\r\n      SAND_ALTITUDE,\r\n      THREE.MathUtils.smoothstep(p, TERRAIN.plateauEndDeg, TERRAIN.shoulderEndDeg),\r\n    )\r\n  }\r\n  if (p <= TERRAIN.waterlineDeg) {\r\n    return THREE.MathUtils.lerp(\r\n      SAND_ALTITUDE,\r\n      0,\r"
+              "line": 144,
+              "code": "export function terrainProfile(polarRad: number): number {\r\n  const p = THREE.MathUtils.radToDeg(polarRad)\r\n  if (p > 90) return southProfile(180 - p)\r\n  if (p <= TERRAIN.plateauEndDeg) return GRASS_ALTITUDE\r\n  if (p <= TERRAIN.shoulderEndDeg) {\r\n    return THREE.MathUtils.lerp(\r\n      GRASS_ALTITUDE,\r\n      SAND_ALTITUDE,\r\n      THREE.MathUtils.smoothstep(p, TERRAIN.plateauEndDeg, TERRAIN.shoulderEndDeg),\r\n    )\r\n  }\r\n  if (p <= TERRAIN.waterlineDeg) {\r\n    return THREE.MathUtils.lerp(\r\n      SAND_ALTITUDE,\r"
             },
             {
               "symbol": "TERRAIN",
               "line": 42,
-              "code": "export const TERRAIN = {\r\n  /** Grass plateau ends (deg from the pole). */\r\n  plateauEndDeg: 63,\r\n  /** Rolling shoulder down to the sand altitude. */\r\n  shoulderEndDeg: 67,\r\n  /** Waterline: profile crosses exactly 0 here (= ISLAND_POLAR_DEG). */\r\n  waterlineDeg: ISLAND_POLAR_DEG,\r\n  /** Submerged apron ends here, below the ocean-floor sphere. */\r\n  apronEndDeg: 81,\r\n  apronAltitude: -0.9,\r\n} as const\r\n\r\n/** Altitude above sea level at a polar angle (radians from the pole). */\r\nexport function terrainProfile(polarRad: number): number {\r"
+              "code": "export const TERRAIN = {\r\n  /** Grass plateau ends (deg from the pole). */\r\n  plateauEndDeg: 63,\r\n  /** Rolling shoulder down to the sand altitude. */\r\n  shoulderEndDeg: 67,\r\n  /** Waterline: profile crosses exactly 0 here (= ISLAND_POLAR_DEG). */\r\n  waterlineDeg: ISLAND_POLAR_DEG,\r\n  /** Submerged apron ends here, below the ocean-floor sphere. */\r\n  apronEndDeg: 81,\r\n  apronAltitude: -0.9,\r\n} as const\r\n\r\n/**\r\n * ANTARCTICA (south pole): the second, smaller landmass on the antipode.\r"
             },
             {
               "symbol": "DOCK",
-              "line": 87,
-              "code": "export const DOCK = {\r\n  longDeg: 0,\r\n  latMinDeg: 13,\r\n  latMaxDeg: 24,\r\n  halfWidthM: 1,\r\n  deckHeightM: 0.6,\r\n  plankThicknessM: 0.18,\r\n  segmentCount: 5,\r\n}\r\n\r\n/** Footstep tuning (3C): gains, foot-plant phases in the swing cycle,\r\n * and the jump double-tap gap. */\r\nexport const FOOTSTEPS = {\r\n  stepGainWalk: 0.5,\r"
+              "line": 177,
+              "code": "export const DOCK = {\r\n  longDeg: 0,\r\n  latMinDeg: 13,\r\n  latMaxDeg: 24,\r\n  halfWidthM: 1,\r\n  deckHeightM: 0.6,\r\n  plankThicknessM: 0.18,\r\n  segmentCount: 5,\r\n}\r\n\r\n/**\r\n * Antarctica's little dock, the mirror of the north's: longitude 0,\r\n * entrance on the ice shelf at lat −70 and the far end out over open\r\n * water at lat −66 — it runs DOWN its meridian toward the sea, which in\r"
             },
             {
               "symbol": "surfaceUnderfoot",
-              "line": 114,
-              "code": "export function surfaceUnderfoot(polarDeg: number, longDeg: number, wet: boolean): Surface {\r\n  if (wet) return 'wade'\r\n  const lat = 90 - polarDeg\r\n  if (lat >= DOCK.latMinDeg && lat <= DOCK.latMaxDeg) {\r\n    const dLongRad = THREE_DEG * Math.abs(((longDeg - DOCK.longDeg + 540) % 360) - 180)\r\n    const offM = PLANET_RADIUS * Math.sin(polarDeg * THREE_DEG) * Math.sin(dLongRad)\r\n    if (Math.abs(offM) <= DOCK.halfWidthM + 0.2) return 'dock'\r\n  }\r\n  return polarDeg <= TERRAIN.plateauEndDeg + 2 ? 'grass' : 'sand'\r\n}\r\nconst THREE_DEG = Math.PI / 180\r\n\r\n/** World map placements (lat, long) — CLAUDE.md v3 table. */\r\n/**\r"
+              "line": 223,
+              "code": "export function surfaceUnderfoot(polarDeg: number, longDeg: number, wet: boolean): Surface {\r\n  if (wet) return 'wade'\r\n  const lat = 90 - polarDeg\r\n  for (const dock of [DOCK, SOUTH_DOCK]) {\r\n    if (lat < dock.latMinDeg || lat > dock.latMaxDeg) continue\r\n    const dLongRad = THREE_DEG * Math.abs(((longDeg - dock.longDeg + 540) % 360) - 180)\r\n    const offM = PLANET_RADIUS * Math.sin(polarDeg * THREE_DEG) * Math.sin(dLongRad)\r\n    if (Math.abs(offM) <= dock.halfWidthM + 0.2) return 'dock'\r\n  }\r\n  // Antarctica has no sand and no grass; until a snow pool exists it\r\n  // borrows the two existing surfaces — plateau reads as the soft one,\r\n  // the ice shelf as the gritty one.\r\n  if (polarDeg > 90) {\r\n    return polarDeg >= 180 - SOUTH.plateauEndDeg ? 'grass' : 'sand'\r"
             }
           ]
         },
@@ -109,18 +109,18 @@
           "excerpts": [
             {
               "symbol": "groundAltitudeAt",
-              "line": 33,
-              "code": "export function groundAltitudeAt(latDeg: number, longDeg: number): number {\n  const band = bandAltitudeAt(latDeg)\n  if (onDockStrip(latDeg, longDeg)) return band + DOCK.deckHeightM\n  return band\n}\n\n/** World-space ground height under the avatar (avatar y-position).\n *  Called every frame — no object allocation (lat/long computed inline). */\nexport function groundHeightAt(poleLocal: THREE.Vector3): number {\n  const polar = Math.acos(THREE.MathUtils.clamp(poleLocal.y, -1, 1))\n  const lat = 90 - THREE.MathUtils.radToDeg(polar)\n  const long = THREE.MathUtils.radToDeg(Math.atan2(poleLocal.x, poleLocal.z))\n  return PLANET_RADIUS + groundAltitudeAt(lat, long)\n}"
+              "line": 49,
+              "code": "export function groundAltitudeAt(latDeg: number, longDeg: number): number {\r\n  const band = bandAltitudeAt(latDeg)\r\n  const dock = dockStripAt(latDeg, longDeg)\r\n  if (dock) return band + dock.deckHeightM\r\n  return band\r\n}\r\n\r\n/** World-space ground height under the avatar (avatar y-position).\r\n *  Called every frame — no object allocation (lat/long computed inline). */\r\nexport function groundHeightAt(poleLocal: THREE.Vector3): number {\r\n  const polar = Math.acos(THREE.MathUtils.clamp(poleLocal.y, -1, 1))\r\n  const lat = 90 - THREE.MathUtils.radToDeg(polar)\r\n  const long = THREE.MathUtils.radToDeg(Math.atan2(poleLocal.x, poleLocal.z))\r\n  return PLANET_RADIUS + groundAltitudeAt(lat, long)\r"
             },
             {
               "symbol": "groundHeightAt",
-              "line": 41,
-              "code": "export function groundHeightAt(poleLocal: THREE.Vector3): number {\n  const polar = Math.acos(THREE.MathUtils.clamp(poleLocal.y, -1, 1))\n  const lat = 90 - THREE.MathUtils.radToDeg(polar)\n  const long = THREE.MathUtils.radToDeg(Math.atan2(poleLocal.x, poleLocal.z))\n  return PLANET_RADIUS + groundAltitudeAt(lat, long)\n}\n"
+              "line": 58,
+              "code": "export function groundHeightAt(poleLocal: THREE.Vector3): number {\r\n  const polar = Math.acos(THREE.MathUtils.clamp(poleLocal.y, -1, 1))\r\n  const lat = 90 - THREE.MathUtils.radToDeg(polar)\r\n  const long = THREE.MathUtils.radToDeg(Math.atan2(poleLocal.x, poleLocal.z))\r\n  return PLANET_RADIUS + groundAltitudeAt(lat, long)\r\n}\r\n"
             },
             {
               "symbol": "onDockStrip",
-              "line": 19,
-              "code": "export function onDockStrip(latDeg: number, longDeg: number): boolean {\n  if (latDeg < DOCK.latMinDeg || latDeg > DOCK.latMaxDeg) return false\n  const polar = THREE.MathUtils.degToRad(90 - latDeg)\n  const dLong = ((longDeg - DOCK.longDeg + 540) % 360) - 180\n  const crossTrackM =\n    Math.abs(THREE.MathUtils.degToRad(dLong)) * Math.sin(polar) * PLANET_RADIUS\n  return crossTrackM <= DOCK.halfWidthM\n}\n\n/**\n * Ground altitude above sea level at (lat, long). The dock deck rides\n * deckHeightM above its local band (surface-snapped segments), so the same\n * function drives the deck visuals and the walkable height.\n */"
+              "line": 33,
+              "code": "export function onDockStrip(latDeg: number, longDeg: number): boolean {\r\n  return onStrip(DOCK, latDeg, longDeg) || onStrip(SOUTH_DOCK, latDeg, longDeg)\r\n}\r\n\r\n/** The dock whose strip (lat, long) sits on, or null. */\r\nexport function dockStripAt(latDeg: number, longDeg: number): DockStrip | null {\r\n  if (onStrip(DOCK, latDeg, longDeg)) return DOCK\r\n  if (onStrip(SOUTH_DOCK, latDeg, longDeg)) return SOUTH_DOCK\r\n  return null\r\n}\r\n\r\n/**\r\n * Ground altitude above sea level at (lat, long). The dock deck rides\r\n * deckHeightM above its local band (surface-snapped segments), so the same\r"
             }
           ]
         },
@@ -160,7 +160,7 @@
           "excerpts": [
             {
               "symbol": "facetTerrain",
-              "line": 202,
+              "line": 203,
               "code": "export function facetTerrain(\r\n  geometry: THREE.BufferGeometry,\r\n  options: FacetTerrainOptions,\r\n): THREE.BufferGeometry {\r\n  const {\r\n    amplitude = 0.12,\r\n    colorA = '#ffffff',\r\n    colorB = '#ffffff',\r\n    patchSize = 7,\r\n    checker = 0.5,\r\n    bias = 0.5,\r\n    speckle = 0.06,\r\n    poleFadeRad = 0,\r\n    seed = 1,\r"
             },
             {
@@ -179,12 +179,12 @@
           "excerpts": [
             {
               "symbol": "terrainProfile",
-              "line": 55,
-              "code": "export function terrainProfile(polarRad: number): number {\r\n  const p = THREE.MathUtils.radToDeg(polarRad)\r\n  if (p <= TERRAIN.plateauEndDeg) return GRASS_ALTITUDE\r\n  if (p <= TERRAIN.shoulderEndDeg) {\r\n    return THREE.MathUtils.lerp(\r\n      GRASS_ALTITUDE,\r\n      SAND_ALTITUDE,\r\n      THREE.MathUtils.smoothstep(p, TERRAIN.plateauEndDeg, TERRAIN.shoulderEndDeg),\r\n    )\r\n  }\r\n  if (p <= TERRAIN.waterlineDeg) {\r\n    return THREE.MathUtils.lerp(\r\n      SAND_ALTITUDE,\r\n      0,\r"
+              "line": 144,
+              "code": "export function terrainProfile(polarRad: number): number {\r\n  const p = THREE.MathUtils.radToDeg(polarRad)\r\n  if (p > 90) return southProfile(180 - p)\r\n  if (p <= TERRAIN.plateauEndDeg) return GRASS_ALTITUDE\r\n  if (p <= TERRAIN.shoulderEndDeg) {\r\n    return THREE.MathUtils.lerp(\r\n      GRASS_ALTITUDE,\r\n      SAND_ALTITUDE,\r\n      THREE.MathUtils.smoothstep(p, TERRAIN.plateauEndDeg, TERRAIN.shoulderEndDeg),\r\n    )\r\n  }\r\n  if (p <= TERRAIN.waterlineDeg) {\r\n    return THREE.MathUtils.lerp(\r\n      SAND_ALTITUDE,\r"
             },
             {
               "symbol": "TERRAIN.apronEndDeg",
-              "line": 72,
+              "line": 162,
               "code": "  if (p <= TERRAIN.apronEndDeg) {\r\n    return THREE.MathUtils.lerp(\r\n      0,\r\n      TERRAIN.apronAltitude,\r\n      THREE.MathUtils.smoothstep(p, TERRAIN.waterlineDeg, TERRAIN.apronEndDeg),\r\n    )\r\n  }\r\n  return TERRAIN.apronAltitude\r\n}\r\n\r\n/**\r\n * The dock: longitude 0, entrance on sand, last segments over open water.\r\n * Deck top sits deckHeightM above the LOCAL ground band (surface-snapped\r\n * segments), consumed by both the visuals and groundAltitudeAt.\r"
             }
           ]
@@ -265,12 +265,12 @@
           "excerpts": [
             {
               "symbol": "CELESTIAL_ELEVATION_INLAND_DEG",
-              "line": 185,
+              "line": 315,
               "code": "export const CELESTIAL_ELEVATION_INLAND_DEG = 45\r\n/** v3.8 TRUE SET: elevations are horizontal-relative; the sea horizon sits\r\n * at ≈ −16.6° from eye height. −15.8° puts the disc center 0.75° above the\r\n * sea line → ~40% of the sun disc (3.7° radius) submerged at the waterline;\r\n * the ocean geometry physically occludes the rest. */\r\nexport const CELESTIAL_ELEVATION_WATERLINE_DEG = -15.8\r\n/** v3.9 set floor: wading sinks it only slightly more, clamped so NEITHER\r\n * disc ever exceeds ~45% submerged (sun ρ 3.7° → 44%; moon ρ 2.74° → 43%)\r\n * — the disc and its glitter lane stay clearly visible at full set. */\r\nexport const CELESTIAL_ELEVATION_WADING_MIN_DEG = -16.2\r\nexport const CELESTIAL = { sunLongDeg: 0, moonLongDeg: 180 } as const\r\n\r\n/** Glitter corridor tuning (v3.14): the corridor centerline is the great\r\n * circle from the disc's base through the character; half-widths are\r"
             },
             {
               "symbol": "CELESTIAL_ELEVATION_WATERLINE_DEG",
-              "line": 190,
+              "line": 320,
               "code": "export const CELESTIAL_ELEVATION_WATERLINE_DEG = -15.8\r\n/** v3.9 set floor: wading sinks it only slightly more, clamped so NEITHER\r\n * disc ever exceeds ~45% submerged (sun ρ 3.7° → 44%; moon ρ 2.74° → 43%)\r\n * — the disc and its glitter lane stay clearly visible at full set. */\r\nexport const CELESTIAL_ELEVATION_WADING_MIN_DEG = -16.2\r\nexport const CELESTIAL = { sunLongDeg: 0, moonLongDeg: 180 } as const\r\n\r\n/** Glitter corridor tuning (v3.14): the corridor centerline is the great\r\n * circle from the disc's base through the character; half-widths are\r\n * perpendicular arc METERS (an azimuth cone pinches to a point at the\r\n * viewer's nadir — banned). Endpoint widths derive from the disc's\r\n * apparent width at reference distances: the limb distance (far) and\r\n * `nearRefM` (near, held at the shore). Rising scales both endpoints up\r\n * and eases opacity down to a floor; submergence is the only kill. */\r"
             }
           ]
@@ -303,8 +303,8 @@
           "excerpts": [
             {
               "symbol": "onBeforeCompile",
-              "line": 29,
-              "code": " * system, all in one Lambert onBeforeCompile:\n * - 2–3 summed sines displace along the normal in object space (planet-local\n *   — waves rotate with the world), plus a slow shore-weighted surf cycle\n *   (SURF in planetConfig, also read by the wade ripple) that advances and\n *   recedes the waterline up the sand.\n * - The vertex shader evaluates terrainProfile (same control points, ported\n *   to GLSL) and passes water depth; the fragment paints a white foam band\n *   where the LIVE displaced surface meets the beach, with a noise-broken\n *   leading edge. Computed from the displaced surface, foam can never\n *   detach or gap — the old separate foam ring mesh is gone.\n */\nexport function Water() {\n  const waterMaterial = useMemo(() => {\n    const mat = new THREE.MeshLambertMaterial({"
+              "line": 35,
+              "code": " * system, all in one Lambert onBeforeCompile:\r\n * - 2–3 summed sines displace along the normal in object space (planet-local\r\n *   — waves rotate with the world), plus a slow shore-weighted surf cycle\r\n *   (SURF in planetConfig, also read by the wade ripple) that advances and\r\n *   recedes the waterline up the sand.\r\n * - The vertex shader evaluates terrainProfile (same control points, ported\r\n *   to GLSL) and passes water depth; the fragment paints a white foam band\r\n *   where the LIVE displaced surface meets the beach, with a noise-broken\r\n *   leading edge. Computed from the displaced surface, foam can never\r\n *   detach or gap — the old separate foam ring mesh is gone.\r\n */\r\nexport function Water() {\r\n  const waterMaterial = useMemo(() => {\r\n    const mat = new THREE.MeshLambertMaterial({\r"
             }
           ],
           "note": "shader, the corridor stencil"
@@ -317,7 +317,7 @@
           "excerpts": [
             {
               "symbol": "GLITTER",
-              "line": 204,
+              "line": 334,
               "code": "export const GLITTER = {\r\n  /** Corridor width at the disc base, in apparent disc widths. */\r\n  farWidthDisc: 0.65,\r\n  /** Corridor width held at the shoreline, in apparent disc widths… */\r\n  nearWidthDisc: 3.75,\r\n  /** …as seen from this reference distance (m) — the near width is a\r\n   * stable physical width, not a per-frame shore solve. */\r\n  nearRefM: 3,\r\n  /** Both endpoint widths scale up to this at inland-high. */\r\n  highWidthScale: 1.8,\r\n  /** Lane opacity at set (the vivid column)… */\r\n  opacityLow: 0.95,\r\n  /** …easing down to this floor at inland-high — never invisible. */\r\n  opacityFloor: 0.45,\r"
             }
           ]
@@ -804,16 +804,16 @@
             {
               "symbol": "MARKERS",
               "line": 67,
-              "code": "export const MARKERS: MapMarker[] = placements\r\n  .filter(\r\n    (m) =>\r\n      m.kind !== 'seat' &&\r\n      m.kind !== 'scatter' &&\r\n      m.type !== 'collider' &&\r\n      m.id !== 'cemetery' &&\r\n      m.id !== 'dock',\r\n  )\r\n  .map((m) => ({\r\n    unit: latLongToUnit(m.lat, m.long),\r\n    icon: BY_ID[m.id] ?? BY_KIND[m.kind] ?? BY_KIND.prop,\r\n  }))\r\n\r"
+              "code": "export const MARKERS: MapMarker[] = placements\r\n  .filter(\r\n    (m) =>\r\n      m.kind !== 'seat' &&\r\n      m.kind !== 'scatter' &&\r\n      m.type !== 'collider' &&\r\n      m.id !== 'cemetery' &&\r\n      // Both docks are drawn as their strip, not as a dot.\r\n      m.id !== 'dock' &&\r\n      m.id !== 'dock-south',\r\n  )\r\n  .map((m) => ({\r\n    unit: latLongToUnit(m.lat, m.long),\r\n    icon: BY_ID[m.id] ?? BY_KIND[m.kind] ?? BY_KIND.prop,\r"
             },
             {
               "symbol": "CEMETERY_FOOTPRINT",
-              "line": 106,
+              "line": 108,
               "code": "export const CEMETERY_FOOTPRINT: THREE.Vector3[] = (() => {\r\n  const plot = placement('cemetery')\r\n  const w = (plot.size?.widthM ?? 12) / 2\r\n  const d = (plot.size?.depthM ?? 10) / 2\r\n  const yaw = (plot.yawDeg * Math.PI) / 180\r\n  const cos = Math.cos(yaw)\r\n  const sin = Math.sin(yaw)\r\n  const corners: Array<[number, number]> = [\r\n    [-w, d],\r\n    [w, d],\r\n    [w, -d],\r\n    [-w, -d],\r\n  ]\r\n  return corners.map(([east, north]) => {\r"
             },
             {
               "symbol": "SUN_UNIT",
-              "line": 141,
+              "line": 149,
               "code": "export const SUN_UNIT = latLongToUnit(4, 0)\r\nexport const MOON_UNIT = latLongToUnit(4, 180)\r\n"
             }
           ]
@@ -874,7 +874,7 @@
           "excerpts": [
             {
               "symbol": "wrapToSphere",
-              "line": 318,
+              "line": 328,
               "code": "export function wrapToSphere(\r\n  geometry: THREE.BufferGeometry,\r\n  opts: {\r\n    lat: number\r\n    long: number\r\n    radius: number\r\n    /** Yaw of the local frame, radians from local north. */\r\n    yawRad?: number\r\n    /** Altitude of the local y=0 plane above the sphere. */\r\n    baseAlt?: number\r\n    /** Per-vertex altitude, e.g. to follow terrain (takes east/north metres). */\r\n    altitudeAt?: (east: number, north: number) => number\r\n  },\r\n): THREE.BufferGeometry {\r"
             }
           ]
@@ -1054,7 +1054,7 @@
           "excerpts": [
             {
               "symbol": "MAP",
-              "line": 133,
+              "line": 249,
               "code": "export const MAP = {\r\n  tripod: placementPos('photos'), // Photos — on the dock end, over water\r\n  mailbox: placementPos('contact'), // Contact — dock entrance\r\n  // NPC — seat ON the dock's west edge (cross-track ~0.87 m < the 1 m\r\n  // half-width, so his butt overlaps the deck), legs over the surf.\r\n  ukulelePlayer: placementPos('koa'),\r\n  palapa: placementPos('projects'), // Projects — day-leaning side\r\n  bulletinBoard: placementPos('papers'), // Papers — grass, sunset side\r\n  matrixPortal: placementPos('rift'), // Build-log room — night-leaning side\r\n  cemetery: placementPos('cemetery'), // Memorial garden\r\n  hedgeStone: placementPos('about'), // About — the moai, dusk boundary west\r\n  campfire: placementPos('campfire'), // night beach\r\n  // Log circle: three sittable logs ~3.2 m from the fire on the landward\r\n  // arc, opening toward the sea. Yaw comes from each log's facingDeg.\r"
             }
           ]
@@ -1149,18 +1149,18 @@
           "excerpts": [
             {
               "symbol": "usePlacementRuntime",
-              "line": 136,
+              "line": 133,
               "code": "export const usePlacementRuntime = create<PlacementRuntime>((set, get) => {\r\n  /** True between pointer-down and pointer-up: a drag streams dozens of\r\n   *  positions, and every one of them landing in the undo stack would\r\n   *  make Ctrl+Z crawl back a centimetre at a time. */\r\n  let coalescing = false\r\n\r\n  const commit = (mutate: (list: Placement[]) => Placement[]) =>\r\n    set((s) => {\r\n      const next = mutate(s.list)\r\n      rebuildBlockers(next)\r\n      return {\r\n        list: next,\r\n        past: coalescing ? s.past : [...s.past, s.list].slice(-100),\r\n        future: [],\r"
             },
             {
               "symbol": "serialize",
-              "line": 371,
+              "line": 373,
               "code": "export function serialize(list: Placement[]): string {\r\n  const round = (n: number, dp = 4) => Math.round(n * 10 ** dp) / 10 ** dp\r\n  return (\r\n    JSON.stringify(\r\n      {\r\n        $comment: placementsHeader,\r\n        placements: list.map((p) => ({\r\n          ...p,\r\n          lat: round(p.lat),\r\n          long: round((p.long + 360) % 360),\r\n          // 2 dp, not 1: the file carries yaws like 51.57 (a baked\r\n          // hand-rotation), and rounding harder made the round-trip lossy.\r\n          yawDeg: round(p.yawDeg, 2),\r\n          scale: round(p.scale, 3),\r"
             },
             {
               "symbol": "warningsFor",
-              "line": 322,
-              "code": "export function warningsFor(list: Placement[], drawCalls: number): PlacementWarning[] {\r\n  const out: PlacementWarning[] = []\r\n  for (const p of list) {\r\n    if (p.lat < WATERLINE_LAT) {\r\n      out.push({\r\n        id: p.id,\r\n        kind: 'underwater',\r\n        message: `${p.id} is past the waterline (lat ${p.lat.toFixed(1)} < ${WATERLINE_LAT}) — it will stand in the sea.`,\r\n      })\r\n    } else if (groundAltitudeAt(p.lat, p.long) <= 0.02 && p.type !== 'dock' && p.type !== 'rift') {\r\n      out.push({\r\n        id: p.id,\r\n        kind: 'underwater',\r\n        message: `${p.id} sits at sea level — check it isn't in the surf.`,\r"
+              "line": 319,
+              "code": "export function warningsFor(list: Placement[], drawCalls: number): PlacementWarning[] {\r\n  const out: PlacementWarning[] = []\r\n  for (const p of list) {\r\n    // Landmass-aware (Antarctica): \"on land\" is simply ground above sea\r\n    // level. A latitude threshold only ever knew about the island, and\r\n    // it called the dock's own tripod drowned while missing the whole\r\n    // southern hemisphere.\r\n    const alt = groundAltitudeAt(p.lat, p.long)\r\n    if (alt <= 0) {\r\n      out.push({\r\n        id: p.id,\r\n        kind: 'underwater',\r\n        message: `${p.id} is past the waterline (ground ${alt.toFixed(2)} m at lat ${p.lat.toFixed(1)}) — it will stand in the sea.`,\r\n      })\r"
             }
           ]
         },
@@ -1561,6 +1561,169 @@
         "The wander is seeded off the placement id, so a given villager always walks the same route. A random seed makes a wandering bug reproducible only by luck, which is another way of saying not reproducible.",
         "Nobody is placed yet, deliberately. The land is another task's job, and a villager standing in the sea while waiting for it would have shipped on `main` for however long that took.",
         "Footsteps and head-tracking both have a range gate (10 m and 9 m). Villagers audible across the island would turn the soundscape to gravel, and a head that tracks you from forty metres reads as being stared at rather than noticed."
+      ]
+    },
+    {
+      "id": "antarctica",
+      "step": 24,
+      "title": "Antarctica",
+      "hook": "There is a second place on this planet, and it is on the other\nside of the world, under a sky where the sun never comes up.",
+      "plain": "Walk south from the island — past the sand, past the waterline, out across the open ocean — and the light goes with you. The sun sinks into the sea behind your shoulder, the water turns from warm lagoon green to something colder and darker, and the stars come out. Keep going and the far edge of the world stops being water: an ice shelf, then a long white plateau running all the way to the bottom of the planet.\n This is Antarctica, and it is a real place you can stand on. It has its own shoreline, its own snow, and its own little wooden dock reaching out into the black water — pointing north, back the way you came, waiting for a boat that doesn't exist yet.\n The sky here doesn't cycle. Antarctica lives in permanent polar night: no sunset side, no moonrise, just stars over a white plain and a horizon the colour of deep steel. That isn't a trick with a slider. The sun and the moon are still exactly where they always are, hanging over the island — you have simply walked far enough around the sphere that the ocean's own curve now stands between you and both of them.",
+      "technical": "The island's ground has always been one analytic function: `terrainProfile(polar)`, a chain of smoothsteps from the grass plateau down to an apron that ends tucked under the ocean floor. It covered polar 0° to 90°. It now covers 0° to 180°. Past the equator it evaluates a second set of control points — `SOUTH` in `planetConfig` — at the distance from the SOUTH pole, with the identical shape: snow plateau, shoulder, ice-shelf ramp crossing exactly zero at the waterline, apron down to the same −0.9 m floor. Between the two aprons (81° to 153°) the profile is that flat floor, which is why neither cap shows a rim: both edges finish half a metre inside the ocean-floor sphere. One function still feeds the terrain mesh, the walk controller, prop placement and the water shader's depth, so they cannot disagree about where the ground is on either landmass.\n The island clamp became landmass-aware. `stepLeavesLandmass(before, after)` asks which cap you are standing on, measures both angles from THAT cap's own pole, and cancels the step only when it takes you further out than the wade limit AND further than you already were — so walking back in is always legal, in either hemisphere. Dropped mid-ocean you simply keep walking toward whichever pole you were already heading for.\n Polar night is one number. `southMix` is a smoothstep on the player's polar angle, 0 at 95° and 1 at 125° — it ramps in out on the open ocean, long before the ice. It takes the maximum with the existing `nightMix`, so the whole rig (fog, background, hemisphere pair, ambient, stars, emissives) crossfades to night with no second code path. It also blends both disc solves toward `DISC_POLAR_MIN_DEG`, the home-side clamp: from the south cap the arc to either body is over 95°, the visible-disc fraction computes to zero, and the sea occludes them physically — nothing is masked. The glitter lanes die with their bodies, because submergence was already their only kill.\n One thing polar night breaks is the key light. At night the directional light follows the moon's world direction, and in the south the moon is under the horizon — which would light the world FROM BELOW, the one thing the lighting rules forbid. So the light direction eases by `southMix` toward a fixed planet-local direction near the south pole, rotated into world space with a scratch vector each frame.",
+      "files": [
+        {
+          "path": "src/scene/planetConfig.ts",
+          "symbols": [
+            "SOUTH",
+            "SOUTH_DOCK",
+            "terrainProfile",
+            "landmassAt",
+            "maxWadePolarRad",
+            "stepLeavesLandmass",
+            "surfShoreWeight"
+          ],
+          "excerpts": [
+            {
+              "symbol": "SOUTH",
+              "line": 64,
+              "code": "export const SOUTH = {\r\n  /** Snow plateau ends (deg from the SOUTH pole). */\r\n  plateauEndDeg: 16,\r\n  /** Rolling shoulder down to the ice-shelf altitude. */\r\n  shoulderEndDeg: 18.5,\r\n  /** Waterline: the profile crosses exactly 0 here (lat −68). */\r\n  waterlineDeg: 22,\r\n  /** Submerged apron ends here (lat −63), below the ocean floor. */\r\n  apronEndDeg: 27,\r\n  snowAltitude: 0.7,\r\n  shelfAltitude: 0.35,\r\n  apronAltitude: -0.9,\r\n} as const\r\n\r"
+            },
+            {
+              "symbol": "SOUTH_DOCK",
+              "line": 196,
+              "code": "export const SOUTH_DOCK = {\r\n  longDeg: 0,\r\n  latMinDeg: -70,\r\n  latMaxDeg: -66,\r\n  halfWidthM: 1,\r\n  deckHeightM: 0.6,\r\n  plankThicknessM: 0.18,\r\n  segmentCount: 3,\r\n}\r\n\r\n/** Footstep tuning (3C): gains, foot-plant phases in the swing cycle,\r\n * and the jump double-tap gap. */\r\nexport const FOOTSTEPS = {\r\n  stepGainWalk: 0.5,\r"
+            },
+            {
+              "symbol": "terrainProfile",
+              "line": 144,
+              "code": "export function terrainProfile(polarRad: number): number {\r\n  const p = THREE.MathUtils.radToDeg(polarRad)\r\n  if (p > 90) return southProfile(180 - p)\r\n  if (p <= TERRAIN.plateauEndDeg) return GRASS_ALTITUDE\r\n  if (p <= TERRAIN.shoulderEndDeg) {\r\n    return THREE.MathUtils.lerp(\r\n      GRASS_ALTITUDE,\r\n      SAND_ALTITUDE,\r\n      THREE.MathUtils.smoothstep(p, TERRAIN.plateauEndDeg, TERRAIN.shoulderEndDeg),\r\n    )\r\n  }\r\n  if (p <= TERRAIN.waterlineDeg) {\r\n    return THREE.MathUtils.lerp(\r\n      SAND_ALTITUDE,\r"
+            },
+            {
+              "symbol": "landmassAt",
+              "line": 106,
+              "code": "export function landmassAt(polarRad: number): 'north' | 'south' {\r\n  return polarRad <= Math.PI / 2 ? 'north' : 'south'\r\n}\r\n\r\n/** Distance (rad) from the landmass's OWN pole: polar in the north,\r\n *  π − polar in the south. Both caps measure outward from zero. */\r\nexport function polarFromOwnPole(polarRad: number): number {\r\n  return polarRad <= Math.PI / 2 ? polarRad : Math.PI - polarRad\r\n}\r\n\r\n/** Antarctica's wade clamp, measured from the south pole. */\r\nexport const SOUTH_MAX_POLAR_RAD =\r\n  THREE.MathUtils.degToRad(SOUTH.waterlineDeg) + 2.5 / PLANET_RADIUS\r\n\r"
+            },
+            {
+              "symbol": "maxWadePolarRad",
+              "line": 122,
+              "code": "export function maxWadePolarRad(landmass: 'north' | 'south'): number {\r\n  return landmass === 'north' ? MAX_POLAR_RAD : Math.PI - SOUTH_MAX_POLAR_RAD\r\n}\r\n\r\n/**\r\n * Island bounds, landmass-aware. A step is cancelled when it carries the\r\n * pole FURTHER from its landmass's own pole than that landmass allows,\r\n * AND further than it already was — so walking back in is always legal,\r\n * and someone dropped mid-ocean keeps walking toward whichever cap they\r\n * are heading for. Pure; vitest-pinned in both hemispheres.\r\n */\r\nexport function stepLeavesLandmass(polarBefore: number, polarAfter: number): boolean {\r\n  const lm = landmassAt(polarBefore)\r\n  const limit = polarFromOwnPole(maxWadePolarRad(lm))\r"
+            },
+            {
+              "symbol": "stepLeavesLandmass",
+              "line": 133,
+              "code": "export function stepLeavesLandmass(polarBefore: number, polarAfter: number): boolean {\r\n  const lm = landmassAt(polarBefore)\r\n  const limit = polarFromOwnPole(maxWadePolarRad(lm))\r\n  const before = polarFromOwnPole(polarBefore)\r\n  const after = polarFromOwnPole(polarAfter)\r\n  return after > limit && after > before\r\n}\r\n\r\n/** Altitude above sea level at a polar angle (radians from the pole).\r\n *  Covers polar 0..180: the north island up to 90°, Antarctica mirrored\r\n *  past it, and the flat −0.9 apron floor in between (81° → 153°). */\r\nexport function terrainProfile(polarRad: number): number {\r\n  const p = THREE.MathUtils.radToDeg(polarRad)\r\n  if (p > 90) return southProfile(180 - p)\r"
+            },
+            {
+              "symbol": "surfShoreWeight",
+              "line": 289,
+              "code": "    surfShoreWeight(THREE.MathUtils.radToDeg(polarRad))\r\n  )\r\n}\r\n\r\n/** Antarctica's beach band: the shore weighting ramps in over the 7°\r\n *  above its waterline, mirroring SURF.startDeg → SURF.endDeg. */\r\nexport const SURF_SOUTH_START_DEG = 180 - SOUTH.waterlineDeg - 7\r\nexport const SURF_SOUTH_END_DEG = 180 - SOUTH.waterlineDeg\r\n\r\n/** Shore weighting of the surf cycle — ramps in across EITHER beach\r\n *  band. The water shader ports this expression verbatim; if the two\r\n *  ever disagree the foam and the wade ripple part company. */\r\nexport function surfShoreWeight(polarDeg: number): number {\r\n  return Math.max(\r"
+            }
+          ]
+        },
+        {
+          "path": "src/controls/terrain.ts",
+          "symbols": [
+            "onDockStrip",
+            "dockStripAt",
+            "groundAltitudeAt"
+          ],
+          "excerpts": [
+            {
+              "symbol": "onDockStrip",
+              "line": 33,
+              "code": "export function onDockStrip(latDeg: number, longDeg: number): boolean {\r\n  return onStrip(DOCK, latDeg, longDeg) || onStrip(SOUTH_DOCK, latDeg, longDeg)\r\n}\r\n\r\n/** The dock whose strip (lat, long) sits on, or null. */\r\nexport function dockStripAt(latDeg: number, longDeg: number): DockStrip | null {\r\n  if (onStrip(DOCK, latDeg, longDeg)) return DOCK\r\n  if (onStrip(SOUTH_DOCK, latDeg, longDeg)) return SOUTH_DOCK\r\n  return null\r\n}\r\n\r\n/**\r\n * Ground altitude above sea level at (lat, long). The dock deck rides\r\n * deckHeightM above its local band (surface-snapped segments), so the same\r"
+            },
+            {
+              "symbol": "dockStripAt",
+              "line": 38,
+              "code": "export function dockStripAt(latDeg: number, longDeg: number): DockStrip | null {\r\n  if (onStrip(DOCK, latDeg, longDeg)) return DOCK\r\n  if (onStrip(SOUTH_DOCK, latDeg, longDeg)) return SOUTH_DOCK\r\n  return null\r\n}\r\n\r\n/**\r\n * Ground altitude above sea level at (lat, long). The dock deck rides\r\n * deckHeightM above its local band (surface-snapped segments), so the same\r\n * function drives the deck visuals and the walkable height.\r\n */\r\nexport function groundAltitudeAt(latDeg: number, longDeg: number): number {\r\n  const band = bandAltitudeAt(latDeg)\r\n  const dock = dockStripAt(latDeg, longDeg)\r"
+            },
+            {
+              "symbol": "groundAltitudeAt",
+              "line": 49,
+              "code": "export function groundAltitudeAt(latDeg: number, longDeg: number): number {\r\n  const band = bandAltitudeAt(latDeg)\r\n  const dock = dockStripAt(latDeg, longDeg)\r\n  if (dock) return band + dock.deckHeightM\r\n  return band\r\n}\r\n\r\n/** World-space ground height under the avatar (avatar y-position).\r\n *  Called every frame — no object allocation (lat/long computed inline). */\r\nexport function groundHeightAt(poleLocal: THREE.Vector3): number {\r\n  const polar = Math.acos(THREE.MathUtils.clamp(poleLocal.y, -1, 1))\r\n  const lat = 90 - THREE.MathUtils.radToDeg(polar)\r\n  const long = THREE.MathUtils.radToDeg(Math.atan2(poleLocal.x, poleLocal.z))\r\n  return PLANET_RADIUS + groundAltitudeAt(lat, long)\r"
+            }
+          ]
+        },
+        {
+          "path": "src/scene/Island.tsx",
+          "symbols": [
+            "buildDockGeometry"
+          ],
+          "excerpts": [
+            {
+              "symbol": "buildDockGeometry",
+              "line": 44,
+              "code": "function buildDockGeometry(dock: typeof DOCK): THREE.BufferGeometry {\r\n  const segLatSpan = (dock.latMaxDeg - dock.latMinDeg) / dock.segmentCount\r\n  const segLengthM = THREE.MathUtils.degToRad(segLatSpan) * PLANET_RADIUS + 0.12\r\n  const plankGeo = new THREE.BoxGeometry(dock.halfWidthM * 2, dock.plankThicknessM, segLengthM)\r\n  const strip = (g: THREE.BufferGeometry, m: THREE.Matrix4) => {\r\n    const n = g.index ? g.toNonIndexed() : g.clone()\r\n    n.deleteAttribute('uv')\r\n    n.applyMatrix4(m)\r\n    return n\r\n  }\r\n  const parts: THREE.BufferGeometry[] = []\r\n  for (let i = 0; i < dock.segmentCount; i++) {\r\n    const lat = dock.latMaxDeg - segLatSpan * (i + 0.5)\r\n    // groundAltitudeAt already carries the deck height on the strip, so\r"
+            }
+          ],
+          "note": "the south cap"
+        },
+        {
+          "path": "src/scene/useSkyState.ts",
+          "symbols": [
+            "southMixFromPolarDeg",
+            "skyRuntime"
+          ],
+          "excerpts": [
+            {
+              "symbol": "southMixFromPolarDeg",
+              "line": 218,
+              "code": "export function southMixFromPolarDeg(playerPolarDeg: number): number {\r\n  return THREE.MathUtils.smoothstep(playerPolarDeg, 95, 125)\r\n}\r\n\r\nconst DIR_DAY_I = 1.15\r\nconst DIR_NIGHT_I = 0.55\r\nconst HEMI_DAY_I = 0.55\r\nconst HEMI_NIGHT_I = 0.4\r\nconst AMB_DAY_I = 0.35\r\nconst AMB_NIGHT_I = 0.26\r\n/** Campfire flame emissive ramps with night (v3.2: emissives scale). */\r\nconst FLAME_DAY = 0.45\r\nconst FLAME_NIGHT = 1.1\r\n\r"
+            },
+            {
+              "symbol": "skyRuntime",
+              "line": 144,
+              "code": "export const skyRuntime = {\r\n  nightMix: 0,\r\n  sunLocal: SUN_HOME_LOCAL.clone(),\r\n  moonLocal: MOON_HOME_LOCAL.clone(),\r\n  sunWorld: SUN_HOME_LOCAL.clone(),\r\n  moonWorld: MOON_HOME_LOCAL.clone(),\r\n  /** Apparent elevation of each disc ABOVE the ocean limb (deg), from the\r\n   * live camera — eases the glitter intensity. Inherits the arc smoothing\r\n   * via the smoothed disc solve. */\r\n  sunElevAboveLimbDeg: 45,\r\n  moonElevAboveLimbDeg: 45,\r\n  /** Visible fraction of each disc above the limb (0..1) — the glitter's\r\n   * submergence gate (v3.12). */\r\n  sunVisibleFrac: 1,\r"
+            }
+          ]
+        },
+        {
+          "path": "src/scene/Water.tsx",
+          "symbols": [
+            "profileAlt"
+          ],
+          "excerpts": [
+            {
+              "symbol": "profileAlt",
+              "line": 100,
+              "code": "        float profileAlt(float pDeg) {\r\n          // South of the equator the profile mirrors: evaluate the south\r\n          // bands at the distance from the SOUTH pole, so foam and depth\r\n          // work at Antarctica's shore exactly as at the island's.\r\n          if (pDeg > 90.0) {\r\n            float sp = 180.0 - pDeg;\r\n            if (sp <= S_PLATEAU_END) return S_SNOW_ALT;\r\n            if (sp <= S_SHOULDER_END) return mix(S_SNOW_ALT, S_SHELF_ALT, smoothstep(S_PLATEAU_END, S_SHOULDER_END, sp));\r\n            if (sp <= S_WATERLINE) return mix(S_SHELF_ALT, 0.0, smoothstep(S_SHOULDER_END, S_WATERLINE, sp));\r\n            if (sp <= S_APRON_END) return mix(0.0, APRON_ALT, smoothstep(S_WATERLINE, S_APRON_END, sp));\r\n            return APRON_ALT;\r\n          }\r\n          if (pDeg <= PLATEAU_END) return GRASS_ALT;\r\n          if (pDeg <= SHOULDER_END) return mix(GRASS_ALT, SAND_ALT, smoothstep(PLATEAU_END, SHOULDER_END, pDeg));\r"
+            }
+          ],
+          "note": "the cold tint"
+        },
+        {
+          "path": "src/scene/CelestialDome.tsx",
+          "symbols": [
+            "buildStars"
+          ],
+          "excerpts": [
+            {
+              "symbol": "buildStars",
+              "line": 159,
+              "code": "function buildStars(count: number): [THREE.BufferGeometry, THREE.BufferGeometry] {\r\n  const rand = mulberry32(2033)\r\n  const points: number[] = []\r\n  let placed = 0\r\n  const v = new THREE.Vector3()\r\n  while (placed < count) {\r\n    v.set(rand() * 2 - 1, rand() * 2 - 1, rand() * 2 - 1)\r\n    if (v.lengthSq() > 1 || v.lengthSq() < 1e-4) continue\r\n    v.normalize()\r\n    // Two skies of stars now: the island's night hemisphere, AND the\r\n    // sky over Antarctica's cap — polar night needs stars overhead, and\r\n    // the old filter kept nothing below the planet-local equator. Both\r\n    // batches fade with nightMix, which southMix drives in the south.\r\n    const overNightSide = v.z < -0.25 && v.y > -0.6\r"
+            }
+          ]
+        },
+        {
+          "path": "src/ui/Minimap.tsx",
+          "symbols": [],
+          "excerpts": [],
+          "note": "the south cap disc"
+        },
+        {
+          "path": "src/controls/groundHeight.test.ts",
+          "symbols": [],
+          "excerpts": [],
+          "note": "the south profile and clamp checks"
+        }
+      ],
+      "decisions": [
+        "Antarctica is the SAME function, not a second one. The first sketch was a separate `southTerrainProfile` with its own caller — and the moment there are two ground functions there are two answers to \"how high is the ground here\", which is the exact bug placement rule 4 exists to prevent. Mirroring inside the one function meant the water shader's depth port, the walk controller, the minimap and the editor guardrail all crossed the equator for free.",
+        "The editor's \"you placed this in the sea\" warning used to be a LATITUDE threshold (`lat < 15`). A latitude only ever knew about one island: it called the dock's own camera tripod drowned while having no opinion at all about the entire southern hemisphere. It now asks `groundAltitudeAt(lat, long) > 0` — which is what \"on land\" actually means, on either cap.",
+        "The south cap's pole needed the spoke fade after all. The plan said to leave `poleFadeRad` off, since it exists for the spawn turf — and the first screenshot came back with a perfect radial starburst, the sphere fan's razor triangles turning the facet jitter into spokes. The fix generalised the fade to measure distance to the NEAREST pole, which is a no-op for a cap that only ever reaches 81°.",
+        "Two dock meshes, not one merge. They share a material and merging would have been the usual draw-call shave, but they sit on opposite sides of a sphere and can never both be in frame — kept apart, each frustum-culls and the measured cost is identical.",
+        "Reachability is deliberately unfinished. There is no boat yet, so Antarctica is only accessible through `?at=<lat>,<long>`, a dev/e2e teleport that routes through the SAME `controlsRuntime.poseOverride` the screenshot sweeps already use, rather than inventing a second way to move the player."
       ]
     }
   ]

@@ -1,8 +1,8 @@
-import { lazy, Suspense, useRef } from 'react'
+import { lazy, Suspense, useEffect, useRef } from 'react'
 import * as THREE from 'three'
 import { AudioBoot } from '../audio/AudioBoot'
 import { useIntroSwoop } from '../controls/useIntroSwoop'
-import { usePlanetController } from '../controls/usePlanetController'
+import { controlsRuntime, usePlanetController } from '../controls/usePlanetController'
 import { useRoomController } from '../controls/useRoomController'
 import { usePointerLockCamera } from '../controls/usePointerLockCamera'
 import { useLiveInteractables } from '../content/liveInteractables'
@@ -70,6 +70,25 @@ export function PlanetScene({
   // placement whose type is a registered NPC gets one. Read live so a
   // villager added or dragged in the editor appears immediately.
   const npcs = usePlacementRuntime((s) => s.list).filter((p) => isNpcType(p.type))
+
+  // Dev/e2e teleport: `?at=<lat>,<long>` drops the avatar there once the
+  // intro is finished — the only way to reach Antarctica until the boat
+  // exists, and how the screenshot sweeps get to the far side of the
+  // world. It goes through controlsRuntime.poseOverride, the SAME hook
+  // the e2e suites already use (e2e/helpers.ts); there is no second
+  // teleport path. Stripped from production builds by the flag check.
+  const introDone = useStore((s) => s.introDone)
+  useEffect(() => {
+    if (!introDone) return
+    const flags = new URLSearchParams(window.location.search)
+    if (!import.meta.env.DEV && !flags.has('e2e')) return
+    const at = flags.get('at')
+    if (!at) return
+    const [lat, long] = at.split(',').map(Number)
+    if (Number.isFinite(lat) && Number.isFinite(long)) {
+      controlsRuntime.poseOverride = { lat, long }
+    }
+  }, [introDone])
 
   usePlanetController({ planetRef, avatarRef })
   useRoomController({ roomRef, avatarRef })

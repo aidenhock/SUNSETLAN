@@ -116,8 +116,9 @@ export interface FacetTerrainOptions {
   bias?: number
   /** Per-face brightness variation (±). */
   speckle?: number
-  /** Fade jitter + tones to plain colorA toward the cap pole (radians): the
-   * pole fan's thin triangles turn any variation into radial spokes. */
+  /** Fade jitter + tones to plain colorA toward the cap's OWN pole
+   * (radians — whichever of the two the cap closes at): the pole fan's
+   * thin triangles turn any variation into radial spokes. */
   poleFadeRad?: number
   seed?: number
   /** v3.2 continuous terrain: reshape each vertex to this radius by polar
@@ -225,8 +226,17 @@ export function facetTerrain(
   // can never expose an edge.
   const pos = geometry.attributes.position as THREE.BufferAttribute
   const v = new THREE.Vector3()
+  // Distance to the NEAREST pole, so a cap that closes at polar 180
+  // (Antarctica) gets the same spoke fade as one closing at 0. For the
+  // island cap (polar ≤ 81) this is exactly `polar`, unchanged.
   const fadeAt = (polar: number) =>
-    poleFadeRad > 0 ? THREE.MathUtils.smoothstep(polar, poleFadeRad * 0.15, poleFadeRad) : 1
+    poleFadeRad > 0
+      ? THREE.MathUtils.smoothstep(
+          Math.min(polar, Math.PI - polar),
+          poleFadeRad * 0.15,
+          poleFadeRad,
+        )
+      : 1
   for (let i = 0; i < pos.count; i++) {
     v.fromBufferAttribute(pos, i)
     const len = v.length()

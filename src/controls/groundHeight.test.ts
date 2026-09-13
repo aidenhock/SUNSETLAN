@@ -3,7 +3,16 @@ import { describe, expect, it } from 'vitest'
 import {
   DOCK,
   GRASS_ALTITUDE,
+  landmassAt,
+  MAX_POLAR_RAD,
+  maxWadePolarRad,
   PLANET_RADIUS,
+  polarFromOwnPole,
+  SOUTH,
+  SOUTH_DOCK,
+  SOUTH_MAX_POLAR_RAD,
+  stepLeavesLandmass,
+  surfaceUnderfoot,
   TERRAIN,
   terrainProfile,
 } from '../scene/planetConfig'
@@ -47,6 +56,121 @@ describe('terrainProfile (v3.2 continuous surface, placement rule 4)', () => {
       expect(alt).toBeLessThanOrEqual(prev + 1e-9)
       prev = alt
     }
+  })
+})
+
+describe('Antarctica: the SOUTH profile (mirrored, polar 90..180)', () => {
+  const southAt = (sp: number) => terrainProfile(THREE.MathUtils.degToRad(180 - sp))
+
+  it('stands at the snow altitude across the plateau, pole included', () => {
+    expect(terrainProfile(Math.PI)).toBeCloseTo(SOUTH.snowAltitude, 6)
+    expect(groundAltitudeAt(-90, 0)).toBeCloseTo(SOUTH.snowAltitude, 6)
+    expect(southAt(SOUTH.plateauEndDeg)).toBeCloseTo(SOUTH.snowAltitude, 6)
+  })
+
+  it('crosses exactly zero at its waterline (lat −68)', () => {
+    expect(southAt(SOUTH.waterlineDeg)).toBeCloseTo(0, 6)
+    expect(groundAltitudeAt(-(90 - SOUTH.waterlineDeg), 40)).toBeCloseTo(0, 6)
+  })
+
+  it('ends on the apron floor, tucked under the ocean-floor sphere', () => {
+    expect(southAt(SOUTH.apronEndDeg)).toBeCloseTo(SOUTH.apronAltitude, 6)
+    // Between the two aprons the whole sphere sits at the same floor —
+    // one continuous surface, no rim, no step at the equator.
+    expect(terrainProfile(THREE.MathUtils.degToRad(90))).toBeCloseTo(
+      SOUTH.apronAltitude,
+      6,
+    )
+    expect(terrainProfile(THREE.MathUtils.degToRad(120))).toBeCloseTo(
+      SOUTH.apronAltitude,
+      6,
+    )
+    expect(SOUTH.apronAltitude).toBeLessThan(-0.4) // below radius 54.6
+  })
+
+  it('is continuous across every south band boundary (no jumps > 0.02 m)', () => {
+    for (const sp of [
+      SOUTH.plateauEndDeg,
+      SOUTH.shoulderEndDeg,
+      SOUTH.waterlineDeg,
+      SOUTH.apronEndDeg,
+    ]) {
+      const e = THREE.MathUtils.degToRad(180 - sp)
+      const eps = THREE.MathUtils.degToRad(0.01)
+      expect(Math.abs(terrainProfile(e + eps) - terrainProfile(e - eps))).toBeLessThan(0.02)
+    }
+    // …and across the equator, where the two halves meet.
+    const eq = Math.PI / 2
+    const eps = THREE.MathUtils.degToRad(0.01)
+    expect(Math.abs(terrainProfile(eq + eps) - terrainProfile(eq - eps))).toBeLessThan(0.02)
+  })
+
+  it('rises monotonically from the apron floor to the snow plateau', () => {
+    let prev = terrainProfile(THREE.MathUtils.degToRad(180 - SOUTH.apronEndDeg))
+    for (let sp = SOUTH.apronEndDeg; sp >= 0; sp -= 0.25) {
+      const alt = terrainProfile(THREE.MathUtils.degToRad(180 - sp))
+      expect(alt).toBeGreaterThanOrEqual(prev - 1e-9)
+      prev = alt
+    }
+  })
+})
+
+describe("Antarctica's dock strip", () => {
+  it('is walkable from the shelf entrance out over the water', () => {
+    expect(onDockStrip(-70, SOUTH_DOCK.longDeg)).toBe(true)
+    expect(onDockStrip(-68, SOUTH_DOCK.longDeg)).toBe(true)
+    expect(onDockStrip(-66, SOUTH_DOCK.longDeg)).toBe(true)
+    // Outside the lat span and off the meridian: plain terrain.
+    expect(onDockStrip(-72, SOUTH_DOCK.longDeg)).toBe(false)
+    expect(onDockStrip(-64, SOUTH_DOCK.longDeg)).toBe(false)
+    expect(onDockStrip(-68, SOUTH_DOCK.longDeg + 12)).toBe(false)
+  })
+
+  it('entrance is on land, far end is over water, deck rides above both', () => {
+    expect(profileAtLat(-70)).toBeGreaterThan(0) // ice shelf
+    expect(profileAtLat(-66)).toBeLessThan(0) // open water
+    for (const lat of [-70, -68, -66]) {
+      expect(groundAltitudeAt(lat, SOUTH_DOCK.longDeg)).toBeCloseTo(
+        profileAtLat(lat) + SOUTH_DOCK.deckHeightM,
+        6,
+      )
+    }
+  })
+
+  it('the north dock is untouched', () => {
+    expect(groundAltitudeAt(18, DOCK.longDeg)).toBeCloseTo(
+      profileAtLat(18) + DOCK.deckHeightM,
+      6,
+    )
+    expect(surfaceUnderfoot(90 - 18, DOCK.longDeg, false)).toBe('dock')
+    expect(surfaceUnderfoot(90 + 68, SOUTH_DOCK.longDeg, false)).toBe('dock')
+  })
+})
+
+describe('stepLeavesLandmass (landmass-aware island clamp)', () => {
+  const deg = THREE.MathUtils.degToRad
+
+  it('north: blocks a step past the wade clamp, allows walking back in', () => {
+    expect(stepLeavesLandmass(deg(70), deg(71))).toBe(false)
+    expect(stepLeavesLandmass(MAX_POLAR_RAD, MAX_POLAR_RAD + 0.01)).toBe(true)
+    // Inward from beyond the clamp is always legal — never get stuck.
+    expect(stepLeavesLandmass(MAX_POLAR_RAD + 0.05, MAX_POLAR_RAD + 0.04)).toBe(false)
+  })
+
+  it('south: the same, mirrored about the equator', () => {
+    const edge = maxWadePolarRad('south')
+    expect(landmassAt(edge)).toBe('south')
+    expect(stepLeavesLandmass(deg(170), deg(169))).toBe(false) // inland
+    expect(stepLeavesLandmass(edge, edge - 0.01)).toBe(true) // out to sea
+    expect(stepLeavesLandmass(edge - 0.05, edge - 0.04)).toBe(false) // walking back in
+  })
+
+  it('the two clamps are mirror images', () => {
+    expect(maxWadePolarRad('north')).toBeCloseTo(MAX_POLAR_RAD, 12)
+    expect(polarFromOwnPole(maxWadePolarRad('south'))).toBeCloseTo(SOUTH_MAX_POLAR_RAD, 12)
+    expect(landmassAt(deg(89))).toBe('north')
+    expect(landmassAt(deg(91))).toBe('south')
+    expect(polarFromOwnPole(deg(160))).toBeCloseTo(deg(20), 12)
   })
 })
 
