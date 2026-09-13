@@ -1,6 +1,7 @@
 import { useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
+import { PLANET_RADIUS } from '../scene/planetConfig'
 import { useStore } from '../store/useStore'
 import { groundHeightAt } from './terrain'
 import { controlsRuntime } from './usePlanetController'
@@ -191,7 +192,13 @@ export function usePointerLockCamera({
       .copy(camera.position)
       .applyQuaternion(_qInv.copy(controlsRuntime.planetQuaternion).invert())
       .normalize()
-    const minLen = groundHeightAt(_camLocal) + CAM_GROUND_CLEAR
+    // Afloat there IS no ground under the camera — the analytic floor is
+    // the seabed, metres below the surface, so a low pitch would park the
+    // camera underwater. Out on the boat the sea surface is the floor.
+    const floor = controlsRuntime.boating
+      ? Math.max(groundHeightAt(_camLocal), PLANET_RADIUS + 0.35)
+      : groundHeightAt(_camLocal)
+    const minLen = floor + CAM_GROUND_CLEAR
     if (len < minLen) camera.position.multiplyScalar(minLen / len)
     // Negative pitch lifts the gaze toward the zenith (eased).
     if (pitch.current < 0) {

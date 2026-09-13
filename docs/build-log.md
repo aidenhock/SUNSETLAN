@@ -1305,3 +1305,129 @@ rotated into world space with a scratch vector each frame.
   teleport that routes through the SAME `controlsRuntime.poseOverride`
   the screenshot sweeps already use, rather than inventing a second way
   to move the player.
+
+## 25 · The boat {#boat}
+
+**Hook:** The dock finally goes somewhere.
+
+**Plain:** There is a small wooden boat tied up at the end of the dock,
+just past the camera tripod, riding the swell on the east side where Koa
+isn't dangling his legs. Walk out to the end and it says **E — Board the
+boat**.
+
+Step in and you are sitting on the bench with the water right there at
+your elbow. Now push forward. The bow swings around, the hull gathers
+speed, and the island starts sliding away behind you — sand, then the
+shallows, then nothing but open water in every direction. Look back and
+there is a line of foam on the sea marking exactly where you have been.
+
+Keep going south and the light leaves. The sun drops into the water
+astern, the sea turns from lagoon green to something much colder, the
+stars come out, and after about eight seconds of open ocean a white edge
+appears ahead: Antarctica's ice shelf, with its own little dock reaching
+out to meet you. Pull alongside and the prompt changes to **E — Tie
+up**. Press it and you step out onto the deck at the bottom of the
+world.
+
+The boat stays where you left it. Walk the ice, come back, and it is
+still tied to the southern dock — which means the way home is to get
+back in and drive north.
+
+**Technical:** The boat never moves. Nothing in this world does except
+the world: driving is the SAME `rotationStep`/`applyStep` composition
+the walk uses, stepped along the boat's own heading rather than the raw
+input, so the hull carries its momentum through a turn instead of
+sliding sideways with the stick.
+
+Everything about where the boat lives is DERIVED. There is no boat row
+in `placements.json` and no editor handle for it, because a mooring is a
+property of a dock: `mooringUnit(dock)` takes the far-end plank
+segment's centre latitude, steps `BOAT.mooringSideM` (1.7 m) sideways in
+the same `surfacePartMatrix` frame the planks themselves are placed
+with, and normalises. Move a dock and the boat moves with it. That frame
+is worth a note — `surfacePartMatrix` builds +Y up and +Z north, which
+makes local +X **west**, and Koa sits on the north dock's west edge with
+his legs over the surf. The boat moors at local −x.
+
+`advanceBoat` is pure and lives in `scene/boat.ts` with the geometry:
+the heading eases toward the requested yaw the short way round at
+`turnRateRadPerS`, the speed climbs toward `maxSpeedMps × mag` at
+`accelMps2` and falls to zero at `decelMps2` when you let go, and it
+returns the arc angle to travel this frame. `boatStepBlocked` replaces
+the walk's landmass clamp: it cancels a step that carries the boat
+inside either waterline plus `shoreMarginM` AND closer than it already
+was, so a boat nudged onto a shoal can always reverse off. The prop
+blocker list shrinks to every plank centre of both docks at
+`halfWidthM + 0.9` — you cannot drive through a pier, and nothing on
+land is reachable anyway.
+
+Boarding and tying up are the sit tween's twins: a quaternion delta
+`setFromUnitVectors(worldMooringDir → pole)` premultiplied onto the live
+orientation and slerped over `BOAT.tweenS` with a smoothstep. A tween,
+never a step, so blockers do not apply — which is the only way the
+mooring is reachable at all, since it sits 1.7 m inside the far plank's
+own 1.9 m blocker. Leaving is free, because blockers only ever cancel
+steps that move you CLOSER. Tying up runs the tween twice: leg one
+carries the mooring under the pole (the boat is now exactly where it
+belongs), leg two carries the dock end under the pole (the player is now
+standing on the deck).
+
+The hull is drawn twice from one geometry. Moored it is planet-local,
+bobbing on the live `surfOffset` beside its dock. Driving it is
+world-fixed at `(0, PLANET_RADIUS + bob, 0)` outside the planet group, a
+sibling of the avatar, rolling and pitching on two slow sines. The
+hand-off happens on the tween boundaries — the one moment the two poses
+coincide — so it never visibly jumps. The wake is 24 pooled instanced
+discs stamped every 0.25 s at the pole's PLANET-LOCAL direction, so each
+puff of foam stays on the water you left it on while the ocean turns
+beneath you; they fade by lerping their instance colour toward the sea,
+the same trick the footprints use in the sand.
+
+One thing the boat broke immediately was the camera. The follow camera
+floors itself against `groundHeightAt` under its own footprint — and out
+at sea that analytic ground is the SEABED, metres down, so any downward
+pitch parked the camera underwater looking up at the hull. Afloat, the
+floor becomes `max(groundHeightAt, PLANET_RADIUS + 0.35)`: the sea
+surface is the ground when you are on it.
+
+**Files:**
+- `src/scene/boat.ts` — `mooringUnit`, `dockEndUnit`, `advanceBoat`, `boatStepBlocked`, `BOAT_BLOCKERS`
+- `src/scene/planetConfig.ts` — `BOAT`
+- `src/store/useStore.ts` — `BoatState`, `boardBoat`, `tieUp`
+- `src/controls/usePlanetController.ts` — `controlsRuntime`, `BOAT_SEAT_M`
+- `src/controls/usePointerLockCamera.ts` — the afloat camera floor, `CAM_GROUND_CLEAR`
+- `src/scene/BoatScene.tsx` — `MooredBoat`, `DrivingBoat`, `BoatWake`
+- `src/scene/props.ts` — `buildBoat`
+- `src/ui/Hud.tsx` — `BoatPrompt`
+- `src/scene/boat.test.ts` — the mooring and physics checks
+- `e2e/boat.mjs` — the whole crossing, driven and screenshotted
+
+**Decisions:**
+- The mooring is derived, not placed. The obvious move was a placement
+  row with a `blockerRadiusM` like every other prop, and it was wrong on
+  two counts: a boat dragged in the editor would detach from the dock it
+  belongs to, and its altitude would come from `groundAltitudeAt` minus
+  the sink — which over water is the seabed, not the waterline. Deriving
+  it from the dock's own segment matrix means the two can never disagree
+  and the hull always sits at y = 0 = sea level.
+- Stepping along the heading, not the input. The first pass reused the
+  walk's step direction (the camera-relative move dir) verbatim, and the
+  boat crabbed sideways the instant you turned the camera — a canoe that
+  strafes. Input now only asks for a heading; the step always follows the
+  bow.
+- The boat's blocker list is a boat-only list. Running the full prop
+  blocker set while driving does nothing useful (every palm and headstone
+  is inland, unreachable from the water) and costs a loop over a hundred
+  and fifty entries a frame. Two docks' plank centres is the whole hazard
+  map out there.
+- The seated rig's root is at its FEET, and parking it on the bench top
+  floated the player a head above the thwart. The log seat had already
+  solved this — root 0.30 against a 0.42 log top — so the boat borrows
+  the same 0.12 m drop rather than inventing a second seat convention.
+- Cream thwarts were a mistake. The first hull had the bench and the
+  stern seat in the same cream as the gunwale trim, and from above it
+  read as a rope ladder lying in the boat. Only the rail is cream now;
+  the seats are planks, like seats.
+- `Boat.tsx` could not exist. The physics lives in `scene/boat.ts` and
+  TypeScript refuses a program containing both names on a
+  case-insensitive filesystem, so the component is `BoatScene.tsx`.

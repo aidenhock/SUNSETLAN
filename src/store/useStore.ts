@@ -1,7 +1,18 @@
 import { create } from 'zustand'
+import type { DockName } from '../scene/boat'
 
 export type QualityTier = 'high' | 'low'
 export type CameraMode = 'pointerLock' | 'orbit'
+
+/**
+ * The boat's whole life: which dock it is tied to, and whether the
+ * player is walking, climbing aboard, driving, or tying up. 'boarding'
+ * and 'landing' are the tween windows the controller owns.
+ */
+export interface BoatState {
+  state: 'moored' | 'boarding' | 'driving' | 'landing'
+  at: DockName
+}
 
 interface AppState {
   /** Interactable the player is standing near, if any. */
@@ -33,6 +44,12 @@ interface AppState {
   nearbyMural: string | null
   /** True when standing in the rift at the room's centre (the way out). */
   nearbyRoomExit: boolean
+  /** The boat — moored at a dock until someone climbs in. */
+  boat: BoatState
+  /** On foot, standing beside the moored boat (board prompt). */
+  nearbyBoat: boolean
+  /** Driving, and close enough to a dock's end to tie up there. */
+  nearbyDockFromBoat: DockName | null
   setNearby: (id: string | null) => void
   setNearbyLog: (index: number | null) => void
   sitDown: (seat: { log: number; offsetM: number }) => void
@@ -50,6 +67,12 @@ interface AppState {
   exitRoom: () => void
   setNearbyMural: (id: string | null) => void
   setNearbyRoomExit: (near: boolean) => void
+  boardBoat: () => void
+  tieUp: (dock: DockName) => void
+  setNearbyBoat: (near: boolean) => void
+  setNearbyDockFromBoat: (dock: DockName | null) => void
+  /** Internal: the controller advances the boat past its tweens. */
+  setBoatState: (state: BoatState['state']) => void
 }
 
 /** Mute persists across visits (3C); everything else is session state. */
@@ -85,6 +108,9 @@ export const useStore = create<AppState>((set) => ({
   inRoom: false,
   nearbyMural: null,
   nearbyRoomExit: false,
+  boat: { state: 'moored', at: 'north' },
+  nearbyBoat: false,
+  nearbyDockFromBoat: null,
   setNearby: (id) => set({ nearbyId: id }),
   setNearbyLog: (index) => set({ nearbyLog: index }),
   sitDown: (seat) => set({ seatedSeat: seat }),
@@ -123,4 +149,26 @@ export const useStore = create<AppState>((set) => ({
     set({ inRoom: false, nearbyMural: null, nearbyRoomExit: false, openModalId: null }),
   setNearbyMural: (nearbyMural) => set({ nearbyMural }),
   setNearbyRoomExit: (nearbyRoomExit) => set({ nearbyRoomExit }),
+  // Boarding and tying up are both TWEEN starts: the controller watches
+  // this state, glides the world, and reports back through setBoatState.
+  boardBoat: () =>
+    set((s) =>
+      s.boat.state === 'moored'
+        ? {
+            boat: { ...s.boat, state: 'boarding' },
+            nearbyBoat: false,
+            nearbyId: null,
+            nearbyLog: null,
+          }
+        : {},
+    ),
+  tieUp: (dock) =>
+    set((s) =>
+      s.boat.state === 'driving'
+        ? { boat: { state: 'landing', at: dock }, nearbyDockFromBoat: null }
+        : {},
+    ),
+  setNearbyBoat: (nearbyBoat) => set({ nearbyBoat }),
+  setNearbyDockFromBoat: (nearbyDockFromBoat) => set({ nearbyDockFromBoat }),
+  setBoatState: (state) => set((s) => ({ boat: { ...s.boat, state } })),
 }))

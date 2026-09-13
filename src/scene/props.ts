@@ -276,6 +276,69 @@ export function buildRowboat(): PropPart[] {
   ])
 }
 
+/**
+ * The boat you can actually drive: a chunky wooden dinghy ~3.0 m long
+ * (bow toward +z) by ~1.1 m across, flared hull sides, a mid bench and a
+ * stern seat, cream gunwale trim. ONE vertex-tinted merge (buildCrate's
+ * trick) so the whole hull is a single draw call in both of the places
+ * it is drawn — moored on the water and fixed under the player.
+ *
+ * y = 0 is the WATERLINE: the hull bottom starts there and the bench top
+ * lands at ≈ 0.38 m, which is the seat height the controller parks the
+ * avatar at (BOAT_SEAT_M).
+ */
+export function buildBoat(): PropPart[] {
+  const piece = (
+    g: THREE.BufferGeometry,
+    color: string,
+    pos: [number, number, number],
+    rot: [number, number, number] = [0, 0, 0],
+  ) => {
+    const n = tintGeometry(normalizeForMerge(g), color)
+    g.dispose()
+    n.applyMatrix4(
+      new THREE.Matrix4().compose(
+        new THREE.Vector3(...pos),
+        new THREE.Quaternion().setFromEuler(new THREE.Euler(...rot)),
+        new THREE.Vector3(1, 1, 1),
+      ),
+    )
+    return n
+  }
+  const hull = PROP_COLORS.woodLight
+  const dark = PROP_COLORS.woodDark
+  const trim = PROP_COLORS.cream
+  const parts: THREE.BufferGeometry[] = [
+    // Flat bottom, sitting on the water.
+    piece(new THREE.BoxGeometry(0.86, 0.16, 2.5), dark, [0, 0.08, 0]),
+    // Flared sides — the lean is what stops it reading as a crate.
+    piece(new THREE.BoxGeometry(0.14, 0.5, 2.5), hull, [0.48, 0.33, 0], [0, 0, -0.18]),
+    piece(new THREE.BoxGeometry(0.14, 0.5, 2.5), hull, [-0.48, 0.33, 0], [0, 0, 0.18]),
+    // Bow: two yawed planks meeting in a point at +z.
+    piece(new THREE.BoxGeometry(0.14, 0.5, 0.85), hull, [0.24, 0.33, 1.5], [0, -0.45, -0.18]),
+    piece(new THREE.BoxGeometry(0.14, 0.5, 0.85), hull, [-0.24, 0.33, 1.5], [0, 0.45, 0.18]),
+    piece(new THREE.BoxGeometry(0.3, 0.5, 0.18), hull, [0, 0.33, 1.82]),
+    // Transom.
+    piece(new THREE.BoxGeometry(0.98, 0.5, 0.16), hull, [0, 0.33, -1.3]),
+    // Bench (you sit here) and the stern seat — planks, not trim: cream
+    // thwarts read as a rope ladder lying in the hull.
+    piece(new THREE.BoxGeometry(0.92, 0.09, 0.34), dark, [0, 0.335, 0.12]),
+    piece(new THREE.BoxGeometry(0.92, 0.09, 0.3), dark, [0, 0.335, -1.05]),
+    // Gunwale trim along the tops of the flared sides — a rail, not a rim.
+    piece(new THREE.BoxGeometry(0.12, 0.08, 2.5), trim, [0.505, 0.59, 0], [0, 0, -0.18]),
+    piece(new THREE.BoxGeometry(0.12, 0.08, 2.5), trim, [-0.505, 0.59, 0], [0, 0, 0.18]),
+    piece(new THREE.BoxGeometry(0.98, 0.08, 0.14), trim, [0, 0.59, -1.3]),
+  ]
+  const merged = mergeGeometries(parts)
+  parts.forEach((g) => g.dispose())
+  return [
+    {
+      geometry: merged,
+      material: new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }),
+    },
+  ]
+}
+
 /** Camera tripod (Photos): splayed legs + boxy camera, lens toward +z. ~1.4 m. */
 export function buildTripod(): PropPart[] {
   const wood = paletteMaterial(PROP_COLORS.woodDark)

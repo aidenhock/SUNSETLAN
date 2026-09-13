@@ -49,6 +49,36 @@ function SitPrompt({ seated, isTouch }: { seated: boolean; isTouch: boolean }) {
   )
 }
 
+/**
+ * The boat's prompt — SitPrompt's twin. On foot beside the mooring it
+ * offers the way aboard; driving, it offers the way back onto a deck.
+ */
+function BoatPrompt({ mode, isTouch }: { mode: 'board' | 'tie'; isTouch: boolean }) {
+  const label = mode === 'board' ? 'Board the boat' : 'Tie up'
+  const act = () => {
+    const s = useStore.getState()
+    if (mode === 'board') s.boardBoat()
+    else if (s.nearbyDockFromBoat) s.tieUp(s.nearbyDockFromBoat)
+  }
+  if (isTouch) {
+    return (
+      <button
+        type="button"
+        onClick={act}
+        className="pointer-events-auto fixed right-6 bottom-8 z-40 flex h-20 w-20 touch-manipulation items-center justify-center rounded-full bg-lagoon px-2 text-center font-display text-sm font-bold text-ink shadow-lg active:scale-95"
+      >
+        {mode === 'board' ? 'Board' : 'Tie up'}
+      </button>
+    )
+  }
+  return (
+    <div className="pointer-events-none fixed bottom-10 left-1/2 z-40 -translate-x-1/2 rounded-lg bg-ink/85 px-4 py-2 font-display text-sand shadow-lg">
+      <kbd className="mr-2 rounded border border-sand/40 bg-ink px-1.5 py-0.5 text-sm">E</kbd>
+      {label}
+    </div>
+  )
+}
+
 export function Hud({ isTouch }: { isTouch: boolean }) {
   const nearbyId = useStore((s) => s.nearbyId)
   const inRoom = useStore((s) => s.inRoom)
@@ -56,6 +86,9 @@ export function Hud({ isTouch }: { isTouch: boolean }) {
   const nearbyRoomExit = useStore((s) => s.nearbyRoomExit)
   const nearbyLog = useStore((s) => s.nearbyLog)
   const seatedSeat = useStore((s) => s.seatedSeat)
+  const boatState = useStore((s) => s.boat.state)
+  const nearbyBoat = useStore((s) => s.nearbyBoat)
+  const nearbyDockFromBoat = useStore((s) => s.nearbyDockFromBoat)
   const openModalId = useStore((s) => s.openModalId)
   const hasMoved = useStore((s) => s.hasMoved)
   const introDone = useStore((s) => s.introDone)
@@ -90,9 +123,18 @@ export function Hud({ isTouch }: { isTouch: boolean }) {
         else if (s.nearbyMural) openModal(`mural:${s.nearbyMural}`)
         return
       }
-      // Priority: stand up if seated; interactables own E otherwise; the
-      // sit prompt takes it only when nothing else wants the key.
+      // Afloat, E only ever ties up — nothing on land is in reach.
+      if (s.boat.state === 'driving') {
+        if (s.nearbyDockFromBoat) s.tieUp(s.nearbyDockFromBoat)
+        return
+      }
+      // Mid-tween the boat owns the player; the key does nothing.
+      if (s.boat.state !== 'moored') return
+      // Priority: stand up if seated; the boat wins over the interactables
+      // (the dock-end tripod's trigger overlaps its mooring); the sit
+      // prompt takes the key only when nothing else wants it.
       if (seatedSeat) standUp()
+      else if (s.nearbyBoat) s.boardBoat()
       else if (nearbyId) openModal(nearbyId)
       else if (nearbyLog !== null) requestSit()
     }
@@ -129,7 +171,14 @@ export function Hud({ isTouch }: { isTouch: boolean }) {
             : 'Click to look around · Esc frees your cursor'}
         </p>
       )}
-      {nearby && !openModalId && !inRoom && <PromptE def={nearby} isTouch={isTouch} />}
+      {nearby && !nearbyBoat && !openModalId && !inRoom && <PromptE def={nearby} isTouch={isTouch} />}
+      {/* The boat's prompts win E, so they win the prompt slot too. */}
+      {!openModalId && !inRoom && boatState === 'moored' && nearbyBoat && (
+        <BoatPrompt mode="board" isTouch={isTouch} />
+      )}
+      {!openModalId && !inRoom && boatState === 'driving' && nearbyDockFromBoat && (
+        <BoatPrompt mode="tie" isTouch={isTouch} />
+      )}
       {/* Room prompts: the rift wins when you are standing in it. */}
       {inRoom && !openModalId && (nearbyRoomExit || nearbyMural) && (
         <RoomPrompt
@@ -144,9 +193,10 @@ export function Hud({ isTouch }: { isTouch: boolean }) {
       )}
       {/* Sit prompt (3C): only when no interactable wants E. Stand hint
           while seated is quieter — jump also works. */}
-      {!nearby && !openModalId && (seatedSeat || nearbyLog !== null) && (
-        <SitPrompt seated={Boolean(seatedSeat)} isTouch={isTouch} />
-      )}
+      {!nearby && !nearbyBoat && boatState === 'moored' && !openModalId &&
+        (seatedSeat || nearbyLog !== null) && (
+          <SitPrompt seated={Boolean(seatedSeat)} isTouch={isTouch} />
+        )}
 
       <div className="pointer-events-auto fixed top-6 right-6 flex flex-col items-end gap-2">
         <button

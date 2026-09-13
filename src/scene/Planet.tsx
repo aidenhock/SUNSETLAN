@@ -9,6 +9,7 @@ import { useLiveInteractables } from '../content/liveInteractables'
 import { useStore } from '../store/useStore'
 import { useMusicMix, WorldEmitters } from './AudioEmitters'
 import { Avatar } from './Avatar'
+import { BoatWake, DrivingBoat, MooredBoat } from './BoatScene'
 import { CelestialDome } from './CelestialDome'
 import { Clouds } from './Clouds'
 import { Cemetery } from './Cemetery'
@@ -72,9 +73,9 @@ export function PlanetScene({
   const npcs = usePlacementRuntime((s) => s.list).filter((p) => isNpcType(p.type))
 
   // Dev/e2e teleport: `?at=<lat>,<long>` drops the avatar there once the
-  // intro is finished — the only way to reach Antarctica until the boat
-  // exists, and how the screenshot sweeps get to the far side of the
-  // world. It goes through controlsRuntime.poseOverride, the SAME hook
+  // intro is finished — how the screenshot sweeps get to the far side of
+  // the world without driving the boat there first. It goes through
+  // controlsRuntime.poseOverride, the SAME hook
   // the e2e suites already use (e2e/helpers.ts); there is no second
   // teleport path. Stripped from production builds by the flag check.
   const introDone = useStore((s) => s.introDone)
@@ -125,6 +126,10 @@ export function PlanetScene({
         ))}
         <Crabs />
         <Footprints />
+        {/* The boat where it is tied up, and the foam it leaves behind —
+            both planet-local, so they stay on the water you left them on. */}
+        <MooredBoat />
+        <BoatWake />
         <Fire />
         <Cemetery />
         <WorldEmitters />
@@ -139,6 +144,9 @@ export function PlanetScene({
       </group>
       {/* The avatar walks in both places; only the ripple is island-only. */}
       <Avatar ref={avatarRef} />
+      {/* Driving, the hull is world-fixed under the avatar — the same
+          illusion, one deck higher. */}
+      {!inRoom && <DrivingBoat />}
       {!inRoom && <WadeRipple />}
       {inRoom && (
         <Suspense fallback={null}>

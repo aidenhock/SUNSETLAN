@@ -44,6 +44,18 @@ Core is done and stays: avatar kinematic at the pole, input rotates the planet q
 ### The dock (rebuild)
 Longitude 0, lat 24 → 13: entrance on sand, last two segments over open water. 4–5 plank segments (each ≤ 3 m) with posts, each snapped to the surface per the rules above; deck top ≈ 0.6 m above local ground. Keep `DOCK` in `planetConfig` as the single source of truth consumed by both the visuals and `groundHeightAt` — they must never disagree. The Photos tripod stands ON the dock's far end; the mailbox at the entrance.
 
+**The boat is dock furniture, and it is DERIVED — never placed.** It has
+no row in `placements.json` and no editor handle: `scene/boat.ts` builds
+each mooring from its own dock (far-end segment centre, `mooringSideM`
+1.7 m EAST — the north dock's west edge is Koa's), so moving a dock
+moves the boat. `BOAT` in `planetConfig` owns the speeds, the prompt
+arcs, the shore margin and the tween. `store.boat` is
+`{ state: moored | boarding | driving | landing, at: north | south }`;
+boarding and landing are quaternion tweens (the sit tween's twin), and
+while driving the boat is world-fixed at the pole and the ocean turns.
+
+
+
 ### Sitting by the fire (3C sit system — FREE-POSITION since campfire polish 4)
 Sit anywhere along a log: a seat is any point on the log's centerline within the usable span (±0.7 m — a ~0.3 m margin stays at each end). Sit targets derive from `surfacePartMatrix` — the SAME math that places the logs — so a seat can never drift off the rendered wood (`src/scene/seats.ts`).
 - **Prompt**: within 2.2 m of a log center (exit 2.7 m — same hysteresis pattern as interactables) an "E — Sit" prompt shows; interactable prompts win E when both are near. Touch gets the same thumb-zone button as interactables.
@@ -137,8 +149,9 @@ Blockers regenerate from this table. Interactable prompts/copy unchanged.
 
 ### Antarctica (south pole)
 
-A second, smaller landmass on the antipode, reached by boat (not built
-yet; `?at=<lat>,<long>` teleports there in dev/e2e). `terrainProfile`
+A second, smaller landmass on the antipode, **reached by boat** — board
+at either dock's end and drive the open water (see The dock);
+`?at=<lat>,<long>` still teleports there in dev/e2e. `terrainProfile`
 now covers polar 0–180: past 90° it mirrors the `SOUTH` bands measured
 from the SOUTH pole — snow plateau to 16°, shoulder to 18.5°, ice-shelf
 ramp crossing zero at the **waterline 22°** (lat −68), apron to 27°
@@ -154,7 +167,7 @@ toward the island.
 home-side clamp so sun and moon sink below the ocean limb, swings the
 key light to a fixed south-sky direction (never lit from below), and
 cools the horizon to `#182636`. Stars now cover the south cap too.
-Penguins, igloo, aurora, snow, villagers and the boat are still to come.
+Penguins, igloo, aurora, snow and villagers are still to come.
 
 ## The room through the rift (a second walkable space)
 

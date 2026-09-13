@@ -203,6 +203,29 @@ export const SOUTH_DOCK = {
   segmentCount: 3,
 }
 
+/**
+ * The boat: moored beside a dock's far end, drives the open water.
+ * Speeds are metres per second like MOVE_SPEED; the arc figures are
+ * metres of arc on the sphere, like the interact and sit prompt radii.
+ */
+export const BOAT = {
+  maxSpeedMps: 11,
+  accelMps2: 5,
+  decelMps2: 4,
+  turnRateRadPerS: 1.7,
+  /** How far off the dock meridian the boat moors (metres of arc). */
+  mooringSideM: 1.7,
+  /** "E — Board the boat" enters here, leaves at the exit radius. */
+  boardArcM: 2.6,
+  boardExitArcM: 3.1,
+  /** "E — Tie up" shows within this arc of a dock's far end. */
+  dockArcM: 4.5,
+  /** Clearance the hull keeps outside either waterline. */
+  shoreMarginM: 0.6,
+  /** Board / tie-up quaternion tween, seconds (cf. the sit tween). */
+  tweenS: 0.45,
+} as const
+
 /** Footstep tuning (3C): gains, foot-plant phases in the swing cycle,
  * and the jump double-tap gap. */
 export const FOOTSTEPS = {
