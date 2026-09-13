@@ -17,6 +17,9 @@ import { Fire } from './Fire'
 import { Footprints } from './Footprints'
 import { Interactable } from './Interactable'
 import { Island } from './Island'
+import { Npc } from './Npc'
+import { isNpcType, NPC_REGISTRY } from './npcRegistry'
+import { usePlacementRuntime } from './placementRuntime'
 import { PLANET_RADIUS } from './planetConfig'
 import { Seagulls } from './Seagulls'
 import { ShootingStars } from './ShootingStars'
@@ -63,6 +66,10 @@ export function PlanetScene({
   const inRoom = useStore((s) => s.inRoom)
 
   const interactables = useLiveInteractables()
+  // Villagers come from the placement file like everything else: any
+  // placement whose type is a registered NPC gets one. Read live so a
+  // villager added or dragged in the editor appears immediately.
+  const npcs = usePlacementRuntime((s) => s.list).filter((p) => isNpcType(p.type))
 
   usePlanetController({ planetRef, avatarRef })
   useRoomController({ roomRef, avatarRef })
@@ -89,6 +96,14 @@ export function PlanetScene({
         <Water />
         <Island />
         <UkulelePlayer />
+        {npcs.map((p) => (
+          <Npc
+            key={p.id}
+            placementId={p.id}
+            config={NPC_REGISTRY[p.type].config}
+            behavior={NPC_REGISTRY[p.type].behavior}
+          />
+        ))}
         <Crabs />
         <Footprints />
         <Fire />

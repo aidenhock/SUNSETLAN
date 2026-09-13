@@ -1028,3 +1028,106 @@ missing file falls back to the drawing instead of showing a broken img.
   eyepiece and a shadow that missed. `prepare-moon.mjs` finds the disc
   by luminance, squares the crop on its centre, and scales it — rerun
   it on any future photo and the maths still lines up.
+
+## 22 · Villagers, and coats to put them in {#villagers}
+
+**Hook:** Two people in fur-lined parkas, built for a corner of the
+island that is still being dug out — and a villager you can now hand to
+any empty patch of ground.
+
+**Plain:** There is going to be an outpost at the bottom of the world,
+and nobody lives there yet. So this step made the residents first: Nanuq
+in a lagoon-blue parka and Sila in coral, both with cream fur at the
+hem, the cuffs and around the hood, mittens instead of bare hands, and
+tall boots. They are the same little villagers as everyone else on this
+island — same body, same face, same walk — wearing a coat.
+
+That mattered more than it sounds. Every character here is one rig with
+a page of settings, and a parka is a real test of whether that claim
+holds up. It does: the coat is a handful of extra settings, not a second
+character. The torso is the same teardrop, padded out about a tenth. The
+sleeves are the same arms, coloured all the way down. The hood is a
+rounded cap over the back of the head with a ring of fur standing proud
+around the face — and when the hood is up, the hair and the ears simply
+do not get drawn, because they are under it.
+
+Alongside the coats came the thing that actually makes a villager a
+villager: something to do. Nanuq wanders. He stands for a few seconds,
+picks somewhere within a few metres, ambles over, and stands again —
+the unhurried loop Animal Crossing villagers have always walked. He
+will not paddle into the sea, and he will not wander off; there is an
+invisible leash around where he was placed. Sila stays put. Both of
+them turn their heads to watch you when you come near, and stop
+bothering once you are far enough away.
+
+Nobody is standing anywhere yet — the outpost's land does not exist.
+When it does, putting a villager on it is one line in the placement
+file.
+
+**Technical:** `CharacterConfig.outfit` gains `'parka'`, plus optional
+`colors.trim`, `colors.mittens` and a `hood` flag. Inside `buildNodes`
+the coat is a single `fullness` multiplier of 1.12 on the hip, shoulder
+and collar radii — which is exactly 1 for every existing config, so the
+tee-shorts and dress builds come out byte-identical and the old rig test
+passes untouched. The fur hem is a short ring sitting a little wider
+than the teardrop's widest point, the same radial-clearance trick the
+tee hem uses so nothing goes coplanar; the placket reads its chest
+z-offset off the same lathe profile the torso is built from. Boots are
+the existing shoe blob at 1.4× height with the lift derived from that
+scale, so the soles still kiss rig-local y = 0 and the blob shadow
+contract holds.
+
+`npcWander.ts` is the brain, and it is pure: `pickWanderTarget` samples
+up to twelve points in the home disc (`sqrt` of the random radius, so
+they spread evenly instead of clustering at the centre) and keeps the
+first walkable one; `advanceNpc` runs a pause/walk state machine,
+heading being the honest north/east bearing to the target. Arc distance
+is metres throughout, converted with π·R/180 and a `cos(lat)` squeeze on
+longitude.
+
+`Npc.tsx` is the body. It reads its placement live from the placement
+store, so the editor can drag it, and writes its group's position and
+quaternion directly every frame — no React render per step, no
+allocation in the loop. Altitude is `groundAltitudeAt` exactly, with no
+sink: props bite into the ground on purpose, people do not.
+
+**Files:**
+- `src/scene/npcWander.ts` — `pickWanderTarget`, `advanceNpc`, `NpcState`
+- `src/scene/Npc.tsx` — the component, `NpcBehavior`, the look-at maths
+- `src/scene/npcRegistry.ts` — `NPC_REGISTRY`, placement type → villager
+- `src/scene/BlockyCharacter.tsx` — `buildNodes`, the parka branch
+- `src/content/characters.ts` — `NANUQ`, `SILA`
+- `src/scene/npcWander.test.ts` — the leash, the arrival, the coastline
+- `src/scene/characterRig.test.ts` — parka budgets and grounded soles
+
+**Decisions:**
+- The coat is a FLAG on the existing rig, never a second rig. The test
+  that the old models still build identically is the whole point: a
+  fullness factor that multiplies by exactly 1.0 for everyone else
+  cannot regress a character it was not written for.
+- The walkable test gates the STEP, not just the target. Two points can
+  both be on dry land with water between them — a curved coastline does
+  this constantly — and a villager wading out to sea on a straight line
+  between two safe spots is the bug everybody would have seen first.
+- The head look-at is computed by pushing the player's position through
+  the villager's OWN quaternion rather than by hand-rolling a bearing in
+  the tangent frame. The tangent version is two lines shorter and has a
+  sign in it, and the signpost chapter is a standing record of what a
+  sign in this frame costs: `atan2(x, z)` in rig space is what the rig
+  already expects, so it cannot be inverted and leave a villager
+  politely turning its back on you.
+- Headings here are true north/east bearings and the renderer negates
+  them. This frame turns local +Z toward WEST for a positive rotation
+  about +Y, which is why the authored `yawDeg` is negated on the way in
+  too — a villager has to spawn facing the same way a prop with that
+  same yaw would, or laying out a scene becomes guesswork.
+- The wander is seeded off the placement id, so a given villager always
+  walks the same route. A random seed makes a wandering bug reproducible
+  only by luck, which is another way of saying not reproducible.
+- Nobody is placed yet, deliberately. The land is another task's job,
+  and a villager standing in the sea while waiting for it would have
+  shipped on `main` for however long that took.
+- Footsteps and head-tracking both have a range gate (10 m and 9 m).
+  Villagers audible across the island would turn the soundscape to
+  gravel, and a head that tracks you from forty metres reads as being
+  stared at rather than noticed.
