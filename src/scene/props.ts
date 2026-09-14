@@ -19,10 +19,12 @@ import { PLANET_RADIUS, SINK_M } from './planetConfig'
 export interface PropPart {
   geometry: THREE.BufferGeometry
   material: THREE.MeshLambertMaterial
-  /** Set when this part sways in the wind (Wind: the palms sway) — it
-   * rotates about `pivot` (prop-local) each frame instead of sitting
-   * static. See `SwayInstances` in instancing.tsx. */
-  sway?: { pivot: THREE.Vector3 }
+  /** Set when this part dances (Wind: the palms sway → Palms groove) — it
+   * leans about the prop's BASE and bounces on the beat each frame instead
+   * of sitting static. `crownPivot` (prop-local) adds a second hinge for
+   * parts that also swing on top of the leaning trunk; leave it undefined
+   * for the trunk itself. See `SwayInstances` in instancing.tsx. */
+  sway?: { crownPivot?: THREE.Vector3 }
 }
 
 const materialCache = new Map<string, THREE.MeshLambertMaterial>()
@@ -159,13 +161,15 @@ export function buildPalm(): PropPart[] {
   pieces.push(at(nut, coconut, [crown.x + 0.16, crown.y - 0.1, crown.z + 0.08]))
   pieces.push(at(nut, coconut, [crown.x - 0.12, crown.y - 0.12, crown.z - 0.1]))
   const parts = mergeByMaterial(pieces)
-  // The crown (fronds + coconuts) sways in the wind; the trunk stays put.
-  // Both crown materials pivot about the SAME point (prop-local), so the
-  // whole crown swings as one rigid mass — see SwayInstances.
+  // The WHOLE tree dances: every part leans about the base and bounces on
+  // the beat. The crown (fronds + coconuts) adds a second hinge at the
+  // crown point — both crown materials share the SAME pivot, so the crown
+  // swings as one rigid mass on top of the lean. See SwayInstances.
   for (const part of parts) {
-    if (part.material === frond || part.material === coconut) {
-      part.sway = { pivot: crown.clone() }
-    }
+    part.sway =
+      part.material === frond || part.material === coconut
+        ? { crownPivot: crown.clone() }
+        : {}
   }
   return parts
 }

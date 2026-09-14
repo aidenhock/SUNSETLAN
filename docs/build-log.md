@@ -1069,11 +1069,48 @@ zero allocations per frame. `InstancedProp` picks `SwayInstances` for
 any part tagged `sway` and `StaticInstances` for the rest, so nothing
 else that renders a prop had to change.
 
+**Groove pass:** The owner watched it and said the leaves only shivered
+on top — he wanted the trunk to sway left and right and bounce up and
+down, "in a groovy hip-hop kind of way." So the whole tree learned to
+dance. `GROOVE` in wind.ts gives the island a tempo (92 BPM) and four
+pure functions on top of the wind: `grooveLean` swings the trunk ±0.07
+rad once every TWO beats — a head nod, not a twitch — about the local
+wind DIRECTION, which is left-and-right ACROSS the wind rather than
+along it; `grooveCrownLean` gives the crown another ±0.09 rad on the
+same nod but 0.6 rad behind it, so the fronds whip after the trunk has
+already moved; `grooveBounce` stretches the tree vertically by
+`1 + 0.045·max(0, sin(beat))²` — a pop on the beat and rest between,
+never below 1, so a palm can never squat into the ground —
+`grooveSquash` thins x/z by up to 1.5% at full stretch for the cartoon
+volume cue; and `grooveBpm` hands each palm a tempo ±4% off the island's
+so a grove drifts in and out of sync instead of marching.
+
+Doing all of that at once needed more than one hinge, so `swayMatrix`
+became the single-link case of a new `swayMatrixChain(placement,
+links, out)`, where each link is `{ pivot, axis, angle }` and earlier
+links are OUTER — they carry every later link's pivot with them, which
+is exactly what makes a crown follow a leaning trunk. A palm's chain is
+four links: trunk-wind and trunk-groove hinged at the BASE (0,0,0), then
+crown-wind and crown-groove hinged at the crown point. `palmSwayMatrix`
+composes it as `placement × chain × S(c, s, c)` — the bounce scale is
+the INNERMOST transform, so the geometry squashes and stretches about
+its base first and is then rotated rigidly (scaling last would shear a
+leaning trunk instead of stretching it). Because the hinges act on
+already-scaled geometry, the crown pivot is expressed in the scaled
+frame as `pivot · (c, s, c)`; that one detail is what keeps the crown
+welded to the trunk top while the tree rises on the beat, and it is
+pinned by a test that walks 120 instants and asserts the same prop-local
+point lands identically under the trunk matrix and the crown matrix.
+`buildPalm` now tags the trunk part as a sway part too (with no
+`crownPivot` — trunk links only, so its base stays planted), so all
+three palm parts run through `SwayInstances`: still three instanced draw
+calls for every palm on the island, still zero allocations per frame.
+
 **Files:**
-- `src/scene/wind.ts` — `WIND_AXIS`, `WIND`, `windDirAt`, `windLean`
+- `src/scene/wind.ts` — `WIND_AXIS`, `WIND`, `windDirAt`, `windLean`, `GROOVE`, `grooveLean`, `grooveCrownLean`, `grooveBounce`, `grooveSquash`, `grooveBpm`
 - `src/scene/props.ts` — `buildPalm`, `PropPart.sway`
-- `src/scene/instancing.tsx` — `swayMatrix`, `SwayInstances`, `InstancedProp`
-- `src/scene/wind.test.ts` — the pivot-fixed and downwind-lean pins
+- `src/scene/instancing.tsx` — `swayMatrix`, `swayMatrixChain`, `solveSwayDatum`, `palmSwayMatrix`, `SwayInstances`, `InstancedProp`
+- `src/scene/wind.test.ts` — the pivot-fixed, planted-base, crown-welded and downwind-lean pins
 
 **Decisions:**
 - The sway axis is solved once at mount, not recomputed every frame.
@@ -1081,10 +1118,29 @@ else that renders a prop had to change.
   editor's drag does, and that already rebuilds the instance list), so
   paying for the inverse-quaternion and cross product per frame per
   palm would be work with no visible payoff.
-- The trunk was left out of the sway on purpose. A test that swayed
-  the whole tree read like the ground itself was moving; keeping the
-  trunk rigid and only the crown loose is what makes it look like
-  weight and flex rather than the model wobbling.
+- The trunk was left out of the sway on purpose — and the groove pass
+  REVERSED that call. The original reading was right about the failure
+  (a whole tree swaying on the wind reads like the ground moving) but
+  wrong about the cause: what made it read as ground movement was the
+  trunk lean being on the SAME axis as the crown's, so the whole
+  silhouette tipped as one rigid stick. Putting the trunk's groove on
+  the wind DIRECTION axis (left-right across the wind) while the wind
+  lean stays on the perpendicular, and lagging the crown behind the
+  trunk, gives the two ends of the tree different motion — which reads
+  as a tree dancing rather than the camera tilting.
+- The bounce is a squared HALF-wave (`max(0, sin)²`), not a plain sine.
+  A sine bounces a palm below its rest height for half of every beat,
+  which either buries the base or forces a lift to compensate; the
+  half-wave only ever stretches upward, so the base can stay exactly
+  where `groundAltitudeAt` put it (placement rule 1 survives untouched)
+  and the squaring sharpens the pop so it lands ON the beat instead of
+  smearing across it.
+- Per-palm BPM jitter (±4%) was worth more than more amplitude. The
+  first pass ran every palm at exactly 92 BPM and, phase offsets
+  notwithstanding, a grove at one tempo still reads as choreography —
+  the palms hold their relative positions forever. Detuning each tree a
+  few percent means the pattern never repeats, which is what sells
+  "chill" over "synchronised".
 - `WIND_AXIS` moved out of Clouds.tsx into its own module rather than
   being duplicated. The fire's ember drift already depended on the
   clouds' constant by import — three consumers of one "the wind" is
