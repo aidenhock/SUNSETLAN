@@ -555,20 +555,46 @@
       "long": 25,
       "yawDeg": 45,
       "scale": 1,
-      "blockerRadiusM": 2.2,
-      "notes": "Antarctica's one built thing: a snow-block dome on the plateau, entrance tunnel turned toward the dock side so you meet the doorway walking in from the north."
+      "blockerRadiusM": 3.3,
+      "notes": "Antarctica's one built thing: a snow-block dome on the plateau, entrance tunnel turned toward the dock side so you meet the doorway walking in from the north. Home-sized: 6 m across, 3.4 m tall, so the blocker is the dome radius (IGLOO_DOME_R) + 0.3. Scale stays 1 — the SIZE is in the geometry, never here. The tunnel sticks out past this disc, so igloo-door-l/r seal the doorway."
+    },
+    {
+      "id": "igloo-door-l",
+      "type": "collider",
+      "kind": "prop",
+      "label": "Igloo doorway (left jamb)",
+      "lat": -76.0480,
+      "long": 10.5943,
+      "yawDeg": 45,
+      "scale": 1,
+      "blockerRadiusM": 0.75,
+      "parentId": "igloo",
+      "notes": "Nothing renders here. Solved from the igloo's lat/long + yaw and IGLOO_MOUTH: local (+0.62, 4.05) in prop space — the lip of the opening, so the collider traces the doorway you can SEE, i.e. the left jamb of the tunnel looking out. Paired with igloo-door-r the two discs OVERLAP across the doorway, so the mouth is a wall you bump into rather than a gap you slide through."
+    },
+    {
+      "id": "igloo-door-r",
+      "type": "collider",
+      "kind": "prop",
+      "label": "Igloo doorway (right jamb)",
+      "lat": -75.3433,
+      "long": 14.9726,
+      "yawDeg": 45,
+      "scale": 1,
+      "blockerRadiusM": 0.75,
+      "parentId": "igloo",
+      "notes": "The other jamb: local (-0.62, 4.05) in prop space. See igloo-door-l."
     },
     {
       "id": "npc-sila-01",
       "type": "npc-sila",
       "kind": "npc",
       "label": "Sila",
-      "lat": -78,
-      "long": 12,
-      "yawDeg": 249,
+      "lat": -75.4227,
+      "long": 2.7448,
+      "yawDeg": 259.69,
       "scale": 1,
       "blockerRadiusM": 0.6,
-      "notes": "Stands on the plateau facing the igloo entrance."
+      "notes": "Waits BESIDE her door, not in it: 1.2 m clear of the nearer door collider's edge and turned back toward the mouth (yaw = -bearing to it). Dead centre on the tunnel axis she plugged the entrance in every screenshot."
     },
     {
       "id": "npc-nanuq-01",
@@ -576,11 +602,11 @@
       "kind": "npc",
       "label": "Nanuq",
       "lat": -81,
-      "long": 60,
+      "long": 70,
       "yawDeg": 90,
       "scale": 1,
       "blockerRadiusM": 0.6,
-      "notes": "Wanders 4 m of plateau; kept over 6 m from the igloo and far from the dock."
+      "notes": "Wanders 4 m of plateau; kept over 7 m from the home-sized igloo (3.3 m blocker + his 4 m radius) and far from the dock."
     },
     {
       "id": "iceblock-01",
@@ -635,11 +661,11 @@
       "type": "snowmound",
       "kind": "prop",
       "label": "Snow drift",
-      "lat": -80,
-      "long": 45,
+      "lat": -78.5,
+      "long": 58,
       "yawDeg": 0,
       "scale": 1.2,
-      "notes": "Plateau drift; no blocker, you walk over it."
+      "notes": "Plateau drift; no blocker, you walk over it. Moved out from long 45 when the igloo grew — it now sits 6.1 m from the dome centre, well over 2 m clear of the 3.3 m blocker."
     },
     {
       "id": "snowmound-02",

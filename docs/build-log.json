@@ -20,22 +20,22 @@
             {
               "symbol": "rotationStep",
               "line": 30,
-              "code": "export function rotationStep(\n  moveDir: THREE.Vector3,\n  angle: number,\n  out: THREE.Quaternion = new THREE.Quaternion(),\n): THREE.Quaternion {\n  _axis.crossVectors(WORLD_UP, moveDir)\n  if (_axis.lengthSq() < 1e-12) return out.identity() // no horizontal input\n  return out.setFromAxisAngle(_axis.normalize(), -angle)\n}\n\n/** Compose one step onto the current planet orientation (world-space rotation). */\nexport function applyStep(\n  current: THREE.Quaternion,\n  step: THREE.Quaternion,"
+              "code": "export function rotationStep(\r\n  moveDir: THREE.Vector3,\r\n  angle: number,\r\n  out: THREE.Quaternion = new THREE.Quaternion(),\r\n): THREE.Quaternion {\r\n  _axis.crossVectors(WORLD_UP, moveDir)\r\n  if (_axis.lengthSq() < 1e-12) return out.identity() // no horizontal input\r\n  return out.setFromAxisAngle(_axis.normalize(), -angle)\r\n}\r\n\r\n/** Compose one step onto the current planet orientation (world-space rotation). */\r\nexport function applyStep(\r\n  current: THREE.Quaternion,\r\n  step: THREE.Quaternion,\r"
             },
             {
               "symbol": "applyStep",
               "line": 41,
-              "code": "export function applyStep(\n  current: THREE.Quaternion,\n  step: THREE.Quaternion,\n  out: THREE.Quaternion = new THREE.Quaternion(),\n): THREE.Quaternion {\n  // p_world = q · p_local, so an extra world rotation premultiplies: q' = step · q.\n  return out.multiplyQuaternions(step, current).normalize()\n}\n\n/**\n * The planet-local direction currently under the avatar's feet, i.e. the\n * world pole pulled back through the planet's rotation.\n */\nexport function poleInPlanetSpace("
+              "code": "export function applyStep(\r\n  current: THREE.Quaternion,\r\n  step: THREE.Quaternion,\r\n  out: THREE.Quaternion = new THREE.Quaternion(),\r\n): THREE.Quaternion {\r\n  // p_world = q · p_local, so an extra world rotation premultiplies: q' = step · q.\r\n  return out.multiplyQuaternions(step, current).normalize()\r\n}\r\n\r\n/**\r\n * The planet-local direction currently under the avatar's feet, i.e. the\r\n * world pole pulled back through the planet's rotation.\r\n */\r\nexport function poleInPlanetSpace(\r"
             },
             {
               "symbol": "poleInPlanetSpace",
               "line": 54,
-              "code": "export function poleInPlanetSpace(\n  q: THREE.Quaternion,\n  out: THREE.Vector3 = new THREE.Vector3(),\n): THREE.Vector3 {\n  _inv.copy(q).invert()\n  return out.copy(WORLD_UP).applyQuaternion(_inv)\n}\n\n/**\n * Angular distance (radians) between the avatar's ground-contact point and a\n * planet-local direction. Multiply by the planet radius for meters of arc.\n */\nexport function angularDistanceToPole(q: THREE.Quaternion, localDir: THREE.Vector3): number {\n  return poleInPlanetSpace(q, _pole).angleTo(localDir)"
+              "code": "export function poleInPlanetSpace(\r\n  q: THREE.Quaternion,\r\n  out: THREE.Vector3 = new THREE.Vector3(),\r\n): THREE.Vector3 {\r\n  _inv.copy(q).invert()\r\n  return out.copy(WORLD_UP).applyQuaternion(_inv)\r\n}\r\n\r\n/**\r\n * Angular distance (radians) between the avatar's ground-contact point and a\r\n * planet-local direction. Multiply by the planet radius for meters of arc.\r\n */\r\nexport function angularDistanceToPole(q: THREE.Quaternion, localDir: THREE.Vector3): number {\r\n  return poleInPlanetSpace(q, _pole).angleTo(localDir)\r"
             },
             {
               "symbol": "latLongToUnit",
               "line": 84,
-              "code": "export function latLongToUnit(latDeg: number, longDeg: number): THREE.Vector3 {\n  const polar = THREE.MathUtils.degToRad(90 - latDeg)\n  const long = THREE.MathUtils.degToRad(longDeg)\n  return new THREE.Vector3(\n    Math.sin(polar) * Math.sin(long),\n    Math.cos(polar),\n    Math.sin(polar) * Math.cos(long),\n  )\n}\n\n/** Planet-local position tuple for content files. */\nexport function latLongToPosition(\n  latDeg: number,\n  longDeg: number,"
+              "code": "export function latLongToUnit(latDeg: number, longDeg: number): THREE.Vector3 {\r\n  const polar = THREE.MathUtils.degToRad(90 - latDeg)\r\n  const long = THREE.MathUtils.degToRad(longDeg)\r\n  return new THREE.Vector3(\r\n    Math.sin(polar) * Math.sin(long),\r\n    Math.cos(polar),\r\n    Math.sin(polar) * Math.cos(long),\r\n  )\r\n}\r\n\r\n/** Planet-local position tuple for content files. */\r\nexport function latLongToPosition(\r\n  latDeg: number,\r\n  longDeg: number,\r"
             }
           ]
         },
@@ -430,27 +430,27 @@
             {
               "symbol": "nextBuffer",
               "line": 118,
-              "code": "export async function nextBuffer(category: Category): Promise<AudioBuffer | null> {\n  const ctx = audioRuntime.ctx\n  if (!ctx) return null\n  const urls = poolUrls.get(category)\n  if (urls && urls.length > 0) {\n    const pick = bagFor(category, urls.length).next()\n    return decodeUrl(urls[pick], POSITIONAL.has(category))\n  }\n  const make = fallbacks.get(category)\n  if (!make) return null\n  const key = `proc:${category}`\n  let buf = bufferCache.get(key)\n  if (!buf) {\n    buf = make(ctx)"
+              "code": "export async function nextBuffer(category: Category): Promise<AudioBuffer | null> {\r\n  const ctx = audioRuntime.ctx\r\n  if (!ctx) return null\r\n  const urls = poolUrls.get(category)\r\n  if (urls && urls.length > 0) {\r\n    const pick = bagFor(category, urls.length).next()\r\n    return decodeUrl(urls[pick], POSITIONAL.has(category))\r\n  }\r\n  const make = fallbacks.get(category)\r\n  if (!make) return null\r\n  const key = `proc:${category}`\r\n  let buf = bufferCache.get(key)\r\n  if (!buf) {\r\n    buf = make(ctx)\r"
             },
             {
               "symbol": "playDoubleTap",
               "line": 206,
-              "code": "export async function playDoubleTap(\n  category: Category,\n  bus: 'music' | 'world' | 'ui',\n  gain: number,\n  gapMs: number,\n) {\n  const rt = audioRuntime\n  if (!rt.ctx || !rt.buses) return\n  const [a, b] = await Promise.all([nextBuffer(category), nextBuffer(category)])\n  if (!a) return\n  const t0 = rt.ctx.currentTime + 0.02\n  const taps: Array<[AudioBuffer, number]> = [\n    [a, t0],\n    [b ?? a, t0 + gapMs / 1000],"
+              "code": "export async function playDoubleTap(\r\n  category: Category,\r\n  bus: 'music' | 'world' | 'ui',\r\n  gain: number,\r\n  gapMs: number,\r\n) {\r\n  const rt = audioRuntime\r\n  if (!rt.ctx || !rt.buses) return\r\n  const [a, b] = await Promise.all([nextBuffer(category), nextBuffer(category)])\r\n  if (!a) return\r\n  const t0 = rt.ctx.currentTime + 0.02\r\n  const taps: Array<[AudioBuffer, number]> = [\r\n    [a, t0],\r\n    [b ?? a, t0 + gapMs / 1000],\r"
             },
             {
               "symbol": "syncPanner",
               "line": 180,
-              "code": "export function syncPanner(node: THREE.PositionalAudio) {\n  node.getWorldPosition(_panPos)\n  const p = node.panner\n  if (p.positionX) {\n    p.positionX.value = _panPos.x\n    p.positionY.value = _panPos.y\n    p.positionZ.value = _panPos.z\n  } else {\n    p.setPosition(_panPos.x, _panPos.y, _panPos.z)\n  }\n}\n\n/** One-shot through an existing PositionalAudio node (world bus). */\nexport async function playAt(category: Category, node: THREE.PositionalAudio, gain = 1) {"
+              "code": "export function syncPanner(node: THREE.PositionalAudio) {\r\n  node.getWorldPosition(_panPos)\r\n  const p = node.panner\r\n  if (p.positionX) {\r\n    p.positionX.value = _panPos.x\r\n    p.positionY.value = _panPos.y\r\n    p.positionZ.value = _panPos.z\r\n  } else {\r\n    p.setPosition(_panPos.x, _panPos.y, _panPos.z)\r\n  }\r\n}\r\n\r\n/** One-shot through an existing PositionalAudio node (world bus). */\r\nexport async function playAt(category: Category, node: THREE.PositionalAudio, gain = 1) {\r"
             },
             {
               "symbol": "registerVoice",
               "line": 160,
-              "code": "  registerVoice(category, src)\n  src.start()\n}\n\n/** Route a three.js Audio/PositionalAudio's output through a bus. */\nexport function routeToBus(audio: THREE.Audio | THREE.PositionalAudio, bus: 'music' | 'world' | 'ui') {\n  const rt = audioRuntime\n  if (!rt.buses || !rt.listener) return\n  audio.gain.disconnect()\n  audio.gain.connect(rt.buses[bus])\n}\n\nconst _panPos = new THREE.Vector3()\n/** three's PositionalAudio only updates its panner while `isPlaying`"
+              "code": "  registerVoice(category, src)\r\n  src.start()\r\n}\r\n\r\n/** Route a three.js Audio/PositionalAudio's output through a bus. */\r\nexport function routeToBus(audio: THREE.Audio | THREE.PositionalAudio, bus: 'music' | 'world' | 'ui') {\r\n  const rt = audioRuntime\r\n  if (!rt.buses || !rt.listener) return\r\n  audio.gain.disconnect()\r\n  audio.gain.connect(rt.buses[bus])\r\n}\r\n\r\nconst _panPos = new THREE.Vector3()\r\n/** three's PositionalAudio only updates its panner while `isPlaying`\r"
             },
             {
               "symbol": "onAudioResume",
               "line": 259,
-              "code": "export function onAudioResume(h: (now: number) => void): () => void {\n  resumeHandlers.add(h)\n  return () => resumeHandlers.delete(h)\n}\n\nfunction handleVisibility() {\n  const rt = audioRuntime\n  if (!rt.ctx || !rt.listener) return\n  if (document.hidden) {\n    audioPause.hidden = true\n    // Hard-zero first (suspend() can lag a beat), then freeze the clock.\n    rt.listener.gain.gain.cancelScheduledValues(0)\n    rt.listener.gain.gain.value = 0\n    void rt.ctx.suspend()"
+              "code": "export function onAudioResume(h: (now: number) => void): () => void {\r\n  resumeHandlers.add(h)\r\n  return () => resumeHandlers.delete(h)\r\n}\r\n\r\nfunction handleVisibility() {\r\n  const rt = audioRuntime\r\n  if (!rt.ctx || !rt.listener) return\r\n  if (document.hidden) {\r\n    audioPause.hidden = true\r\n    // Hard-zero first (suspend() can lag a beat), then freeze the clock.\r\n    rt.listener.gain.gain.cancelScheduledValues(0)\r\n    rt.listener.gain.gain.value = 0\r\n    void rt.ctx.suspend()\r"
             }
           ]
         },
@@ -463,7 +463,7 @@
             {
               "symbol": "ShuffleBag",
               "line": 7,
-              "code": "export class ShuffleBag {\n  private history: number[] = []\n\n  constructor(\n    private size: number,\n    private rng: () => number = Math.random,\n  ) {}\n\n  /** Update the pool size (files can be hot-added in dev). */\n  resize(size: number) {\n    this.size = size\n    this.history = this.history.filter((i) => i < size)\n  }\n"
+              "code": "export class ShuffleBag {\r\n  private history: number[] = []\r\n\r\n  constructor(\r\n    private size: number,\r\n    private rng: () => number = Math.random,\r\n  ) {}\r\n\r\n  /** Update the pool size (files can be hot-added in dev). */\r\n  resize(size: number) {\r\n    this.size = size\r\n    this.history = this.history.filter((i) => i < size)\r\n  }\r\n\r"
             }
           ]
         },
@@ -477,12 +477,12 @@
             {
               "symbol": "stepSound",
               "line": 19,
-              "code": "export function stepSound(surface: Surface, sprint: boolean) {\n  // e2e cadence probe.\n  const w = window as unknown as { __stepLog?: Array<{ t: number; surface: string }> }\n  ;(w.__stepLog ??= []).push({ t: performance.now(), surface })\n  if (w.__stepLog.length > 64) w.__stepLog.shift()\n  void play2d(\n    surfaceToCategory(surface),\n    'world',\n    sprint ? FOOTSTEPS.stepGainSprint : FOOTSTEPS.stepGainWalk,\n  )\n}\n\n/** Takeoff/landing double-tap — two different picks ~90 ms apart;\n * landing slightly louder, never one heavy thud. */"
+              "code": "export function stepSound(surface: Surface, sprint: boolean) {\r\n  // e2e cadence probe.\r\n  const w = window as unknown as { __stepLog?: Array<{ t: number; surface: string }> }\r\n  ;(w.__stepLog ??= []).push({ t: performance.now(), surface })\r\n  if (w.__stepLog.length > 64) w.__stepLog.shift()\r\n  void play2d(\r\n    surfaceToCategory(surface),\r\n    'world',\r\n    sprint ? FOOTSTEPS.stepGainSprint : FOOTSTEPS.stepGainWalk,\r\n  )\r\n}\r\n\r\n/** Takeoff/landing double-tap — two different picks ~90 ms apart;\r\n * landing slightly louder, never one heavy thud. */\r"
             },
             {
               "symbol": "jumpTaps",
               "line": 33,
-              "code": "export function jumpTaps(surface: Surface, landing: boolean) {\n  const base = FOOTSTEPS.stepGainWalk * (landing ? 1.25 : 1.05)\n  void playDoubleTap(surfaceToCategory(surface), 'world', base, FOOTSTEPS.jumpTapGapMs)\n}\n"
+              "code": "export function jumpTaps(surface: Surface, landing: boolean) {\r\n  const base = FOOTSTEPS.stepGainWalk * (landing ? 1.25 : 1.05)\r\n  void playDoubleTap(surfaceToCategory(surface), 'world', base, FOOTSTEPS.jumpTapGapMs)\r\n}\r\n"
             }
           ]
         },
@@ -495,7 +495,7 @@
             {
               "symbol": "CrossfadeLoop",
               "line": 10,
-              "code": "export class CrossfadeLoop {\n  private out: GainNode | null = null\n  private endTime = 0\n  private pending = false\n\n  constructor(\n    private category: Category,\n    private fade = 0.5,\n  ) {}\n\n  /** The loop's level node (created lazily, connected to `target`). */\n  level(target: AudioNode): GainNode | null {\n    const ctx = audioRuntime.ctx\n    if (!ctx) return null"
+              "code": "export class CrossfadeLoop {\r\n  private out: GainNode | null = null\r\n  private endTime = 0\r\n  private pending = false\r\n\r\n  constructor(\r\n    private category: Category,\r\n    private fade = 0.5,\r\n  ) {}\r\n\r\n  /** The loop's level node (created lazily, connected to `target`). */\r\n  level(target: AudioNode): GainNode | null {\r\n    const ctx = audioRuntime.ctx\r\n    if (!ctx) return null\r"
             }
           ]
         },
@@ -510,17 +510,17 @@
             {
               "symbol": "musicTarget",
               "line": 37,
-              "code": "export function musicTarget(arcUkeM: number, arcFireM: number, modalOpen: boolean): number {\n  const ukeF = THREE.MathUtils.smoothstep(arcUkeM, 8, 20)\n  const fireF = THREE.MathUtils.lerp(0.6, 1, THREE.MathUtils.smoothstep(arcFireM, 4, 10))\n  return 0.35 * ukeF * fireF * (modalOpen ? 0.57 : 1)\n}\n\n/** Campfire crackle level — PURE proximity (audio finishing pass):\n * full at 3 m, silent past 12 m, and deliberately no nightMix term —\n * day/night has nothing to do with what a fire sounds like. */\nexport function crackleTarget(arcFireM: number): number {\n  return 0.875 * (1 - THREE.MathUtils.smoothstep(arcFireM, 3, 12))\n}\n\n/** Gull cry launch gain: a real gradient on top of the panner — full"
+              "code": "export function musicTarget(arcUkeM: number, arcFireM: number, modalOpen: boolean): number {\r\n  const ukeF = THREE.MathUtils.smoothstep(arcUkeM, 8, 20)\r\n  const fireF = THREE.MathUtils.lerp(0.6, 1, THREE.MathUtils.smoothstep(arcFireM, 4, 10))\r\n  return 0.35 * ukeF * fireF * (modalOpen ? 0.57 : 1)\r\n}\r\n\r\n/** Campfire crackle level — PURE proximity (audio finishing pass):\r\n * full at 3 m, silent past 12 m, and deliberately no nightMix term —\r\n * day/night has nothing to do with what a fire sounds like. */\r\nexport function crackleTarget(arcFireM: number): number {\r\n  return 0.875 * (1 - THREE.MathUtils.smoothstep(arcFireM, 3, 12))\r\n}\r\n\r\n/** Gull cry launch gain: a real gradient on top of the panner — full\r"
             },
             {
               "symbol": "crackleTarget",
               "line": 46,
-              "code": "export function crackleTarget(arcFireM: number): number {\n  return 0.875 * (1 - THREE.MathUtils.smoothstep(arcFireM, 3, 12))\n}\n\n/** Gull cry launch gain: a real gradient on top of the panner — full\n * voice inside ~10 m (gulls orbit at 10–13.5 m altitude, so \"standing\n * under one\" IS ~12 m), gone past 30 m, so flyovers breathe. */\nexport function cryGain(distM: number): number {\n  return 1.08 * (1 - THREE.MathUtils.smoothstep(distM, 10, 30))\n}\n\nexport function WorldEmitters() {\n  const fireAnchor = useRef<THREE.Group>(null)\n  const st = useRef({"
+              "code": "export function crackleTarget(arcFireM: number): number {\r\n  return 0.875 * (1 - THREE.MathUtils.smoothstep(arcFireM, 3, 12))\r\n}\r\n\r\n/** Gull cry launch gain: a real gradient on top of the panner — full\r\n * voice inside ~10 m (gulls orbit at 10–13.5 m altitude, so \"standing\r\n * under one\" IS ~12 m), gone past 30 m, so flyovers breathe. */\r\nexport function cryGain(distM: number): number {\r\n  return 1.08 * (1 - THREE.MathUtils.smoothstep(distM, 10, 30))\r\n}\r\n\r\nexport function WorldEmitters() {\r\n  const fireAnchor = useRef<THREE.Group>(null)\r\n  const st = useRef({\r"
             },
             {
               "symbol": "cryGain",
               "line": 53,
-              "code": "export function cryGain(distM: number): number {\n  return 1.08 * (1 - THREE.MathUtils.smoothstep(distM, 10, 30))\n}\n\nexport function WorldEmitters() {\n  const fireAnchor = useRef<THREE.Group>(null)\n  const st = useRef({\n    fire: new CrossfadeLoop('campfire', 0.6),\n    fireNode: null as THREE.PositionalAudio | null,\n    cryNode: null as THREE.PositionalAudio | null,\n    nextCry: 0,\n    fireUnit: latLongToUnit(MAP.campfire.lat, MAP.campfire.long),\n    pole: new THREE.Vector3(),\n  })"
+              "code": "export function cryGain(distM: number): number {\r\n  return 1.08 * (1 - THREE.MathUtils.smoothstep(distM, 10, 30))\r\n}\r\n\r\nexport function WorldEmitters() {\r\n  const fireAnchor = useRef<THREE.Group>(null)\r\n  const st = useRef({\r\n    fire: new CrossfadeLoop('campfire', 0.6),\r\n    fireNode: null as THREE.PositionalAudio | null,\r\n    cryNode: null as THREE.PositionalAudio | null,\r\n    nextCry: 0,\r\n    fireUnit: latLongToUnit(MAP.campfire.lat, MAP.campfire.long),\r\n    pole: new THREE.Vector3(),\r\n  })\r"
             }
           ]
         }
@@ -614,7 +614,7 @@
             {
               "symbol": "Photo",
               "line": 1,
-              "code": "export interface Photo {\n  id: string\n  /** Web-sized image (longest edge ~1800 px, WebP via the pipeline). */\n  full: string\n  /** Grid thumbnail (~480 px, cover-cropped by the tile). */\n  thumb: string\n  /** Intrinsic dimensions of `full` — layout never guesses ratios. */\n  width: number\n  height: number\n  alt: string\n  title: string\n  caption?: string\n}\n"
+              "code": "export interface Photo {\r\n  id: string\r\n  /** Web-sized image (longest edge ~1800 px, WebP via the pipeline). */\r\n  full: string\r\n  /** Grid thumbnail (~480 px, cover-cropped by the tile). */\r\n  thumb: string\r\n  /** Intrinsic dimensions of `full` — layout never guesses ratios. */\r\n  width: number\r\n  height: number\r\n  alt: string\r\n  title: string\r\n  caption?: string\r\n}\r\n\r"
             }
           ],
           "note": "the interface, curated order"
@@ -737,7 +737,7 @@
             {
               "symbol": "Paper",
               "line": 1,
-              "code": "export interface Paper {\n  id: string\n  title: string\n  blurb: string\n  /** Public path (files live in public/, e.g. '/aiden-hock-resume.pdf'). */\n  file: string\n  type: 'pdf'\n}\n\n/**\n * Documents pinned to the bulletin board (and mirrored on /classic).\n * NOTE: /aiden-hock-resume.pdf is currently a PLACEHOLDER — the real\n * resume's header contains a phone number, which must not ship\n * (CLAUDE.md privacy rule). Aiden: strip the phone from the docx (or"
+              "code": "export interface Paper {\r\n  id: string\r\n  title: string\r\n  blurb: string\r\n  /** Public path (files live in public/, e.g. '/aiden-hock-resume.pdf'). */\r\n  file: string\r\n  type: 'pdf'\r\n}\r\n\r\n/**\r\n * Documents pinned to the bulletin board (and mirrored on /classic).\r\n * NOTE: /aiden-hock-resume.pdf is currently a PLACEHOLDER — the real\r\n * resume's header contains a phone number, which must not ship\r\n * (CLAUDE.md privacy rule). Aiden: strip the phone from the docx (or\r"
             }
           ],
           "note": "the interface"
@@ -773,17 +773,17 @@
             {
               "symbol": "playerFrame",
               "line": 34,
-              "code": "export function playerFrame(quat: THREE.Quaternion, out?: LocalFrame): LocalFrame {\n  const frame = out ?? {\n    pole: new THREE.Vector3(),\n    north: new THREE.Vector3(),\n    east: new THREE.Vector3(),\n  }\n  poleInPlanetSpace(quat, frame.pole)\n  frame.pole.normalize()\n  // North = the tangent toward lat 90. Degenerate exactly at the pole,\n  // where any tangent is north; +Z keeps the map from flipping there.\n  const lat = Math.asin(THREE.MathUtils.clamp(frame.pole.y, -1, 1))\n  if (Math.abs(Math.cos(lat)) < 1e-6) {\n    frame.north.set(0, 0, 1)\n  } else {"
+              "code": "export function playerFrame(quat: THREE.Quaternion, out?: LocalFrame): LocalFrame {\r\n  const frame = out ?? {\r\n    pole: new THREE.Vector3(),\r\n    north: new THREE.Vector3(),\r\n    east: new THREE.Vector3(),\r\n  }\r\n  poleInPlanetSpace(quat, frame.pole)\r\n  frame.pole.normalize()\r\n  // North = the tangent toward lat 90. Degenerate exactly at the pole,\r\n  // where any tangent is north; +Z keeps the map from flipping there.\r\n  const lat = Math.asin(THREE.MathUtils.clamp(frame.pole.y, -1, 1))\r\n  if (Math.abs(Math.cos(lat)) < 1e-6) {\r\n    frame.north.set(0, 0, 1)\r\n  } else {\r"
             },
             {
               "symbol": "bearingTo",
               "line": 66,
-              "code": "export function bearingTo(frame: LocalFrame, unit: THREE.Vector3): number {\n  // Project the target onto the tangent plane at the player.\n  _u.copy(unit).addScaledVector(frame.pole, -frame.pole.dot(unit))\n  if (_u.lengthSq() < 1e-12) return 0\n  _u.normalize()\n  return Math.atan2(_u.dot(frame.east), _u.dot(frame.north))\n}\n\n/**\n * The camera's heading as a bearing from local north, so the map can be\n * rotated to put \"where I am looking\" at the top. `forwardWorld` is the\n * camera's forward direction in world space; `quat` the planet's.\n */\nexport function cameraHeading("
+              "code": "export function bearingTo(frame: LocalFrame, unit: THREE.Vector3): number {\r\n  // Project the target onto the tangent plane at the player.\r\n  _u.copy(unit).addScaledVector(frame.pole, -frame.pole.dot(unit))\r\n  if (_u.lengthSq() < 1e-12) return 0\r\n  _u.normalize()\r\n  return Math.atan2(_u.dot(frame.east), _u.dot(frame.north))\r\n}\r\n\r\n/**\r\n * The camera's heading as a bearing from local north, so the map can be\r\n * rotated to put \"where I am looking\" at the top. `forwardWorld` is the\r\n * camera's forward direction in world space; `quat` the planet's.\r\n */\r\nexport function cameraHeading(\r"
             },
             {
               "symbol": "toScreen",
               "line": 96,
-              "code": "export function toScreen(\n  range: number,\n  bearing: number,\n  heading: number,\n  pxPerM: number,\n  out: { x: number; y: number },\n): { x: number; y: number } {\n  const a = bearing - heading\n  const r = range * pxPerM\n  out.x = Math.sin(a) * r\n  out.y = -Math.cos(a) * r\n  return out\n}\n"
+              "code": "export function toScreen(\r\n  range: number,\r\n  bearing: number,\r\n  heading: number,\r\n  pxPerM: number,\r\n  out: { x: number; y: number },\r\n): { x: number; y: number } {\r\n  const a = bearing - heading\r\n  const r = range * pxPerM\r\n  out.x = Math.sin(a) * r\r\n  out.y = -Math.cos(a) * r\r\n  return out\r\n}\r\n\r"
             }
           ]
         },
@@ -991,7 +991,7 @@
             {
               "symbol": "@font-face",
               "line": 4,
-              "code": "@font-face {\n  font-family: 'Atkinson Hyperlegible';\n  font-style: normal;\n  font-weight: 400;\n  font-display: swap;\n  src: url('/fonts/atkinson-hyperlegible-400.woff2') format('woff2');\n  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;\n}\n\n@font-face {\n  font-family: 'Atkinson Hyperlegible';\n  font-style: normal;\n  font-weight: 700;\n  font-display: swap;"
+              "code": "@font-face {\r\n  font-family: 'Atkinson Hyperlegible';\r\n  font-style: normal;\r\n  font-weight: 400;\r\n  font-display: swap;\r\n  src: url('/fonts/atkinson-hyperlegible-400.woff2') format('woff2');\r\n  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;\r\n}\r\n\r\n@font-face {\r\n  font-family: 'Atkinson Hyperlegible';\r\n  font-style: normal;\r\n  font-weight: 700;\r\n  font-display: swap;\r"
             }
           ],
           "note": "generated rules"
@@ -1180,12 +1180,12 @@
             {
               "symbol": "project",
               "line": 28,
-              "code": "export function project(view: MapView, lat: number, long: number): { x: number; y: number } {\n  const r = (90 - lat) * view.scale\n  const a = long * DEG\n  return {\n    x: view.cx + view.panX + Math.sin(a) * r,\n    y: view.cy + view.panY - Math.cos(a) * r,\n  }\n}\n\nexport function unproject(view: MapView, x: number, y: number): { lat: number; long: number } {\n  const dx = x - view.cx - view.panX\n  const dy = y - view.cy - view.panY\n  const r = Math.hypot(dx, dy)\n  return {"
+              "code": "export function project(view: MapView, lat: number, long: number): { x: number; y: number } {\r\n  const r = (90 - lat) * view.scale\r\n  const a = long * DEG\r\n  return {\r\n    x: view.cx + view.panX + Math.sin(a) * r,\r\n    y: view.cy + view.panY - Math.cos(a) * r,\r\n  }\r\n}\r\n\r\nexport function unproject(view: MapView, x: number, y: number): { lat: number; long: number } {\r\n  const dx = x - view.cx - view.panX\r\n  const dy = y - view.cy - view.panY\r\n  const r = Math.hypot(dx, dy)\r\n  return {\r"
             },
             {
               "symbol": "unproject",
               "line": 37,
-              "code": "export function unproject(view: MapView, x: number, y: number): { lat: number; long: number } {\n  const dx = x - view.cx - view.panX\n  const dy = y - view.cy - view.panY\n  const r = Math.hypot(dx, dy)\n  return {\n    lat: 90 - r / view.scale,\n    long: ((Math.atan2(dx, -dy) / DEG) % 360 + 360) % 360,\n  }\n}\n\n/** Metres → pixels, for drawing blocker radii at their true size. */\nexport const metresPerDegree = (Math.PI * PLANET_RADIUS) / 180\nexport const pxPerMetre = (view: MapView) => view.scale / metresPerDegree\n"
+              "code": "export function unproject(view: MapView, x: number, y: number): { lat: number; long: number } {\r\n  const dx = x - view.cx - view.panX\r\n  const dy = y - view.cy - view.panY\r\n  const r = Math.hypot(dx, dy)\r\n  return {\r\n    lat: 90 - r / view.scale,\r\n    long: ((Math.atan2(dx, -dy) / DEG) % 360 + 360) % 360,\r\n  }\r\n}\r\n\r\n/** Metres → pixels, for drawing blocker radii at their true size. */\r\nexport const metresPerDegree = (Math.PI * PLANET_RADIUS) / 180\r\nexport const pxPerMetre = (view: MapView) => view.scale / metresPerDegree\r\n"
             }
           ]
         },
@@ -1747,27 +1747,27 @@
             {
               "symbol": "mooringUnit",
               "line": 57,
-              "code": "export function mooringUnit(dock: DockName): THREE.Vector3 {\n  const d = DOCKS[dock]\n  const m = surfacePartMatrix(\n    farEndSegmentLat(dock),\n    d.longDeg,\n    0,\n    0,\n    new THREE.Vector3(-BOAT.mooringSideM, 0, 0),\n    IDENTITY_Q,\n    1,\n  )\n  return new THREE.Vector3().setFromMatrixPosition(m).normalize()\n}\n"
+              "code": "export function mooringUnit(dock: DockName): THREE.Vector3 {\r\n  const d = DOCKS[dock]\r\n  const m = surfacePartMatrix(\r\n    farEndSegmentLat(dock),\r\n    d.longDeg,\r\n    0,\r\n    0,\r\n    new THREE.Vector3(-BOAT.mooringSideM, 0, 0),\r\n    IDENTITY_Q,\r\n    1,\r\n  )\r\n  return new THREE.Vector3().setFromMatrixPosition(m).normalize()\r\n}\r\n\r"
             },
             {
               "symbol": "dockEndUnit",
               "line": 93,
-              "code": "export function dockEndUnit(dock: DockName): THREE.Vector3 {\n  return latLongToUnit(END_LAT[dock], DOCKS[dock].longDeg)\n}\n\nexport function stepOffUnit(dock: DockName): THREE.Vector3 {\n  return dockEndUnit(dock)\n}\n\n/** Derived once at module load — the frame loop never builds these. */\nexport const MOORING_UNITS: Record<DockName, THREE.Vector3> = {\n  north: mooringUnit('north'),\n  south: mooringUnit('south'),\n}\nexport const DOCK_END_UNITS: Record<DockName, THREE.Vector3> = {"
+              "code": "export function dockEndUnit(dock: DockName): THREE.Vector3 {\r\n  return latLongToUnit(END_LAT[dock], DOCKS[dock].longDeg)\r\n}\r\n\r\nexport function stepOffUnit(dock: DockName): THREE.Vector3 {\r\n  return dockEndUnit(dock)\r\n}\r\n\r\n/** Derived once at module load — the frame loop never builds these. */\r\nexport const MOORING_UNITS: Record<DockName, THREE.Vector3> = {\r\n  north: mooringUnit('north'),\r\n  south: mooringUnit('south'),\r\n}\r\nexport const DOCK_END_UNITS: Record<DockName, THREE.Vector3> = {\r"
             },
             {
               "symbol": "advanceBoat",
               "line": 185,
-              "code": "export function advanceBoat(\n  m: BoatMotion,\n  input: BoatInput,\n  dt: number,\n  cfg: BoatTuning,\n): number {\n  const mag = Math.min(1, Math.max(0, input.mag))\n  if (input.dirYaw !== null && mag > 0) {\n    const d = wrapAngle(input.dirYaw - m.heading)\n    const maxTurn = cfg.turnRateRadPerS * dt\n    m.heading = wrapAngle(m.heading + THREE.MathUtils.clamp(d, -maxTurn, maxTurn))\n    const target = cfg.maxSpeedMps * mag\n    m.speed =\n      m.speed < target"
+              "code": "export function advanceBoat(\r\n  m: BoatMotion,\r\n  input: BoatInput,\r\n  dt: number,\r\n  cfg: BoatTuning,\r\n): number {\r\n  const mag = Math.min(1, Math.max(0, input.mag))\r\n  if (input.dirYaw !== null && mag > 0) {\r\n    const d = wrapAngle(input.dirYaw - m.heading)\r\n    const maxTurn = cfg.turnRateRadPerS * dt\r\n    m.heading = wrapAngle(m.heading + THREE.MathUtils.clamp(d, -maxTurn, maxTurn))\r\n    const target = cfg.maxSpeedMps * mag\r\n    m.speed =\r\n      m.speed < target\r"
             },
             {
               "symbol": "boatStepBlocked",
               "line": 145,
-              "code": "export function boatStepBlocked(polarBefore: number, polarAfter: number): boolean {\n  const before = polarFromOwnPole(polarBefore)\n  const after = polarFromOwnPole(polarAfter)\n  return after < shoreLimitRad(landmassAt(polarAfter)) && after < before\n}\n\nexport interface BoatMotion {\n  /** World yaw the bow points along (radians, atan2(x, z)). */\n  heading: number\n  /** Metres per second along that heading. */\n  speed: number\n}\n\nexport interface BoatInput {"
+              "code": "export function boatStepBlocked(polarBefore: number, polarAfter: number): boolean {\r\n  const before = polarFromOwnPole(polarBefore)\r\n  const after = polarFromOwnPole(polarAfter)\r\n  return after < shoreLimitRad(landmassAt(polarAfter)) && after < before\r\n}\r\n\r\nexport interface BoatMotion {\r\n  /** World yaw the bow points along (radians, atan2(x, z)). */\r\n  heading: number\r\n  /** Metres per second along that heading. */\r\n  speed: number\r\n}\r\n\r\nexport interface BoatInput {\r"
             },
             {
               "symbol": "BOAT_BLOCKERS",
               "line": 119,
-              "code": "export const BOAT_BLOCKERS: Blocker[] = DOCK_NAMES.flatMap((name) => {\n  const d = DOCKS[name]\n  const span = (d.latMaxDeg - d.latMinDeg) / d.segmentCount\n  return Array.from({ length: d.segmentCount }, (_, i) => ({\n    unit: latLongToUnit(d.latMaxDeg - span * (i + 0.5), d.longDeg),\n    // + 0.6: the mooring (1.7 m off the centreline) must sit OUTSIDE\n    // this radius or the boat starts inside its own blocker and a\n    // heading toward the pier can never leave; the hull (half-width\n    // ~0.55) still clears the deck edge (1.0) at 1.6 m.\n    radius: d.halfWidthM + 0.6,\n  }))\n})\n\n/** How close to its own pole a landmass lets the boat come: its"
+              "code": "export const BOAT_BLOCKERS: Blocker[] = DOCK_NAMES.flatMap((name) => {\r\n  const d = DOCKS[name]\r\n  const span = (d.latMaxDeg - d.latMinDeg) / d.segmentCount\r\n  return Array.from({ length: d.segmentCount }, (_, i) => ({\r\n    unit: latLongToUnit(d.latMaxDeg - span * (i + 0.5), d.longDeg),\r\n    // + 0.6: the mooring (1.7 m off the centreline) must sit OUTSIDE\r\n    // this radius or the boat starts inside its own blocker and a\r\n    // heading toward the pier can never leave; the hull (half-width\r\n    // ~0.55) still clears the deck edge (1.0) at 1.6 m.\r\n    radius: d.halfWidthM + 0.6,\r\n  }))\r\n})\r\n\r\n/** How close to its own pole a landmass lets the boat come: its\r"
             }
           ]
         },
@@ -1889,7 +1889,7 @@
             {
               "symbol": "BoatPrompt",
               "line": 56,
-              "code": "function BoatPrompt({ mode, isTouch }: { mode: 'board' | 'tie'; isTouch: boolean }) {\n  const label = mode === 'board' ? 'Board the boat' : 'Tie up'\n  const act = () => {\n    const s = useStore.getState()\n    if (mode === 'board') s.boardBoat()\n    else if (s.nearbyDockFromBoat) s.tieUp(s.nearbyDockFromBoat)\n  }\n  if (isTouch) {\n    return (\n      <button\n        type=\"button\"\n        onClick={act}\n        className=\"pointer-events-auto fixed right-6 bottom-8 z-40 flex h-20 w-20 touch-manipulation items-center justify-center rounded-full bg-lagoon px-2 text-center font-display text-sm font-bold text-ink shadow-lg active:scale-95\"\n      >"
+              "code": "function BoatPrompt({ mode, isTouch }: { mode: 'board' | 'tie'; isTouch: boolean }) {\r\n  const label = mode === 'board' ? 'Board the boat' : 'Tie up'\r\n  const act = () => {\r\n    const s = useStore.getState()\r\n    if (mode === 'board') s.boardBoat()\r\n    else if (s.nearbyDockFromBoat) s.tieUp(s.nearbyDockFromBoat)\r\n  }\r\n  if (isTouch) {\r\n    return (\r\n      <button\r\n        type=\"button\"\r\n        onClick={act}\r\n        className=\"pointer-events-auto fixed right-6 bottom-8 z-40 flex h-20 w-20 touch-manipulation items-center justify-center rounded-full bg-lagoon px-2 text-center font-display text-sm font-bold text-ink shadow-lg active:scale-95\"\r\n      >\r"
             }
           ]
         },
@@ -1920,8 +1920,8 @@
       "step": 26,
       "title": "Antarctica comes alive",
       "hook": "Somebody lives down here. There is a light on in the igloo,\nthere are penguins on the ice, and the whole sky is green.",
-      "plain": "The south cap used to be a beautiful empty plain. Now it is a place with residents.\n There is an igloo on the plateau — a dome of stacked snow blocks with a low entrance tunnel — and the tunnel glows. Sila stands outside it, watching the door. Nanuq wanders a few metres of snow further out, stopping and starting the way villagers do. Out toward the ice shelf a colony of penguins waddles about: they walk, they stop, they turn, they rock side to side with every step, and if you get within about two and a half metres one of them panics and hop-shuffles straight away from you. They never walk into the sea.\n Overhead, the aurora australis. Three enormous curtains of green and teal hang across the polar sky, rippling, brightening and dimming in slow waves, fading to violet and then to nothing at the top. You can see them from the open water on the way in — a green glow standing over the horizon before the ice is even visible — and once you are standing on the plateau they fill the sky above you.\n And it snows. Not hard: a slow, quiet fall across the whole cap, drifting sideways on the same wind that pushes the island's clouds.",
-      "technical": "Everything here obeys the two rules the rest of the world obeys: no new shaders, and repeats are instanced.\n The **aurora** is mesh animation, nothing else. One `InstancedMesh` of 108 thin quads on a shared `PlaneGeometry` whose vertex colours run green at the foot, teal at the waist, violet at the head and black at the top. The material blends additively, which means black IS transparent — the curtains fade out at the top with no per-vertex alpha and no shader of their own. The layout is pure and tested (`auroraLayout.ts`): three paths sweeping 140–160° of longitude around the pole at a polar angle that wobbles about 11–16°, each quad standing up along the surface normal with its width along the path tangent. Per frame the animation writes matrices and `instanceColor` from module scratch: a two-term height wave stretches each quad, a small lean rocks it about its own tangent, and a travelling brightness wave with a faster ripple on top rides the instance colours. Nothing allocates.\n The **snow** is the campfire's ember technique turned cold. One `THREE.Points` of 500 flakes (220 on low tier) in a group anchored at the south pole with local +y pointing outward, so the flakes live in a plain 26 m × 18 m cylinder and fall straight down. The position attribute is allocated once and rewritten in place. Lateral drift is the ONE global wind (`windDirAt`) brought into the pole's frame at mount, plus a gentle per-flake sway. The floor a flake wraps at is the sphere's own drop away from the pole's tangent plane plus the terrain profile, so flakes out near the shelf land on the shelf instead of vanishing in mid-air.\n The **penguins** are the crabs' southern cousins: six birds, eight box parts each, all 48 instances in one `InstancedMesh` with per-part colours written once through `instanceColor`. The walk itself is a pure kernel (`penguinWalk.ts`) held in (polar-from-the-south-pole, longitude) rather than latitude, because that is how the whole south cap is measured. Two clamps run on every step, walking or paused: the band (8°–21.5° from the pole) and the waterline (`groundAltitude > 0.05` — the shelf ramps to zero before the band runs out, so the band alone is not enough). vitest drives six birds for twenty thousand steps each and asserts both.\n The **igloo** is a placement like everything else, so the editor can drag it: one vertex-tinted merge (dome, three block courses cut to the wall at their own heights, half-barrel tunnel, dark opening disc) in `PROP_REGISTRY`. A small `<Igloo>` glue component reads that placement live and hangs the warmth on it — a dim warm point light and a glowing half-disc in the mouth, both positioned from `IGLOO_MOUTH`, the same constants the geometry is cut from.\n All three animated systems early-return and set `visible = false` when `skyRuntime.southMix` says the player is nowhere near the cap, so from the island they cost nothing at all. On the cap itself the whole scene measures 49 draw calls, under the mobile budget of 50.",
+      "plain": "The south cap used to be a beautiful empty plain. Now it is a place with residents.\n There is an igloo on the plateau — a dome of stacked snow blocks with a low entrance tunnel — and the tunnel glows. Sila stands outside it, watching the door.",
+      "technical": "Everything here obeys the two rules the rest of the world obeys: no new shaders, and repeats are instanced.\n The **aurora** is mesh animation, nothing else. One `InstancedMesh` of 108 thin quads on a shared `PlaneGeometry` whose vertex colours run green at the foot, teal at the waist, violet at the head and black at the top. The material blends additively, which means black IS transparent — the curtains fade out at the top with no per-vertex alpha and no shader of their own. The layout is pure and tested (`auroraLayout.ts`): three paths sweeping 140–160° of longitude around the pole at a polar angle that wobbles about 11–16°, each quad standing up along the surface normal with its width along the path tangent. Per frame the animation writes matrices and `instanceColor` from module scratch: a two-term height wave stretches each quad, a small lean rocks it about its own tangent, and a travelling brightness wave with a faster ripple on top rides the instance colours. Nothing allocates.\n The **snow** is the campfire's ember technique turned cold. One `THREE.Points` of 500 flakes (220 on low tier) in a group anchored at the south pole with local +y pointing outward, so the flakes live in a plain 26 m × 18 m cylinder and fall straight down. The position attribute is allocated once and rewritten in place. Lateral drift is the ONE global wind (`windDirAt`) brought into the pole's frame at mount, plus a gentle per-flake sway. The floor a flake wraps at is the sphere's own drop away from the pole's tangent plane plus the terrain profile, so flakes out near the shelf land on the shelf instead of vanishing in mid-air.\n The **penguins** are the crabs' southern cousins: six birds, eight box parts each, all 48 instances in one `InstancedMesh` with per-part colours written once through `instanceColor`. The walk itself is a pure kernel (`penguinWalk.ts`) held in (polar-from-the-south-pole, longitude) rather than latitude, because that is how the whole south cap is measured. Two clamps run on every step, walking or paused: the band (8°–21.5° from the pole) and the waterline (`groundAltitude > 0.05` — the shelf ramps to zero before the band runs out, so the band alone is not enough). vitest drives six birds for twenty thousand steps each and asserts both.\n The **igloo** is a placement like everything else, so the editor can drag it: one vertex-tinted merge (dome, four block courses cut to the wall at their own heights, the arched tunnel, its lintel course and the dark opening) in `PROP_REGISTRY`. A small `<Igloo>` glue component reads that placement live and hangs the warmth on it — a dim warm point light and a glowing half-disc in the mouth, both positioned from `IGLOO_MOUTH`, the same constants the geometry is cut from.\n At **home scale** those constants carry the whole rebuild. `IGLOO_DOME_R` is 3.0 (6 m across), squashed 0.95 and sunk so the crown lands at 3.4 m; `iglooRadiusAt` keeps cutting each course to the wall at its own height, so widening the dome re-fits the rings for free. `IGLOO_MOUTH` now reads `{ y: 0.85, z: 4.1, radius: 0.75, length: 1.6 }` and means something exact: the opening is `2 × radius` wide and `2 × y` tall — 1.5 m × 1.7 m against a 1.25 m avatar. The tunnel is the old half-barrel cut at `radius` and stretched by `IGLOO_ARCH_STRETCH = 2y / radius`, which turns a crawl-through semicircle into a standing arch with over 1.25 m of headroom across the middle metre of it; the dark mouth and the `<Igloo>` glow disc are cut from the same profile, so the hole fills the doorway exactly and the lamp sits inside the tunnel where it always did.\n Solid is the other half. The dome's blocker is `IGLOO_DOME_R + 0.3` = 3.3 m — the dome you can see — but the tunnel sticks 1.1 m past that, so a single disc leaves a corridor into the house. Two `collider` placements (`igloo-door-l` / `igloo-door-r`, `parentId: \"igloo\"`, 0.75 m each) sit at the jambs of the visible opening, solved from the igloo's lat/long and yaw with `IGLOO_MOUTH.z` (bearing = −yaw, as chapter 26's own yaw decision established). Their discs OVERLAP across the doorway, because the player is a POINT against blockers and two discs side by side with a gap between them is a corridor, not a wall. Walking into the door now stops the avatar 0.4 m outside the mouth; sliding-along still carries you around the whole dome.\n All three animated systems early-return and set `visible = false` when `skyRuntime.southMix` says the player is nowhere near the cap, so from the island they cost nothing at all. On the cap itself the whole scene measures 49 draw calls, under the mobile budget of 50.",
       "files": [
         {
           "path": "src/scene/props.ts",
@@ -1929,28 +1929,46 @@
             "buildIgloo",
             "buildIceblock",
             "buildSnowmound",
-            "IGLOO_MOUTH"
+            "IGLOO_MOUTH",
+            "IGLOO_DOME_R",
+            "IGLOO_ARCH_STRETCH",
+            "iglooRadiusAt"
           ],
           "excerpts": [
             {
               "symbol": "buildIgloo",
-              "line": 1089,
-              "code": "export function buildIgloo(): PropPart[] {\r\n  const parts: THREE.BufferGeometry[] = [\r\n    // The dome: a faceted icosahedron, squashed and sunk.\r\n    snowPiece(\r\n      new THREE.IcosahedronGeometry(IGLOO_R, 1),\r\n      SNOW_COLORS.block,\r\n      [0, IGLOO_CY, 0],\r\n      [0, 0, 0],\r\n      [1, IGLOO_SQUASH, 1],\r\n    ),\r\n  ]\r\n\r\n  // Three horizontal block courses so the dome reads as stacked snow\r\n  // blocks rather than one smooth shell. Each band's radius comes from\r"
+              "line": 1116,
+              "code": "export function buildIgloo(): PropPart[] {\r\n  const parts: THREE.BufferGeometry[] = [\r\n    // The dome: a faceted icosahedron, squashed and sunk.\r\n    snowPiece(\r\n      new THREE.IcosahedronGeometry(IGLOO_DOME_R, 1),\r\n      SNOW_COLORS.block,\r\n      [0, IGLOO_CY, 0],\r\n      [0, 0, 0],\r\n      [1, IGLOO_SQUASH, 1],\r\n    ),\r\n  ]\r\n\r\n  // Four horizontal block courses so the dome reads as stacked snow\r\n  // blocks rather than one smooth shell (three left the upper half of a\r"
             },
             {
               "symbol": "buildIceblock",
-              "line": 1150,
+              "line": 1219,
               "code": "export function buildIceblock(): PropPart[] {\r\n  const parts = [\r\n    snowPiece(new THREE.IcosahedronGeometry(0.5, 0), SNOW_COLORS.ice, [0, 0.3, 0], [0, 0.5, 0], [1.3, 0.8, 1.0]),\r\n    snowPiece(\r\n      new THREE.IcosahedronGeometry(0.28, 0),\r\n      SNOW_COLORS.iceDeep,\r\n      [0.42, 0.17, -0.14],\r\n      [0, 1.2, 0],\r\n      [1.1, 0.8, 1],\r\n    ),\r\n  ]\r\n  const merged = mergeGeometries(parts)\r\n  for (const p of parts) p.dispose()\r\n  return [\r"
             },
             {
               "symbol": "buildSnowmound",
-              "line": 1169,
+              "line": 1238,
               "code": "export function buildSnowmound(): PropPart[] {\r\n  const geo = normalizeForMerge(new THREE.SphereGeometry(0.9, 10, 6))\r\n  geo.applyMatrix4(new THREE.Matrix4().makeScale(1, 0.35, 1))\r\n  return [{ geometry: geo, material: paletteMaterial(SNOW_COLORS.mound) }]\r\n}\r\n"
             },
             {
               "symbol": "IGLOO_MOUTH",
-              "line": 1058,
-              "code": "export const IGLOO_MOUTH = { y: 0.34, z: 2.48, radius: 0.68, length: 1.1 } as const\r\n\r\n/** Shared tinted-piece helper for the snow props: normalize → tint →\r\n *  bake the transform, ready for ONE merge (the crate/telescope pattern). */\r\nfunction snowPiece(\r\n  g: THREE.BufferGeometry,\r\n  color: string,\r\n  pos: [number, number, number] = [0, 0, 0],\r\n  rot: [number, number, number] = [0, 0, 0],\r\n  scale: [number, number, number] = [1, 1, 1],\r\n): THREE.BufferGeometry {\r\n  const n = tintGeometry(normalizeForMerge(g), color)\r\n  g.dispose()\r\n  n.applyMatrix4(\r"
+              "line": 1079,
+              "code": "export const IGLOO_MOUTH = { y: 0.85, z: 4.1, radius: 0.75, length: 1.6 } as const\r\n\r\n/** How far the half-round arch is stretched to reach the mouth height:\r\n *  a semicircle of `radius` is `radius` tall, the doorway is `2 × y`. */\r\nexport const IGLOO_ARCH_STRETCH = (IGLOO_MOUTH.y * 2) / IGLOO_MOUTH.radius\r\n\r\n/** Shared tinted-piece helper for the snow props: normalize → tint →\r\n *  bake the transform, ready for ONE merge (the crate/telescope pattern). */\r\nfunction snowPiece(\r\n  g: THREE.BufferGeometry,\r\n  color: string,\r\n  pos: [number, number, number] = [0, 0, 0],\r\n  rot: [number, number, number] = [0, 0, 0],\r\n  scale: [number, number, number] = [1, 1, 1],\r"
+            },
+            {
+              "symbol": "IGLOO_DOME_R",
+              "line": 1055,
+              "code": "export const IGLOO_DOME_R = 3.0\r\nconst IGLOO_SQUASH = 0.95\r\n/** Centre height: the dome is sunk until its crown lands at 3.4 m. */\r\nconst IGLOO_CY = 0.55\r\n\r\n/** Where the dome's wall sits at height `y` — the block courses are cut\r\n *  to it, so a ring can never float off the wall or sink into it. */\r\nfunction iglooRadiusAt(y: number): number {\r\n  const off = (y - IGLOO_CY) / IGLOO_SQUASH\r\n  return Math.sqrt(Math.max(0, IGLOO_DOME_R * IGLOO_DOME_R - off * off))\r\n}\r\n\r\n/**\r\n * The tunnel mouth, in prop-local metres. The <Igloo> glue hangs its\r"
+            },
+            {
+              "symbol": "IGLOO_ARCH_STRETCH",
+              "line": 1083,
+              "code": "export const IGLOO_ARCH_STRETCH = (IGLOO_MOUTH.y * 2) / IGLOO_MOUTH.radius\r\n\r\n/** Shared tinted-piece helper for the snow props: normalize → tint →\r\n *  bake the transform, ready for ONE merge (the crate/telescope pattern). */\r\nfunction snowPiece(\r\n  g: THREE.BufferGeometry,\r\n  color: string,\r\n  pos: [number, number, number] = [0, 0, 0],\r\n  rot: [number, number, number] = [0, 0, 0],\r\n  scale: [number, number, number] = [1, 1, 1],\r\n): THREE.BufferGeometry {\r\n  const n = tintGeometry(normalizeForMerge(g), color)\r\n  g.dispose()\r\n  n.applyMatrix4(\r"
+            },
+            {
+              "symbol": "iglooRadiusAt",
+              "line": 1062,
+              "code": "function iglooRadiusAt(y: number): number {\r\n  const off = (y - IGLOO_CY) / IGLOO_SQUASH\r\n  return Math.sqrt(Math.max(0, IGLOO_DOME_R * IGLOO_DOME_R - off * off))\r\n}\r\n\r\n/**\r\n * The tunnel mouth, in prop-local metres. The <Igloo> glue hangs its\r\n * warm light and its glowing opening on the SAME numbers the geometry\r\n * is built from, so the entrance can never glow in the wrong place —\r\n * and the two door colliders in placements.json are solved from them\r\n * too, so what you bump into is what you can see.\r\n *\r\n * The opening is an arch `2 × radius` wide and `2 × y` tall, i.e.\r\n * 1.5 m × 1.7 m: the avatar is 1.25 m, so a villager walks in without\r"
             }
           ]
         },
@@ -2058,7 +2076,7 @@
             {
               "symbol": "Igloo",
               "line": 22,
-              "code": "export function Igloo() {\r\n  const home = usePlacementRuntime((s) => s.list.find((p) => p.id === 'igloo')) ?? placement('igloo')\r\n  const light = useRef<THREE.PointLight>(null)\r\n  const glow = useRef<THREE.MeshLambertMaterial>(null)\r\n\r\n  // A small half disc standing on the tunnel floor, a hair in front of\r\n  // the prop's dark opening: the merge owns the HOLE, this owns the pool\r\n  // of light at the bottom of it. Sized to a bit over half the opening —\r\n  // at full width it covered the dark disc completely and the entrance\r\n  // read as a flat orange plate, a garage door rather than a doorway.\r\n  const mouthGeo = useMemo(() => new THREE.CircleGeometry(0.4, 12, 0, Math.PI), [])\r\n\r\n  useFrame(() => {\r\n    // Polar night is permanent down here, but the same gate the cemetery\r"
+              "code": "export function Igloo() {\r\n  const home = usePlacementRuntime((s) => s.list.find((p) => p.id === 'igloo')) ?? placement('igloo')\r\n  const light = useRef<THREE.PointLight>(null)\r\n  const glow = useRef<THREE.MeshLambertMaterial>(null)\r\n\r\n  // A small half disc standing on the tunnel floor, a hair in front of\r\n  // the prop's dark opening: the merge owns the HOLE, this owns the pool\r\n  // of light at the bottom of it. Sized to a bit over half the opening —\r\n  // at full width it covered the dark disc completely and the entrance\r\n  // read as a flat orange plate, a garage door rather than a doorway.\r\n  // DERIVED from IGLOO_MOUTH (0.6 of it, stretched on the arch's own\r\n  // ratio) so the home-sized doorway keeps the same read it had at\r\n  // crawl-tunnel size instead of a 0.4 m puddle in a 1.7 m arch.\r\n  const mouthGeo = useMemo(() => {\r"
             }
           ]
         },
@@ -2066,7 +2084,7 @@
           "path": "src/content/placements.json",
           "symbols": [],
           "excerpts": [],
-          "note": "the igloo, Sila, Nanuq, four ice chunks, three drifts"
+          "note": "the igloo, its two door colliders, Sila, Nanuq, four ice chunks, three drifts"
         },
         {
           "path": "src/scene/antarcticaLife.test.ts",
@@ -2081,7 +2099,10 @@
         "The igloo's warm light belongs INSIDE the tunnel. Hung on the step, at a hand's width from the opening disc, it blew the disc out to a flat orange plate — a fire door, not a doorway. Behind the disc it lights only the tunnel walls and the snow the mouth spills onto, and the glow disc shrank to under half the opening so the dark hole is still a hole.",
         "The penguins' band clamp was not enough on its own. Polar 21.5° from the south pole is inside the shelf on paper, but the shelf ramp is already down to about 2 cm of altitude there — a penguin standing in the surf. The altitude clamp is the binding one and it runs even while a bird is paused, exactly as the crabs' live-waterline clamp does.",
         "Two villagers cost eighteen draw calls. `BlockyCharacter` is already merged down to eight meshes plus a blob shadow, which is the right shape for a player avatar and expensive for scenery — and placing the first NPCs in the world is what made that visible. It is why the aurora had to give two calls back, and it is the number to watch if the cap ever gets a third resident.",
-        "The yaw in the brief did not survive contact with the frame. The igloo was specced at yawDeg 200 \"entrance roughly toward the dock side\", but in this codebase a positive yaw swings local +z toward WEST (signpost and villagers both found the same sign the hard way), so 200 pointed the tunnel at empty plateau. 45 is what actually faces the dock and the walk-in."
+        "The yaw in the brief did not survive contact with the frame. The igloo was specced at yawDeg 200 \"entrance roughly toward the dock side\", but in this codebase a positive yaw swings local +z toward WEST (signpost and villagers both found the same sign the hard way), so 200 pointed the tunnel at empty plateau. 45 is what actually faces the dock and the walk-in.",
+        "The igloo grew in its GEOMETRY, not in its placement `scale`. Scale was the one-line fix and it is the wrong one: the prop's size lives in prop-local metres, but its blocker lives in `blockerRadiusM` (world metres, unscaled) and its doorway light lives in `<Igloo>` (prop-local metres, unscaled by the instancing matrix the placement `scale` feeds). A scaled igloo would have been three different sizes at once. The constants moved instead, and `scale` stays 1 — with a vitest case pinning it there.",
+        "One blocker disc cannot trace a building with a porch. The dome's radius is the honest number for the dome (3.3 m = radius + 0.3), but the tunnel reaches 4.1 m, so the doorway sat outside the disc and you walked in. Two 0.75 m door colliders at the jambs close it — and they have to OVERLAP, not merely sit either side: blockers are tested against a POINT, so 0.22 m of daylight between two discs is a doorway, not a wall. Centres 1.24 m apart with 0.75 m radii give a seal 0.84 m deep, far more than a single 0.17 m sprint step can jump.",
+        "Sila stopped standing in her own doorway. Dead centre on the tunnel axis satisfied \"1.2 m outside the door blocker\" and plugged the entrance in every screenshot; she now waits 1.2 m off the nearer jamb, turned back toward the mouth, and the door is legible again."
       ]
     }
   ]

@@ -14,8 +14,9 @@ import { blockers, MAP } from './planetConfig'
  * a future edit moves something by accident.
  *
  * The pre-migration world was 86 blockers, digest 8bf80257. The current
- * world is 93: the signpost, then Antarctica's igloo, its two villagers
- * and its four ice chunks, all added since. Exactly one
+ * world is 95: the signpost, then Antarctica's igloo, the two colliders
+ * that seal its doorway, its two villagers and its four ice chunks, all
+ * added since. Exactly one
  * entry was dropped: a second blocker on the mailbox (r 0.5) that sat
  * at the same point as the mailbox's own interactable blocker (r 0.6)
  * and was therefore strictly inside it — nothing the player could ever
@@ -50,8 +51,9 @@ const dumpBlockers = (list: typeof blockers) =>
  * world, so anything that did not exist then has to come back out of it.
  * Add an id here in the same commit that adds the prop.
  *
- * The seven Antarctica entries (igloo, the two villagers, four ice
- * chunks) join for the same reason the signpost did: they carry blocker
+ * The nine Antarctica entries (igloo, the two door colliders, the two
+ * villagers, four ice chunks) join for the same reason the signpost
+ * did: they carry blocker
  * radii, they stand on a landmass that did not exist at migration time,
  * and the reconstruction below has to be able to take them back out
  * before it can still prove the OLD world is untouched. The three snow
@@ -63,6 +65,8 @@ const ADDED_SINCE_MIGRATION = [
   'paintings',
   'covers',
   'igloo',
+  'igloo-door-l',
+  'igloo-door-r',
   'npc-sila-01',
   'npc-nanuq-01',
   'iceblock-01',
@@ -80,10 +84,11 @@ const isRecent = (b: (typeof blockers)[number]) =>
 
 describe('world parity', () => {
   it('keeps every blocker where it was', () => {
-    // 86 → 93: Antarctica's igloo, its two villagers and its four ice
+    // 86 → 95: Antarctica's igloo, the two `collider` placements that
+    // seal its doorway (igloo-home), its two villagers and its four ice
     // chunks all collide (the snow mounds do not — you walk over them).
-    expect(blockers.length).toBe(93)
-    expect(digest(dumpBlockers(blockers))).toBe('7ec691ef')
+    expect(blockers.length).toBe(95)
+    expect(digest(dumpBlockers(blockers))).toBe('b3ce7373')
   })
 
   it('keeps every interactable exactly where it was', () => {
