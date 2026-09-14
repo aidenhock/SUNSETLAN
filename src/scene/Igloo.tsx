@@ -3,7 +3,7 @@ import { useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { placement } from '../content/placements'
 import { usePlacementRuntime } from './placementRuntime'
-import { IGLOO_MOUTH, SNOW_COLORS } from './props'
+import { IGLOO_ARCH_STRETCH, IGLOO_MOUTH, SNOW_COLORS } from './props'
 import { skyRuntime } from './useSkyState'
 import { SurfaceGroup } from './SurfaceGroup'
 
@@ -29,7 +29,14 @@ export function Igloo() {
   // of light at the bottom of it. Sized to a bit over half the opening —
   // at full width it covered the dark disc completely and the entrance
   // read as a flat orange plate, a garage door rather than a doorway.
-  const mouthGeo = useMemo(() => new THREE.CircleGeometry(0.4, 12, 0, Math.PI), [])
+  // DERIVED from IGLOO_MOUTH (0.6 of it, stretched on the arch's own
+  // ratio) so the home-sized doorway keeps the same read it had at
+  // crawl-tunnel size instead of a 0.4 m puddle in a 1.7 m arch.
+  const mouthGeo = useMemo(() => {
+    const g = new THREE.CircleGeometry(IGLOO_MOUTH.radius * 0.6, 12, 0, Math.PI)
+    g.scale(1, IGLOO_ARCH_STRETCH, 1)
+    return g
+  }, [])
 
   useFrame(() => {
     // Polar night is permanent down here, but the same gate the cemetery
@@ -41,7 +48,7 @@ export function Igloo() {
 
   return (
     <SurfaceGroup lat={home.lat} long={home.long} yaw={(home.yawDeg * Math.PI) / 180}>
-      <mesh geometry={mouthGeo} position={[0, 0.02, IGLOO_MOUTH.z - 0.04]}>
+      <mesh geometry={mouthGeo} position={[0, 0.02, IGLOO_MOUTH.z - 0.03]}>
         <meshLambertMaterial
           ref={glow}
           color={SNOW_COLORS.opening}
@@ -57,8 +64,8 @@ export function Igloo() {
           spills onto, which is what "warm inside" actually looks like. */}
       <pointLight
         ref={light}
-        position={[0, IGLOO_MOUTH.y + 0.15, IGLOO_MOUTH.z - 0.45]}
-        distance={7}
+        position={[0, IGLOO_MOUTH.y + 0.15, IGLOO_MOUTH.z - IGLOO_MOUTH.length * 0.45]}
+        distance={9}
         decay={1.2}
         color="#ffb070"
         intensity={1.6}

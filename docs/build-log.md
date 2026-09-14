@@ -1560,7 +1560,16 @@ a place with residents.
 
 There is an igloo on the plateau — a dome of stacked snow blocks with a
 low entrance tunnel — and the tunnel glows. Sila stands outside it,
-watching the door. Nanuq wanders a few metres of snow further out,
+watching the door.
+
+**Home-sized.** The first igloo was a garden ornament: three and a half
+metres across, with a tunnel you would have had to crawl through, and
+you could walk straight into the front of it as though the front were
+not there. It is a house now — six metres across, three and a half tall,
+with a doorway a villager walks through without ducking and a doorway
+you cannot walk through at all. Sila waits beside it rather than in it,
+Nanuq's patch of wandering snow moved out of the walls, and the drifts
+gave the dome its room back. Nanuq wanders a few metres of snow further out,
 stopping and starting the way villagers do. Out toward the ice shelf a
 colony of penguins waddles about: they walk, they stop, they turn, they
 rock side to side with every step, and if you get within about two and a
@@ -1615,12 +1624,39 @@ zero before the band runs out, so the band alone is not enough). vitest
 drives six birds for twenty thousand steps each and asserts both.
 
 The **igloo** is a placement like everything else, so the editor can drag
-it: one vertex-tinted merge (dome, three block courses cut to the wall at
-their own heights, half-barrel tunnel, dark opening disc) in
-`PROP_REGISTRY`. A small `<Igloo>` glue component reads that placement
-live and hangs the warmth on it — a dim warm point light and a glowing
-half-disc in the mouth, both positioned from `IGLOO_MOUTH`, the same
-constants the geometry is cut from.
+it: one vertex-tinted merge (dome, four block courses cut to the wall at
+their own heights, the arched tunnel, its lintel course and the dark
+opening) in `PROP_REGISTRY`. A small `<Igloo>` glue component reads that
+placement live and hangs the warmth on it — a dim warm point light and a
+glowing half-disc in the mouth, both positioned from `IGLOO_MOUTH`, the
+same constants the geometry is cut from.
+
+At **home scale** those constants carry the whole rebuild.
+`IGLOO_DOME_R` is 3.0 (6 m across), squashed 0.95 and sunk so the crown
+lands at 3.4 m; `iglooRadiusAt` keeps cutting each course to the wall at
+its own height, so widening the dome re-fits the rings for free.
+`IGLOO_MOUTH` now reads `{ y: 0.85, z: 4.1, radius: 0.75, length: 1.6 }`
+and means something exact: the opening is `2 × radius` wide and
+`2 × y` tall — 1.5 m × 1.7 m against a 1.25 m avatar. The tunnel is the
+old half-barrel cut at `radius` and stretched by
+`IGLOO_ARCH_STRETCH = 2y / radius`, which turns a crawl-through
+semicircle into a standing arch with over 1.25 m of headroom across the
+middle metre of it; the dark mouth and the `<Igloo>` glow disc are cut
+from the same profile, so the hole fills the doorway exactly and the
+lamp sits inside the tunnel where it always did.
+
+Solid is the other half. The dome's blocker is
+`IGLOO_DOME_R + 0.3` = 3.3 m — the dome you can see — but the tunnel
+sticks 1.1 m past that, so a single disc leaves a corridor into the
+house. Two `collider` placements (`igloo-door-l` / `igloo-door-r`,
+`parentId: "igloo"`, 0.75 m each) sit at the jambs of the visible
+opening, solved from the igloo's lat/long and yaw with `IGLOO_MOUTH.z`
+(bearing = −yaw, as chapter 26's own yaw decision established). Their
+discs OVERLAP across the doorway, because the player is a POINT against
+blockers and two discs side by side with a gap between them is a
+corridor, not a wall. Walking into the door now stops the avatar 0.4 m
+outside the mouth; sliding-along still carries you around the whole
+dome.
 
 All three animated systems early-return and set `visible = false` when
 `skyRuntime.southMix` says the player is nowhere near the cap, so from
@@ -1628,14 +1664,14 @@ the island they cost nothing at all. On the cap itself the whole scene
 measures 49 draw calls, under the mobile budget of 50.
 
 **Files:**
-- `src/scene/props.ts` — `buildIgloo`, `buildIceblock`, `buildSnowmound`, `IGLOO_MOUTH`
+- `src/scene/props.ts` — `buildIgloo`, `buildIceblock`, `buildSnowmound`, `IGLOO_MOUTH`, `IGLOO_DOME_R`, `IGLOO_ARCH_STRETCH`, `iglooRadiusAt`
 - `src/scene/auroraLayout.ts` — `buildAuroraLayout`, `AURORA_QUAD_W`
 - `src/scene/Aurora.tsx` — `Aurora`, `curtainGeometry`
 - `src/scene/Snow.tsx` — `Snow`, `poleFrameFloor`
 - `src/scene/penguinWalk.ts` — `advancePenguin`, `clampToBand`, `startlePenguin`
 - `src/scene/Penguins.tsx` — `Penguins`
 - `src/scene/Igloo.tsx` — `Igloo`
-- `src/content/placements.json` — the igloo, Sila, Nanuq, four ice chunks, three drifts
+- `src/content/placements.json` — the igloo, its two door colliders, Sila, Nanuq, four ice chunks, three drifts
 - `src/scene/antarcticaLife.test.ts` — the band, waterline, dock-clearance and aurora-layout guards
 
 **Decisions:**
@@ -1677,3 +1713,23 @@ measures 49 draw calls, under the mobile budget of 50.
   and villagers both found the same sign the hard way), so 200 pointed
   the tunnel at empty plateau. 45 is what actually faces the dock and
   the walk-in.
+- The igloo grew in its GEOMETRY, not in its placement `scale`. Scale was
+  the one-line fix and it is the wrong one: the prop's size lives in
+  prop-local metres, but its blocker lives in `blockerRadiusM` (world
+  metres, unscaled) and its doorway light lives in `<Igloo>` (prop-local
+  metres, unscaled by the instancing matrix the placement `scale` feeds).
+  A scaled igloo would have been three different sizes at once. The
+  constants moved instead, and `scale` stays 1 — with a vitest case
+  pinning it there.
+- One blocker disc cannot trace a building with a porch. The dome's
+  radius is the honest number for the dome (3.3 m = radius + 0.3), but
+  the tunnel reaches 4.1 m, so the doorway sat outside the disc and you
+  walked in. Two 0.75 m door colliders at the jambs close it — and they
+  have to OVERLAP, not merely sit either side: blockers are tested
+  against a POINT, so 0.22 m of daylight between two discs is a doorway,
+  not a wall. Centres 1.24 m apart with 0.75 m radii give a seal 0.84 m
+  deep, far more than a single 0.17 m sprint step can jump.
+- Sila stopped standing in her own doorway. Dead centre on the tunnel
+  axis satisfied "1.2 m outside the door blocker" and plugged the
+  entrance in every screenshot; she now waits 1.2 m off the nearer jamb,
+  turned back toward the mouth, and the door is legible again.

@@ -181,13 +181,17 @@ cools the horizon to `#182636`. Stars now cover the south cap too.
 
 **Who lives there (Antarctica life)** — all of it gated on
 `skyRuntime.southMix`, so from the island it costs nothing:
-- **Igloo** (lat −79/25): a snow-block dome + entrance tunnel, ONE
-  vertex-tinted merge in `PROP_REGISTRY` (`buildIgloo`), with `<Igloo>`
-  glue hanging a night-gated warm point light and a glowing mouth disc
-  off `IGLOO_MOUTH` — the same constants the geometry is cut from.
-  `iceblock` and `snowmound` are the cap's rocks and shells.
-- **Villagers**: Sila idles at the door (−78/12), Nanuq wanders 4 m
-  (−81/60), both from `NPC_REGISTRY` — and two villagers cost ~18 draw
+- **Igloo** (lat −79/25): a HOME-SIZED snow-block dome — 6 m across,
+  3.4 m tall, a 1.5 × 1.7 m arched doorway (size lives in the geometry,
+  `scale` stays 1) — ONE vertex-tinted merge in `PROP_REGISTRY`
+  (`buildIgloo`), with `<Igloo>` glue hanging a night-gated warm point
+  light and a glowing mouth disc off `IGLOO_MOUTH`. Blocker = dome
+  radius + 0.3; two OVERLAPPING `collider` placements
+  (`igloo-door-l/-r`, `parentId: igloo`) seal the doorway, which a
+  single disc leaves open. `iceblock` and `snowmound` are the cap's
+  rocks and shells.
+- **Villagers**: Sila idles beside the door (−75.42/2.74, never in it),
+  Nanuq wanders 4 m (−81/70, ≥ 7 m out), both from `NPC_REGISTRY` — and two villagers cost ~18 draw
   calls, which is the cap's real budget pressure.
 - **Penguins** (`Penguins.tsx` + pure `penguinWalk.ts`): 6 birds, 8 box
   parts each, ALL 48 instances in one InstancedMesh with per-part

@@ -1090,22 +1090,47 @@ export const SNOW_COLORS = {
   opening: '#1b2033',
 } as const
 
-const IGLOO_R = 1.8
-const IGLOO_SQUASH = 0.8
-/** Centre height: the dome is sunk until its crown lands at ~2.0 m. */
-const IGLOO_CY = 0.56
+/**
+ * HOME SCALE (igloo-home). The first igloo was 3.6 m across with a
+ * 0.75 m crawl tunnel — a garden ornament you could stand on top of,
+ * and the owner walked straight into the front of it. It is a house
+ * now: a 6.0 m dome standing 3.4 m tall with a doorway taller than the
+ * villager who lives in it. The SIZE lives in the geometry, never in
+ * the placement's `scale`: scaling the prop would scale its blocker and
+ * its doorway light off in different directions (the blocker is metres
+ * in placements.json, the light is metres in prop-local space), so the
+ * only honest dial is the geometry itself and `scale` stays 1.
+ */
+/** Dome half-width: the dome measures 2 × this across. */
+export const IGLOO_DOME_R = 3.0
+const IGLOO_SQUASH = 0.95
+/** Centre height: the dome is sunk until its crown lands at 3.4 m. */
+const IGLOO_CY = 0.55
 
 /** Where the dome's wall sits at height `y` — the block courses are cut
  *  to it, so a ring can never float off the wall or sink into it. */
 function iglooRadiusAt(y: number): number {
   const off = (y - IGLOO_CY) / IGLOO_SQUASH
-  return Math.sqrt(Math.max(0, IGLOO_R * IGLOO_R - off * off))
+  return Math.sqrt(Math.max(0, IGLOO_DOME_R * IGLOO_DOME_R - off * off))
 }
 
-/** The tunnel mouth, in prop-local metres. The <Igloo> glue hangs its
- *  warm light and its glowing opening on the SAME numbers the geometry
- *  is built from, so the entrance can never glow in the wrong place. */
-export const IGLOO_MOUTH = { y: 0.34, z: 2.48, radius: 0.68, length: 1.1 } as const
+/**
+ * The tunnel mouth, in prop-local metres. The <Igloo> glue hangs its
+ * warm light and its glowing opening on the SAME numbers the geometry
+ * is built from, so the entrance can never glow in the wrong place —
+ * and the two door colliders in placements.json are solved from them
+ * too, so what you bump into is what you can see.
+ *
+ * The opening is an arch `2 × radius` wide and `2 × y` tall, i.e.
+ * 1.5 m × 1.7 m: the avatar is 1.25 m, so a villager walks in without
+ * ducking. `z` is the outer lip; the tunnel runs `length` back from it
+ * along local +z, its inner end buried in the dome wall.
+ */
+export const IGLOO_MOUTH = { y: 0.85, z: 4.1, radius: 0.75, length: 1.6 } as const
+
+/** How far the half-round arch is stretched to reach the mouth height:
+ *  a semicircle of `radius` is `radius` tall, the doorway is `2 × y`. */
+export const IGLOO_ARCH_STRETCH = (IGLOO_MOUTH.y * 2) / IGLOO_MOUTH.radius
 
 /** Shared tinted-piece helper for the snow props: normalize → tint →
  *  bake the transform, ready for ONE merge (the crate/telescope pattern). */
@@ -1129,18 +1154,20 @@ function snowPiece(
 }
 
 /**
- * Igloo: a chunky snow-block dome ~3.6 m across and ~2.0 m tall — a
+ * Igloo: a chunky snow-block dome 6.0 m across and 3.4 m tall — a
  * flattened low-poly sphere with horizontal block courses cut to the
- * wall, plus a half-barrel entrance tunnel running out toward local +z
- * with a dark opening disc inside it. ONE vertex-tinted merge, so the
- * whole thing costs a single draw call. Base at y = 0 (the dome is sunk
- * until its widest course meets the snow).
+ * wall, plus an arched entrance tunnel running out toward local +z with
+ * a dark opening set into it. A person's home, not an ornament: the
+ * doorway is 1.5 m wide and 1.7 m tall against a 1.25 m avatar. ONE
+ * vertex-tinted merge, so the whole thing still costs a single draw
+ * call. Base at y = 0 (the dome is sunk until its widest course meets
+ * the snow).
  */
 export function buildIgloo(): PropPart[] {
   const parts: THREE.BufferGeometry[] = [
     // The dome: a faceted icosahedron, squashed and sunk.
     snowPiece(
-      new THREE.IcosahedronGeometry(IGLOO_R, 1),
+      new THREE.IcosahedronGeometry(IGLOO_DOME_R, 1),
       SNOW_COLORS.block,
       [0, IGLOO_CY, 0],
       [0, 0, 0],
@@ -1148,25 +1175,30 @@ export function buildIgloo(): PropPart[] {
     ),
   ]
 
-  // Three horizontal block courses so the dome reads as stacked snow
-  // blocks rather than one smooth shell. Each band's radius comes from
-  // the wall at its own top edge (+3 cm proud) — a constant radius set
-  // by eye pokes out at one edge and buries itself at the other.
-  const COURSE_H = 0.1
-  for (const y of [0.32, 0.92, 1.46]) {
+  // Four horizontal block courses so the dome reads as stacked snow
+  // blocks rather than one smooth shell (three left the upper half of a
+  // 3.4 m wall bare). Each band's radius comes from the wall at its own
+  // top edge (+3 cm proud) — a constant radius set by eye pokes out at
+  // one edge and buries itself at the other.
+  const COURSE_H = 0.14
+  for (const y of [0.5, 1.25, 2.0, 2.65]) {
     const r = iglooRadiusAt(y + COURSE_H / 2) + 0.03
     parts.push(
       snowPiece(new THREE.CylinderGeometry(r, r, COURSE_H, 12, 1, true), SNOW_COLORS.course, [0, y, 0]),
     )
   }
 
-  // Entrance tunnel: a short half-barrel lying along z, open end out.
+  // Entrance tunnel: a short arched barrel lying along z, open end out.
   // thetaStart −π/2 across π is the half with +z outward; rotating −π/2
   // about x lays the axis down the z meridian and stands that half up,
-  // so the flat side rests on the snow and the arch is overhead.
+  // so the flat side rests on the snow and the arch is overhead. The
+  // barrel is cut at the mouth's half-width and then stretched
+  // vertically, which turns the old crawl-through semicircle into a
+  // standing elliptical arch — 1.5 m wide, 1.7 m tall at the crown, and
+  // still over 1.25 m of headroom across the middle metre of it.
   const barrel = new THREE.CylinderGeometry(
-    0.75,
-    0.75,
+    IGLOO_MOUTH.radius,
+    IGLOO_MOUTH.radius,
     IGLOO_MOUTH.length,
     10,
     1,
@@ -1175,16 +1207,53 @@ export function buildIgloo(): PropPart[] {
     Math.PI,
   )
   barrel.rotateX(-Math.PI / 2)
-  // Inner end buried in the wall (which stands at r ≈ 1.79 here), outer
-  // end at the mouth — so the tunnel reads as a passage into the dome.
-  parts.push(snowPiece(barrel, SNOW_COLORS.block, [0, 0, IGLOO_MOUTH.z - IGLOO_MOUTH.length / 2]))
+  // Inner end buried in the wall (which stands at r ≈ 2.94 at snow
+  // level and 2.75 at the crown of the arch), outer end at the mouth —
+  // so the tunnel reads as a passage into the dome at every height.
+  parts.push(
+    snowPiece(
+      barrel,
+      SNOW_COLORS.block,
+      [0, 0, IGLOO_MOUTH.z - IGLOO_MOUTH.length / 2],
+      [0, 0, 0],
+      [1, IGLOO_ARCH_STRETCH, 1],
+    ),
+  )
 
-  // The dark mouth just inside the tunnel — a half disc on the floor.
+  // A block course around the doorway itself, a little proud of the
+  // arch. The bare shell read as a paper slab from the side — a snow
+  // lintel gives the opening a thickness you can see from any angle,
+  // and it is the same course band the dome is ringed with.
+  const rim = new THREE.CylinderGeometry(
+    IGLOO_MOUTH.radius + 0.05,
+    IGLOO_MOUTH.radius + 0.05,
+    0.16,
+    10,
+    1,
+    true,
+    -Math.PI / 2,
+    Math.PI,
+  )
+  rim.rotateX(-Math.PI / 2)
+  parts.push(
+    snowPiece(
+      rim,
+      SNOW_COLORS.course,
+      [0, 0, IGLOO_MOUTH.z - 0.08],
+      [0, 0, 0],
+      [1, IGLOO_ARCH_STRETCH, 1],
+    ),
+  )
+
+  // The dark mouth just inside the tunnel — the same half-ellipse
+  // profile the arch is cut to, so the hole fills the doorway exactly.
   parts.push(
     snowPiece(
       new THREE.CircleGeometry(IGLOO_MOUTH.radius, 12, 0, Math.PI),
       SNOW_COLORS.opening,
-      [0, 0.01, IGLOO_MOUTH.z - 0.05],
+      [0, 0.01, IGLOO_MOUTH.z - 0.06],
+      [0, 0, 0],
+      [1, IGLOO_ARCH_STRETCH, 1],
     ),
   )
 

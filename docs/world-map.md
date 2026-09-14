@@ -48,12 +48,14 @@ blockers, the minimap, `planetConfig.MAP`) follows from it.
 | `palapa-desk` | Palapa desk (collider only) | 40 | 38 | 0° N | — | Traces the desk built into the palapa; nothing renders from this entry. |
 | `tv-crate` | CRT crate | 21 | 150.8 | 0° N | — | The TV stands on this; the TV entry carries the liftM that puts it on top. |
 | `signpost` | Signpost at spawn | 84 | 20 | 0° N | — | Planks point at landmarks with live distances; both come from this file. |
-| `igloo` | Igloo | -79 | 25 | 45° NE | — | Antarctica's one built thing: a snow-block dome on the plateau, entrance tunnel turned toward the dock side so you meet the doorway walking in from the north. |
+| `igloo` | Igloo | -79 | 25 | 45° NE | — | Antarctica's one built thing: a snow-block dome on the plateau, entrance tunnel turned toward the dock side so you meet the doorway walking in from the north. Home-sized: 6 m across, 3.4 m tall, so the blocker is the dome radius (IGLOO_DOME_R) + 0.3. Scale stays 1 — the SIZE is in the geometry, never here. The tunnel sticks out past this disc, so igloo-door-l/r seal the doorway. |
+| `igloo-door-l` | Igloo doorway (left jamb) | -76.048 | 10.5943 | 45° NE | — | Nothing renders here. Solved from the igloo's lat/long + yaw and IGLOO_MOUTH: local (+0.62, 4.05) in prop space — the lip of the opening, so the collider traces the doorway you can SEE, i.e. the left jamb of the tunnel looking out. Paired with igloo-door-r the two discs OVERLAP across the doorway, so the mouth is a wall you bump into rather than a gap you slide through. |
+| `igloo-door-r` | Igloo doorway (right jamb) | -75.3433 | 14.9726 | 45° NE | — | The other jamb: local (-0.62, 4.05) in prop space. See igloo-door-l. |
 | `iceblock-01` | Ice chunk | -75 | 80 | 20° N | — | Plateau edge. Radius is footprintRadius('iceblock'). |
 | `iceblock-02` | Ice chunk | -74.5 | 150 | 200° S | — | Out on the ice shelf, above the waterline. |
 | `iceblock-03` | Ice chunk | -76 | 230 | 310° NW | — | Plateau edge. |
 | `iceblock-04` | Ice chunk | -74 | 320 | 120° SE | — | Shelf edge on the far side from the dock. |
-| `snowmound-01` | Snow drift | -80 | 45 | 0° N | — | Plateau drift; no blocker, you walk over it. |
+| `snowmound-01` | Snow drift | -78.5 | 58 | 0° N | — | Plateau drift; no blocker, you walk over it. Moved out from long 45 when the igloo grew — it now sits 6.1 m from the dome centre, well over 2 m clear of the 3.3 m blocker. |
 | `snowmound-02` | Snow drift | -78.5 | 300 | 0° N | — | Plateau drift; no blocker. |
 | `snowmound-03` | Snow drift | -82 | 130 | 0° N | — | Plateau drift near the pole; no blocker. |
 
@@ -62,8 +64,8 @@ blockers, the minimap, `planetConfig.MAP`) follows from it.
 | id | what | lat | long | facing | lift | notes |
 |---|---|---|---|---|---|---|
 | `koa` | Koa the ukulele player | 18 | 359.05 | 0° N | — | Seat ON the dock's west edge; altitude derives from the deck strip. |
-| `npc-sila-01` | Sila | -78 | 12 | 249° W | — | Stands on the plateau facing the igloo entrance. |
-| `npc-nanuq-01` | Nanuq | -81 | 60 | 90° E | — | Wanders 4 m of plateau; kept over 6 m from the igloo and far from the dock. |
+| `npc-sila-01` | Sila | -75.4227 | 2.7448 | 259.69° W | — | Waits BESIDE her door, not in it: 1.2 m clear of the nearer door collider's edge and turned back toward the mouth (yaw = -bearing to it). Dead centre on the tunnel axis she plugged the entrance in every screenshot. |
+| `npc-nanuq-01` | Nanuq | -81 | 70 | 90° E | — | Wanders 4 m of plateau; kept over 7 m from the home-sized igloo (3.3 m blocker + his 4 m radius) and far from the dock. |
 
 ## Seats
 
