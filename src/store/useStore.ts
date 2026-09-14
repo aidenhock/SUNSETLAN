@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { DockName } from '../scene/boat'
+import { setMooredBoat, type DockName } from '../scene/boat'
 
 export type QualityTier = 'high' | 'low'
 export type CameraMode = 'pointerLock' | 'orbit'
@@ -172,3 +172,16 @@ export const useStore = create<AppState>((set) => ({
   setNearbyDockFromBoat: (nearbyDockFromBoat) => set({ nearbyDockFromBoat }),
   setBoatState: (state) => set((s) => ({ boat: { ...s.boat, state } })),
 }))
+
+/**
+ * The analytic terrain needs to know where the boat is parked — the
+ * moored hull is a walkable deck (terrain.ts onBoatDeck) — but it is
+ * called every frame from groundHeightAt and must not subscribe to a
+ * React store there. So the store PUSHES the answer into the boat
+ * module on every change instead: one place, no drift, no per-frame
+ * store read.
+ */
+const syncMooredBoat = (s: AppState) =>
+  setMooredBoat(s.boat.state === 'moored' ? s.boat.at : null)
+syncMooredBoat(useStore.getState())
+useStore.subscribe(syncMooredBoat)

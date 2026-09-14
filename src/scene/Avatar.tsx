@@ -17,7 +17,12 @@ const aidenMotion = (): MotionState => controlsRuntime
  *  in the sand: same event, so the trail lands in step with the gait. */
 const aidenStep = () => {
   stepSound(
-    surfaceUnderfoot(controlsRuntime.surfPolarDeg, controlsRuntime.surfLongDeg, controlsRuntime.wet),
+    surfaceUnderfoot(
+      controlsRuntime.surfPolarDeg,
+      controlsRuntime.surfLongDeg,
+      controlsRuntime.wet,
+      controlsRuntime.onBoatDeck,
+    ),
     controlsRuntime.locomotion === 'run',
   )
   footprintQueue.press()

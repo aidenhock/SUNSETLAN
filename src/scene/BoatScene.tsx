@@ -30,10 +30,17 @@ function boatParts() {
   return cachedParts
 }
 
-/** Deck bob — the same formula the controller publishes, so the hull and
- *  the player on it rise and fall together. */
+/**
+ * Moored bob. The analytic deck (terrain.ts onBoatDeck) is the hull's
+ * MEAN height, so every centimetre of bob is a centimetre the floor
+ * floats past the feet standing on it — the moored swing is therefore
+ * gentler than the driving one (controller: 0.05), just enough to read
+ * as a boat rocking underfoot. The live surf stays: the hull must rise
+ * and fall with the water it sits in, which is also what keeps the
+ * floor's clearance over the waves constant.
+ */
 function bobAt(polarRad: number, t: number): number {
-  return 0.05 * Math.sin(t * 4.4) + surfOffset(polarRad, t)
+  return 0.03 * Math.sin(t * 4.4) + surfOffset(polarRad, t)
 }
 
 

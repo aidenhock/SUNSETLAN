@@ -1333,6 +1333,11 @@ The boat stays where you left it. Walk the ice, come back, and it is
 still tied to the southern dock — which means the way home is to get
 back in and drive north.
 
+And you can just stand in it. Walk off the end of the dock and you step
+down onto the boat's floor instead of through it — it is a surface like
+the deck is, hollow wood underfoot, rocking very slightly on the swell.
+Step off the side and you are back in the shallows.
+
 **Technical:** The boat never moves. Nothing in this world does except
 the world: driving is the SAME `rotationStep`/`applyStep` composition
 the walk uses, stepped along the boat's own heading rather than the raw
@@ -1383,6 +1388,42 @@ puff of foam stays on the water you left it on while the ocean turns
 beneath you; they fade by lerping their instance colour toward the sea,
 the same trick the footprints use in the sand.
 
+**Standing in it.** The moored hull is a walkable surface, and it is
+ANALYTIC — exactly like the dock strip, for exactly the same reason:
+feet, prop altitudes and the audio all read one pure function of (lat,
+long), so nothing can disagree with the thing you can see.
+`onBoatDeck(lat, long)` in `controls/terrain.ts` is a rectangle test —
+`BOAT.hullLengthM` x `BOAT.hullWidthM` centred on the current mooring,
+its long axis along the mooring's meridian, measured in metres in the
+local tangent frame with the same `mPerDegLat` / `cos(lat)` scaling
+`onStrip` uses. It runs every frame out of `groundHeightAt`, so it
+allocates nothing: both mooring lat/longs are derived once at module
+load (`MOORING_LATLONG`), and the store PUSHES which mooring is occupied
+into `setMooredBoat` on every change rather than terrain reading a React
+store per frame. While you are boarding, driving or tying up the answer
+is null — the hull is at the pole under you then, not out on the water.
+
+`groundAltitudeAt` gains one line for it: `max(band, 0) + BOAT_DECK_M`.
+The band is floored at zero because the boat floats on the SEA, not on
+the seabed under it — so from the dock's end you step DOWN onto the
+floor (deck 0.6 above the band versus the boat's 0.24 above the water)
+and from the shallows you step UP out of the water, and the `wet` test
+goes false on its own because the floor stands clear of the live
+waterline. `surfaceUnderfoot` answers `'dock'` there: hollow wood, no
+new audio category.
+
+The hull itself had to float higher to make any of that safe. The
+water's maximum live height is 0.18 m — three wave sines at 0.04 plus
+the 0.06 surf swing — so the interior floor's top sits at
+`BOAT_DECK_M` 0.24, above it, and the slab under that floor runs solid
+down to the hull bottom at −0.30 (below the waterline, so the boat still
+sits IN the sea) with a tapered nose piece sealing the bow triangle.
+There is no longer any path for a wave to show through the floor.
+`BOAT_DECK_M` and `BOAT_SEAT_M` live in `planetConfig` and are the only
+source for all three consumers: the geometry `buildBoat` cuts, the seat
+height the controller parks the driver at, and the height terrain walks
+on.
+
 One thing the boat broke immediately was the camera. The follow camera
 floors itself against `groundHeightAt` under its own footprint — and out
 at sea that analytic ground is the SEABED, metres down, so any downward
@@ -1391,8 +1432,9 @@ floor becomes `max(groundHeightAt, PLANET_RADIUS + 0.35)`: the sea
 surface is the ground when you are on it.
 
 **Files:**
-- `src/scene/boat.ts` — `mooringUnit`, `dockEndUnit`, `advanceBoat`, `boatStepBlocked`, `BOAT_BLOCKERS`
-- `src/scene/planetConfig.ts` — `BOAT`
+- `src/scene/boat.ts` — `mooringUnit`, `dockEndUnit`, `advanceBoat`, `boatStepBlocked`, `BOAT_BLOCKERS`, `MOORING_LATLONG`, `setMooredBoat`
+- `src/controls/terrain.ts` — `onBoatDeck`, `groundAltitudeAt`
+- `src/scene/planetConfig.ts` — `BOAT`, `BOAT_DECK_M`, `BOAT_SEAT_M`, `surfaceUnderfoot`
 - `src/store/useStore.ts` — `BoatState`, `boardBoat`, `tieUp`
 - `src/controls/usePlanetController.ts` — `controlsRuntime`, `BOAT_SEAT_M`
 - `src/controls/usePointerLockCamera.ts` — the afloat camera floor, `CAM_GROUND_CLEAR`
@@ -1420,6 +1462,26 @@ surface is the ground when you are on it.
   is inland, unreachable from the water) and costs a loop over a hundred
   and fifty entries a frame. Two docks' plank centres is the whole hazard
   map out there.
+- The moored deck is analytic, not a collider. There is no physics
+  engine here and there never will be one, so "you can stand on the
+  boat" had to be the same kind of answer the dock already gives: a pure
+  function of (lat, long) that `groundAltitudeAt` consults. That buys
+  the whole feature for one rectangle test — feet, the blob shadow, the
+  camera floor, the wet test and the footstep pool all follow for free,
+  because every one of them already reads that function.
+- The hull floats higher than it used to. The owner's second complaint
+  was water poking up through the floor, and the old hull invited it:
+  the bottom slab was 0.16 m thick sitting ON the waterline, so its top
+  was at 0.16 while the live sea reaches 0.18. Raising the floor to 0.24
+  clears the water's maximum by 0.06, and thickening the slab down to
+  −0.30 means there is no thin plate for a wave to cross at all. The
+  above-water silhouette barely changed (gunwale 0.58 → 0.62); what
+  changed is how much hull is under the sea.
+- The analytic deck is the hull's MEAN height, and the mesh bobs past
+  it. Pinning the walkable height to the live bob would mean terrain
+  asking the clock, which no other band does. Instead the moored swing
+  was halved (0.05 → 0.03, the surf term kept) so the residual float is
+  a couple of centimetres and reads as a boat rocking under your feet.
 - The seated rig's root is at its FEET, and parking it on the bench top
   floated the player a head above the thwart. The log seat had already
   solved this — root 0.30 against a 0.42 log top — so the boat borrows
