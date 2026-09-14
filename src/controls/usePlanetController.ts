@@ -20,6 +20,7 @@ import {
 import {
   blockers,
   BOAT,
+  BOAT_SEAT_M,
   INTERACT_ARC_M,
   INTERACT_EXIT_ARC_M,
   MOVE_SPEED,
@@ -40,7 +41,7 @@ import {
   rotationStep,
   WORLD_UP,
 } from './planetMath'
-import { groundHeightAt } from './terrain'
+import { groundHeightAt, onBoatDeck } from './terrain'
 
 /**
  * Mutable per-frame state shared between the control hooks without causing
@@ -96,6 +97,10 @@ export const controlsRuntime = {
   boatBob: 0,
   boatRoll: 0,
   boatPitch: 0,
+  /** True while standing IN the moored boat (its deck is walkable, like
+   * the dock's). Published so the footstep + pose readers don't each
+   * recompute the hull footprint. */
+  onBoatDeck: false,
   /** Set by the dev world editor while a placement is selected: the
    * arrow keys nudge the prop instead of walking the player. */
   suppressInput: false,
@@ -116,11 +121,12 @@ const SIT_ARC_M = 2.2
 const SIT_EXIT_ARC_M = 2.7
 const SIT_TWEEN_S = 0.4
 const SEAT_RAISE_M = 0.3
-/** The boat's bench top above its waterline (props.ts buildBoat), minus
- * the same drop the log seat uses (log top 0.42, root raise 0.30): the
- * rig's root is at its FEET, so parking it ON the bench floats the hips
- * a head above the thwart. */
-const BOAT_SEAT_M = 0.38 - 0.12
+/** The rig's root is at its FEET, so parking it ON the bench floats the
+ * hips a head above the thwart: the driver rides the bench top
+ * (BOAT_SEAT_M, planetConfig — the same number props.ts cuts the seat
+ * from) minus the same drop the log seat uses (log top 0.42, raise 0.30). */
+const BOAT_SEAT_DROP_M = 0.12
+const BOAT_SEAT_RAISE_M = BOAT_SEAT_M - BOAT_SEAT_DROP_M
 
 // Frame-loop scratch — the controller allocates nothing per frame.
 const _poleBefore = new THREE.Vector3()
@@ -548,7 +554,12 @@ export function usePlanetController({ planetRef, avatarRef }: ControllerRefs) {
     ) {
       jumpT.current = 0
       jumpTaps(
-        surfaceUnderfoot(controlsRuntime.surfPolarDeg, controlsRuntime.surfLongDeg, controlsRuntime.wet),
+        surfaceUnderfoot(
+          controlsRuntime.surfPolarDeg,
+          controlsRuntime.surfLongDeg,
+          controlsRuntime.wet,
+          controlsRuntime.onBoatDeck,
+        ),
         false,
       )
     }
@@ -561,7 +572,12 @@ export function usePlanetController({ planetRef, avatarRef }: ControllerRefs) {
         jumpOffset = 0
         jumpT.current = null
         jumpTaps(
-          surfaceUnderfoot(controlsRuntime.surfPolarDeg, controlsRuntime.surfLongDeg, controlsRuntime.wet),
+          surfaceUnderfoot(
+            controlsRuntime.surfPolarDeg,
+            controlsRuntime.surfLongDeg,
+            controlsRuntime.wet,
+            controlsRuntime.onBoatDeck,
+          ),
           true,
         )
       }
@@ -608,7 +624,7 @@ export function usePlanetController({ planetRef, avatarRef }: ControllerRefs) {
     // the seated hips on the log top (~0.42 m after sink; stubby legs).
     seatLift.current += ((sitting ? SEAT_RAISE_M : 0) - seatLift.current) * (1 - Math.exp(-dt / 0.15))
     avatar.position.y = boating
-      ? groundY + BOAT_SEAT_M
+      ? groundY + BOAT_SEAT_RAISE_M
       : groundY + jumpOffset + seatLift.current
     avatar.rotation.y = yaw.current
     controlsRuntime.avatarYaw = yaw.current
@@ -622,5 +638,8 @@ export function usePlanetController({ planetRef, avatarRef }: ControllerRefs) {
       Math.atan2(_poleAfter.x, _poleAfter.z),
     )
     controlsRuntime.wet = wet
+    // Standing in the moored boat sounds like the dock (hollow wood).
+    controlsRuntime.onBoatDeck =
+      !boating && onBoatDeck(90 - controlsRuntime.surfPolarDeg, controlsRuntime.surfLongDeg)
   })
 }

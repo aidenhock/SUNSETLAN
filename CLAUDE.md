@@ -53,6 +53,17 @@ arcs, the shore margin and the tween. `store.boat` is
 `{ state: moored | boarding | driving | landing, at: north | south }`;
 boarding and landing are quaternion tweens (the sit tween's twin), and
 while driving the boat is world-fixed at the pole and the ocean turns.
+**Two heights, one place** (`BOAT_DECK_M` 0.24 interior floor,
+`BOAT_SEAT_M` 0.52 bench, both in planetConfig, above the hull's own
+waterline): the geometry, the driver's seat and the walkable surface all
+read them. The floor clears the water's max live height (0.12 wave +
+0.06 surf) and its slab runs solid to the hull bottom at −0.30, so no
+wave shows through. **The MOORED hull is walkable** like the dock deck —
+`onBoatDeck(lat, long)` in `controls/terrain.ts` is an analytic
+hullLength x hullWidth rectangle on the current mooring (null while
+boarding/driving/landing; the store pushes it via `setMooredBoat`), and
+`groundAltitudeAt` returns `max(band, 0) + BOAT_DECK_M` there,
+`surfaceUnderfoot` `'dock'`.
 
 
 

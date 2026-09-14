@@ -103,6 +103,34 @@ export const MOORING_UNITS: Record<DockName, THREE.Vector3> = {
   north: mooringUnit('north'),
   south: mooringUnit('south'),
 }
+
+/**
+ * The same two moorings as lat/long, derived once. `onBoatDeck` runs
+ * every frame out of groundHeightAt, so the frame loop must never build
+ * a Vector3 to ask where the boat is — it reads these numbers instead.
+ */
+export const MOORING_LATLONG: Record<DockName, { lat: number; long: number }> = {
+  north: mooringLatLong('north'),
+  south: mooringLatLong('south'),
+}
+
+/**
+ * Which mooring currently holds the boat, or null while it is being
+ * boarded, driven or tied up (then the hull is at the pole under the
+ * player, not out here on the water). Terrain asks this to decide
+ * whether the deck is walkable; the store pushes every change in (see
+ * useStore's syncMooredBoat) so the two can never drift. The initial
+ * value mirrors the store's initial boat state.
+ */
+let mooredDock: DockName | null = 'north'
+
+export function setMooredBoat(dock: DockName | null): void {
+  mooredDock = dock
+}
+
+export function mooredBoatDock(): DockName | null {
+  return mooredDock
+}
 export const DOCK_END_UNITS: Record<DockName, THREE.Vector3> = {
   north: dockEndUnit('north'),
   south: dockEndUnit('south'),

@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 import * as THREE from 'three'
-import { groundAltitudeAt, onDockStrip } from '../controls/terrain'
+import { groundAltitudeAt, onBoatDeck, onDockStrip } from '../controls/terrain'
+import { useStore } from '../store/useStore'
 import {
   advanceBoat,
   BOAT_BLOCKERS,
@@ -11,7 +12,17 @@ import {
   stepOffUnit,
   type BoatMotion,
 } from './boat'
-import { BOAT, DOCK, PLANET_RADIUS, SOUTH, SOUTH_DOCK } from './planetConfig'
+import {
+  BOAT,
+  BOAT_DECK_M,
+  DOCK,
+  PLANET_RADIUS,
+  SOUTH,
+  SOUTH_DOCK,
+  SURF,
+  surfaceUnderfoot,
+  terrainProfile,
+} from './planetConfig'
 
 const DOCKS = { north: DOCK, south: SOUTH_DOCK }
 
@@ -33,7 +44,10 @@ describe('mooring geometry (derived from the docks, never placed)', () => {
 
     it(`${name}: the mooring is over water`, () => {
       const { lat, long } = mooringLatLong(name)
-      expect(groundAltitudeAt(lat, long)).toBeLessThan(0)
+      // The BAND, not groundAltitudeAt: the moored hull is itself a
+      // walkable deck now, so groundAltitudeAt here reports the boat's
+      // floor. What must be under it is sea.
+      expect(terrainProfile(THREE.MathUtils.degToRad(90 - lat))).toBeLessThan(0)
       // …and clear of the deck itself, so the hull never clips the planks.
       expect(onDockStrip(lat, long)).toBe(false)
     })
@@ -157,6 +171,88 @@ describe('pier blockers', () => {
       for (const b of BOAT_BLOCKERS) {
         expect(m.angleTo(b.unit) * 55).toBeGreaterThan(b.radius + 0.05)
       }
+    }
+  })
+})
+
+describe('the moored boat is a walkable deck', () => {
+  /** Metres of arc per degree of latitude (the deck test's own scaling). */
+  const M_PER_DEG_LAT = (PLANET_RADIUS * Math.PI) / 180
+  const moor = (at: 'north' | 'south') =>
+    useStore.setState({ boat: { state: 'moored', at } })
+
+  afterEach(() => useStore.setState({ boat: { state: 'moored', at: 'north' } }))
+
+  it('floats the floor above the water it sits in', () => {
+    // Three wave sines x 0.04 plus the surf swing: the highest the live
+    // surface can ever reach beside the hull.
+    expect(BOAT_DECK_M).toBeGreaterThan(3 * 0.04 + SURF.amplitudeM)
+  })
+
+  it('covers the hull footprint, and stops at its edge', () => {
+    const { lat, long } = mooringLatLong('north')
+    expect(onBoatDeck(lat, long)).toBe(true)
+
+    // Along the meridian: inside each end, then 0.2 m past the bow/stern.
+    const endDeg = (BOAT.hullLengthM / 2 - 0.1) / M_PER_DEG_LAT
+    expect(onBoatDeck(lat + endDeg, long)).toBe(true)
+    expect(onBoatDeck(lat - endDeg, long)).toBe(true)
+    const pastDeg = (BOAT.hullLengthM / 2 + 0.2) / M_PER_DEG_LAT
+    expect(onBoatDeck(lat + pastDeg, long)).toBe(false)
+    expect(onBoatDeck(lat - pastDeg, long)).toBe(false)
+
+    // Across it: 0.2 m outside the beam, either side, is water.
+    const beamDeg =
+      (BOAT.hullWidthM / 2 + 0.2) / (M_PER_DEG_LAT * Math.cos(THREE.MathUtils.degToRad(lat)))
+    expect(onBoatDeck(lat, long + beamDeg)).toBe(false)
+    expect(onBoatDeck(lat, long - beamDeg)).toBe(false)
+  })
+
+  it('only the mooring the boat is actually tied to', () => {
+    const north = mooringLatLong('north')
+    const south = mooringLatLong('south')
+    moor('north')
+    expect(onBoatDeck(north.lat, north.long)).toBe(true)
+    expect(onBoatDeck(south.lat, south.long)).toBe(false)
+    moor('south')
+    expect(onBoatDeck(north.lat, north.long)).toBe(false)
+    expect(onBoatDeck(south.lat, south.long)).toBe(true)
+  })
+
+  it('is gone while the boat is being boarded, driven or tied up', () => {
+    const { lat, long } = mooringLatLong('north')
+    for (const state of ['boarding', 'driving', 'landing'] as const) {
+      useStore.setState({ boat: { state, at: 'north' } })
+      expect(onBoatDeck(lat, long), state).toBe(false)
+    }
+  })
+
+  it('you step ONTO the floor — the deck beats the water band', () => {
+    const north = mooringLatLong('north')
+    const south = mooringLatLong('south')
+    moor('north')
+    // Band is below sea level out here, so the floor is BOAT_DECK_M
+    // above the WATER, never above the sea bed.
+    expect(groundAltitudeAt(north.lat, north.long)).toBeCloseTo(BOAT_DECK_M, 6)
+    expect(groundAltitudeAt(south.lat, south.long)).toBeLessThan(0)
+    moor('south')
+    expect(groundAltitudeAt(south.lat, south.long)).toBeCloseTo(BOAT_DECK_M, 6)
+    expect(groundAltitudeAt(north.lat, north.long)).toBeLessThan(0)
+  })
+
+  it('sounds like the dock underfoot — hollow wood, no new pool', () => {
+    const { lat, long } = mooringLatLong('north')
+    moor('north')
+    expect(surfaceUnderfoot(90 - lat, long, false, onBoatDeck(lat, long))).toBe('dock')
+    // And the deck is dry: its floor stands clear of the live waterline.
+    expect(groundAltitudeAt(lat, long)).toBeGreaterThan(SURF.amplitudeM)
+  })
+
+  it('leaves the dock deck alone — the hull moors clear of the planks', () => {
+    for (const name of DOCK_NAMES) {
+      const { lat } = mooringLatLong(name)
+      const dock = name === 'north' ? DOCK : SOUTH_DOCK
+      expect(onBoatDeck(lat, dock.longDeg)).toBe(false)
     }
   })
 })

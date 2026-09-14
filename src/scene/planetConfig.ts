@@ -215,6 +215,11 @@ export const BOAT = {
   turnRateRadPerS: 1.7,
   /** How far off the dock meridian the boat moors (metres of arc). */
   mooringSideM: 1.7,
+  /** The moored hull's walkable FOOTPRINT (metres): a rectangle centred
+   *  on the mooring, the long axis along the mooring's meridian. Slightly
+   *  inside the gunwale trim, so you stand on the boat and not on air. */
+  hullLengthM: 3,
+  hullWidthM: 1.1,
   /** "E — Board the boat" enters here, leaves at the exit radius. */
   boardArcM: 2.6,
   boardExitArcM: 3.1,
@@ -225,6 +230,21 @@ export const BOAT = {
   /** Board / tie-up quaternion tween, seconds (cf. the sit tween). */
   tweenS: 0.45,
 } as const
+
+/**
+ * The boat's two heights, above ITS OWN waterline (the hull mesh's local
+ * y = 0, which sits at sea level + bob). ONE place: props.ts cuts the
+ * geometry from them, the controller seats the driver on them, and
+ * terrain.ts walks on them — they can never disagree.
+ *
+ * The interior floor sits ABOVE the water's maximum live height (three
+ * wave sines x 0.04 = 0.12, plus SURF.amplitudeM 0.06 = 0.18), and the
+ * slab under it is thick down to the hull bottom, so no wave can ever
+ * show through the floor from inside the hull.
+ */
+export const BOAT_DECK_M = 0.24
+/** Bench / stern-seat top, same frame — where the driver sits. */
+export const BOAT_SEAT_M = 0.52
 
 /** Footstep tuning (3C): gains, foot-plant phases in the swing cycle,
  * and the jump double-tap gap. */
@@ -243,8 +263,16 @@ export type Surface = 'grass' | 'sand' | 'dock' | 'wade'
  * then the dock strip (meters off the dock meridian at this polar),
  * then grass vs sand split just past the plateau edge. The same
  * analytic sources as groundHeightAt — feet and ears agree. */
-export function surfaceUnderfoot(polarDeg: number, longDeg: number, wet: boolean): Surface {
+export function surfaceUnderfoot(
+  polarDeg: number,
+  longDeg: number,
+  wet: boolean,
+  onBoatDeck = false,
+): Surface {
   if (wet) return 'wade'
+  // Standing in the moored boat: hollow wood, the same as the dock —
+  // the hull IS a deck (terrain.ts onBoatDeck; no new audio category).
+  if (onBoatDeck) return 'dock'
   const lat = 90 - polarDeg
   for (const dock of [DOCK, SOUTH_DOCK]) {
     if (lat < dock.latMinDeg || lat > dock.latMaxDeg) continue

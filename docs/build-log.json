@@ -20,22 +20,22 @@
             {
               "symbol": "rotationStep",
               "line": 30,
-              "code": "export function rotationStep(\r\n  moveDir: THREE.Vector3,\r\n  angle: number,\r\n  out: THREE.Quaternion = new THREE.Quaternion(),\r\n): THREE.Quaternion {\r\n  _axis.crossVectors(WORLD_UP, moveDir)\r\n  if (_axis.lengthSq() < 1e-12) return out.identity() // no horizontal input\r\n  return out.setFromAxisAngle(_axis.normalize(), -angle)\r\n}\r\n\r\n/** Compose one step onto the current planet orientation (world-space rotation). */\r\nexport function applyStep(\r\n  current: THREE.Quaternion,\r\n  step: THREE.Quaternion,\r"
+              "code": "export function rotationStep(\n  moveDir: THREE.Vector3,\n  angle: number,\n  out: THREE.Quaternion = new THREE.Quaternion(),\n): THREE.Quaternion {\n  _axis.crossVectors(WORLD_UP, moveDir)\n  if (_axis.lengthSq() < 1e-12) return out.identity() // no horizontal input\n  return out.setFromAxisAngle(_axis.normalize(), -angle)\n}\n\n/** Compose one step onto the current planet orientation (world-space rotation). */\nexport function applyStep(\n  current: THREE.Quaternion,\n  step: THREE.Quaternion,"
             },
             {
               "symbol": "applyStep",
               "line": 41,
-              "code": "export function applyStep(\r\n  current: THREE.Quaternion,\r\n  step: THREE.Quaternion,\r\n  out: THREE.Quaternion = new THREE.Quaternion(),\r\n): THREE.Quaternion {\r\n  // p_world = q · p_local, so an extra world rotation premultiplies: q' = step · q.\r\n  return out.multiplyQuaternions(step, current).normalize()\r\n}\r\n\r\n/**\r\n * The planet-local direction currently under the avatar's feet, i.e. the\r\n * world pole pulled back through the planet's rotation.\r\n */\r\nexport function poleInPlanetSpace(\r"
+              "code": "export function applyStep(\n  current: THREE.Quaternion,\n  step: THREE.Quaternion,\n  out: THREE.Quaternion = new THREE.Quaternion(),\n): THREE.Quaternion {\n  // p_world = q · p_local, so an extra world rotation premultiplies: q' = step · q.\n  return out.multiplyQuaternions(step, current).normalize()\n}\n\n/**\n * The planet-local direction currently under the avatar's feet, i.e. the\n * world pole pulled back through the planet's rotation.\n */\nexport function poleInPlanetSpace("
             },
             {
               "symbol": "poleInPlanetSpace",
               "line": 54,
-              "code": "export function poleInPlanetSpace(\r\n  q: THREE.Quaternion,\r\n  out: THREE.Vector3 = new THREE.Vector3(),\r\n): THREE.Vector3 {\r\n  _inv.copy(q).invert()\r\n  return out.copy(WORLD_UP).applyQuaternion(_inv)\r\n}\r\n\r\n/**\r\n * Angular distance (radians) between the avatar's ground-contact point and a\r\n * planet-local direction. Multiply by the planet radius for meters of arc.\r\n */\r\nexport function angularDistanceToPole(q: THREE.Quaternion, localDir: THREE.Vector3): number {\r\n  return poleInPlanetSpace(q, _pole).angleTo(localDir)\r"
+              "code": "export function poleInPlanetSpace(\n  q: THREE.Quaternion,\n  out: THREE.Vector3 = new THREE.Vector3(),\n): THREE.Vector3 {\n  _inv.copy(q).invert()\n  return out.copy(WORLD_UP).applyQuaternion(_inv)\n}\n\n/**\n * Angular distance (radians) between the avatar's ground-contact point and a\n * planet-local direction. Multiply by the planet radius for meters of arc.\n */\nexport function angularDistanceToPole(q: THREE.Quaternion, localDir: THREE.Vector3): number {\n  return poleInPlanetSpace(q, _pole).angleTo(localDir)"
             },
             {
               "symbol": "latLongToUnit",
               "line": 84,
-              "code": "export function latLongToUnit(latDeg: number, longDeg: number): THREE.Vector3 {\r\n  const polar = THREE.MathUtils.degToRad(90 - latDeg)\r\n  const long = THREE.MathUtils.degToRad(longDeg)\r\n  return new THREE.Vector3(\r\n    Math.sin(polar) * Math.sin(long),\r\n    Math.cos(polar),\r\n    Math.sin(polar) * Math.cos(long),\r\n  )\r\n}\r\n\r\n/** Planet-local position tuple for content files. */\r\nexport function latLongToPosition(\r\n  latDeg: number,\r\n  longDeg: number,\r"
+              "code": "export function latLongToUnit(latDeg: number, longDeg: number): THREE.Vector3 {\n  const polar = THREE.MathUtils.degToRad(90 - latDeg)\n  const long = THREE.MathUtils.degToRad(longDeg)\n  return new THREE.Vector3(\n    Math.sin(polar) * Math.sin(long),\n    Math.cos(polar),\n    Math.sin(polar) * Math.cos(long),\n  )\n}\n\n/** Planet-local position tuple for content files. */\nexport function latLongToPosition(\n  latDeg: number,\n  longDeg: number,"
             }
           ]
         },
@@ -47,7 +47,7 @@
           "excerpts": [
             {
               "symbol": "controlsRuntime",
-              "line": 52,
+              "line": 53,
               "code": "export const controlsRuntime = {\r\n  joyX: 0,\r\n  joyY: 0,\r\n  azimuth: Math.PI,\r\n  /** Set to snap the camera heading next frame (consumed once) — used by the\r\n   * e2e suites and, later, the intro swoop. */\r\n  azimuthOverride: null as number | null,\r\n  /** Teleport: put this lat/long under the avatar next frame (consumed once). */\r\n  poseOverride: null as { lat: number; long: number } | null,\r\n  wadeRippleTime: 0,\r\n  /** Written every frame for the animated avatar's clip selection. */\r\n  locomotion: 'idle' as 'idle' | 'walk' | 'run',\r\n  airborne: false,\r\n  /** Body world yaw + camera pitch, published for the head look-at (v3.3). */\r"
             }
           ],
@@ -94,8 +94,8 @@
             },
             {
               "symbol": "surfaceUnderfoot",
-              "line": 246,
-              "code": "export function surfaceUnderfoot(polarDeg: number, longDeg: number, wet: boolean): Surface {\r\n  if (wet) return 'wade'\r\n  const lat = 90 - polarDeg\r\n  for (const dock of [DOCK, SOUTH_DOCK]) {\r\n    if (lat < dock.latMinDeg || lat > dock.latMaxDeg) continue\r\n    const dLongRad = THREE_DEG * Math.abs(((longDeg - dock.longDeg + 540) % 360) - 180)\r\n    const offM = PLANET_RADIUS * Math.sin(polarDeg * THREE_DEG) * Math.sin(dLongRad)\r\n    if (Math.abs(offM) <= dock.halfWidthM + 0.2) return 'dock'\r\n  }\r\n  // Antarctica has no sand and no grass; until a snow pool exists it\r\n  // borrows the two existing surfaces — plateau reads as the soft one,\r\n  // the ice shelf as the gritty one.\r\n  if (polarDeg > 90) {\r\n    return polarDeg >= 180 - SOUTH.plateauEndDeg ? 'grass' : 'sand'\r"
+              "line": 266,
+              "code": "export function surfaceUnderfoot(\r\n  polarDeg: number,\r\n  longDeg: number,\r\n  wet: boolean,\r\n  onBoatDeck = false,\r\n): Surface {\r\n  if (wet) return 'wade'\r\n  // Standing in the moored boat: hollow wood, the same as the dock —\r\n  // the hull IS a deck (terrain.ts onBoatDeck; no new audio category).\r\n  if (onBoatDeck) return 'dock'\r\n  const lat = 90 - polarDeg\r\n  for (const dock of [DOCK, SOUTH_DOCK]) {\r\n    if (lat < dock.latMinDeg || lat > dock.latMaxDeg) continue\r\n    const dLongRad = THREE_DEG * Math.abs(((longDeg - dock.longDeg + 540) % 360) - 180)\r"
             }
           ]
         },
@@ -109,18 +109,18 @@
           "excerpts": [
             {
               "symbol": "groundAltitudeAt",
-              "line": 49,
-              "code": "export function groundAltitudeAt(latDeg: number, longDeg: number): number {\r\n  const band = bandAltitudeAt(latDeg)\r\n  const dock = dockStripAt(latDeg, longDeg)\r\n  if (dock) return band + dock.deckHeightM\r\n  return band\r\n}\r\n\r\n/** World-space ground height under the avatar (avatar y-position).\r\n *  Called every frame — no object allocation (lat/long computed inline). */\r\nexport function groundHeightAt(poleLocal: THREE.Vector3): number {\r\n  const polar = Math.acos(THREE.MathUtils.clamp(poleLocal.y, -1, 1))\r\n  const lat = 90 - THREE.MathUtils.radToDeg(polar)\r\n  const long = THREE.MathUtils.radToDeg(Math.atan2(poleLocal.x, poleLocal.z))\r\n  return PLANET_RADIUS + groundAltitudeAt(lat, long)\r"
+              "line": 90,
+              "code": "export function groundAltitudeAt(latDeg: number, longDeg: number): number {\r\n  const band = bandAltitudeAt(latDeg)\r\n  if (onBoatDeck(latDeg, longDeg)) return Math.max(band, 0) + BOAT_DECK_M\r\n  const dock = dockStripAt(latDeg, longDeg)\r\n  if (dock) return band + dock.deckHeightM\r\n  return band\r\n}\r\n\r\n/** World-space ground height under the avatar (avatar y-position).\r\n *  Called every frame — no object allocation (lat/long computed inline). */\r\nexport function groundHeightAt(poleLocal: THREE.Vector3): number {\r\n  const polar = Math.acos(THREE.MathUtils.clamp(poleLocal.y, -1, 1))\r\n  const lat = 90 - THREE.MathUtils.radToDeg(polar)\r\n  const long = THREE.MathUtils.radToDeg(Math.atan2(poleLocal.x, poleLocal.z))\r"
             },
             {
               "symbol": "groundHeightAt",
-              "line": 58,
+              "line": 100,
               "code": "export function groundHeightAt(poleLocal: THREE.Vector3): number {\r\n  const polar = Math.acos(THREE.MathUtils.clamp(poleLocal.y, -1, 1))\r\n  const lat = 90 - THREE.MathUtils.radToDeg(polar)\r\n  const long = THREE.MathUtils.radToDeg(Math.atan2(poleLocal.x, poleLocal.z))\r\n  return PLANET_RADIUS + groundAltitudeAt(lat, long)\r\n}\r\n"
             },
             {
               "symbol": "onDockStrip",
-              "line": 33,
-              "code": "export function onDockStrip(latDeg: number, longDeg: number): boolean {\r\n  return onStrip(DOCK, latDeg, longDeg) || onStrip(SOUTH_DOCK, latDeg, longDeg)\r\n}\r\n\r\n/** The dock whose strip (lat, long) sits on, or null. */\r\nexport function dockStripAt(latDeg: number, longDeg: number): DockStrip | null {\r\n  if (onStrip(DOCK, latDeg, longDeg)) return DOCK\r\n  if (onStrip(SOUTH_DOCK, latDeg, longDeg)) return SOUTH_DOCK\r\n  return null\r\n}\r\n\r\n/**\r\n * Ground altitude above sea level at (lat, long). The dock deck rides\r\n * deckHeightM above its local band (surface-snapped segments), so the same\r"
+              "line": 41,
+              "code": "export function onDockStrip(latDeg: number, longDeg: number): boolean {\r\n  return onStrip(DOCK, latDeg, longDeg) || onStrip(SOUTH_DOCK, latDeg, longDeg)\r\n}\r\n\r\n/** The dock whose strip (lat, long) sits on, or null. */\r\nexport function dockStripAt(latDeg: number, longDeg: number): DockStrip | null {\r\n  if (onStrip(DOCK, latDeg, longDeg)) return DOCK\r\n  if (onStrip(SOUTH_DOCK, latDeg, longDeg)) return SOUTH_DOCK\r\n  return null\r\n}\r\n\r\n/** Metres of arc per degree of latitude — the scaling the dock strip\r\n *  and the blockers both measure in. */\r\nconst M_PER_DEG_LAT = (PLANET_RADIUS * Math.PI) / 180\r"
             }
           ]
         },
@@ -265,12 +265,12 @@
           "excerpts": [
             {
               "symbol": "CELESTIAL_ELEVATION_INLAND_DEG",
-              "line": 338,
+              "line": 366,
               "code": "export const CELESTIAL_ELEVATION_INLAND_DEG = 45\r\n/** v3.8 TRUE SET: elevations are horizontal-relative; the sea horizon sits\r\n * at ≈ −16.6° from eye height. −15.8° puts the disc center 0.75° above the\r\n * sea line → ~40% of the sun disc (3.7° radius) submerged at the waterline;\r\n * the ocean geometry physically occludes the rest. */\r\nexport const CELESTIAL_ELEVATION_WATERLINE_DEG = -15.8\r\n/** v3.9 set floor: wading sinks it only slightly more, clamped so NEITHER\r\n * disc ever exceeds ~45% submerged (sun ρ 3.7° → 44%; moon ρ 2.74° → 43%)\r\n * — the disc and its glitter lane stay clearly visible at full set. */\r\nexport const CELESTIAL_ELEVATION_WADING_MIN_DEG = -16.2\r\nexport const CELESTIAL = { sunLongDeg: 0, moonLongDeg: 180 } as const\r\n\r\n/** Glitter corridor tuning (v3.14): the corridor centerline is the great\r\n * circle from the disc's base through the character; half-widths are\r"
             },
             {
               "symbol": "CELESTIAL_ELEVATION_WATERLINE_DEG",
-              "line": 343,
+              "line": 371,
               "code": "export const CELESTIAL_ELEVATION_WATERLINE_DEG = -15.8\r\n/** v3.9 set floor: wading sinks it only slightly more, clamped so NEITHER\r\n * disc ever exceeds ~45% submerged (sun ρ 3.7° → 44%; moon ρ 2.74° → 43%)\r\n * — the disc and its glitter lane stay clearly visible at full set. */\r\nexport const CELESTIAL_ELEVATION_WADING_MIN_DEG = -16.2\r\nexport const CELESTIAL = { sunLongDeg: 0, moonLongDeg: 180 } as const\r\n\r\n/** Glitter corridor tuning (v3.14): the corridor centerline is the great\r\n * circle from the disc's base through the character; half-widths are\r\n * perpendicular arc METERS (an azimuth cone pinches to a point at the\r\n * viewer's nadir — banned). Endpoint widths derive from the disc's\r\n * apparent width at reference distances: the limb distance (far) and\r\n * `nearRefM` (near, held at the shore). Rising scales both endpoints up\r\n * and eases opacity down to a floor; submergence is the only kill. */\r"
             }
           ]
@@ -317,7 +317,7 @@
           "excerpts": [
             {
               "symbol": "GLITTER",
-              "line": 357,
+              "line": 385,
               "code": "export const GLITTER = {\r\n  /** Corridor width at the disc base, in apparent disc widths. */\r\n  farWidthDisc: 0.65,\r\n  /** Corridor width held at the shoreline, in apparent disc widths… */\r\n  nearWidthDisc: 3.75,\r\n  /** …as seen from this reference distance (m) — the near width is a\r\n   * stable physical width, not a per-frame shore solve. */\r\n  nearRefM: 3,\r\n  /** Both endpoint widths scale up to this at inland-high. */\r\n  highWidthScale: 1.8,\r\n  /** Lane opacity at set (the vivid column)… */\r\n  opacityLow: 0.95,\r\n  /** …easing down to this floor at inland-high — never invisible. */\r\n  opacityFloor: 0.45,\r"
             }
           ]
@@ -430,27 +430,27 @@
             {
               "symbol": "nextBuffer",
               "line": 118,
-              "code": "export async function nextBuffer(category: Category): Promise<AudioBuffer | null> {\r\n  const ctx = audioRuntime.ctx\r\n  if (!ctx) return null\r\n  const urls = poolUrls.get(category)\r\n  if (urls && urls.length > 0) {\r\n    const pick = bagFor(category, urls.length).next()\r\n    return decodeUrl(urls[pick], POSITIONAL.has(category))\r\n  }\r\n  const make = fallbacks.get(category)\r\n  if (!make) return null\r\n  const key = `proc:${category}`\r\n  let buf = bufferCache.get(key)\r\n  if (!buf) {\r\n    buf = make(ctx)\r"
+              "code": "export async function nextBuffer(category: Category): Promise<AudioBuffer | null> {\n  const ctx = audioRuntime.ctx\n  if (!ctx) return null\n  const urls = poolUrls.get(category)\n  if (urls && urls.length > 0) {\n    const pick = bagFor(category, urls.length).next()\n    return decodeUrl(urls[pick], POSITIONAL.has(category))\n  }\n  const make = fallbacks.get(category)\n  if (!make) return null\n  const key = `proc:${category}`\n  let buf = bufferCache.get(key)\n  if (!buf) {\n    buf = make(ctx)"
             },
             {
               "symbol": "playDoubleTap",
               "line": 206,
-              "code": "export async function playDoubleTap(\r\n  category: Category,\r\n  bus: 'music' | 'world' | 'ui',\r\n  gain: number,\r\n  gapMs: number,\r\n) {\r\n  const rt = audioRuntime\r\n  if (!rt.ctx || !rt.buses) return\r\n  const [a, b] = await Promise.all([nextBuffer(category), nextBuffer(category)])\r\n  if (!a) return\r\n  const t0 = rt.ctx.currentTime + 0.02\r\n  const taps: Array<[AudioBuffer, number]> = [\r\n    [a, t0],\r\n    [b ?? a, t0 + gapMs / 1000],\r"
+              "code": "export async function playDoubleTap(\n  category: Category,\n  bus: 'music' | 'world' | 'ui',\n  gain: number,\n  gapMs: number,\n) {\n  const rt = audioRuntime\n  if (!rt.ctx || !rt.buses) return\n  const [a, b] = await Promise.all([nextBuffer(category), nextBuffer(category)])\n  if (!a) return\n  const t0 = rt.ctx.currentTime + 0.02\n  const taps: Array<[AudioBuffer, number]> = [\n    [a, t0],\n    [b ?? a, t0 + gapMs / 1000],"
             },
             {
               "symbol": "syncPanner",
               "line": 180,
-              "code": "export function syncPanner(node: THREE.PositionalAudio) {\r\n  node.getWorldPosition(_panPos)\r\n  const p = node.panner\r\n  if (p.positionX) {\r\n    p.positionX.value = _panPos.x\r\n    p.positionY.value = _panPos.y\r\n    p.positionZ.value = _panPos.z\r\n  } else {\r\n    p.setPosition(_panPos.x, _panPos.y, _panPos.z)\r\n  }\r\n}\r\n\r\n/** One-shot through an existing PositionalAudio node (world bus). */\r\nexport async function playAt(category: Category, node: THREE.PositionalAudio, gain = 1) {\r"
+              "code": "export function syncPanner(node: THREE.PositionalAudio) {\n  node.getWorldPosition(_panPos)\n  const p = node.panner\n  if (p.positionX) {\n    p.positionX.value = _panPos.x\n    p.positionY.value = _panPos.y\n    p.positionZ.value = _panPos.z\n  } else {\n    p.setPosition(_panPos.x, _panPos.y, _panPos.z)\n  }\n}\n\n/** One-shot through an existing PositionalAudio node (world bus). */\nexport async function playAt(category: Category, node: THREE.PositionalAudio, gain = 1) {"
             },
             {
               "symbol": "registerVoice",
               "line": 160,
-              "code": "  registerVoice(category, src)\r\n  src.start()\r\n}\r\n\r\n/** Route a three.js Audio/PositionalAudio's output through a bus. */\r\nexport function routeToBus(audio: THREE.Audio | THREE.PositionalAudio, bus: 'music' | 'world' | 'ui') {\r\n  const rt = audioRuntime\r\n  if (!rt.buses || !rt.listener) return\r\n  audio.gain.disconnect()\r\n  audio.gain.connect(rt.buses[bus])\r\n}\r\n\r\nconst _panPos = new THREE.Vector3()\r\n/** three's PositionalAudio only updates its panner while `isPlaying`\r"
+              "code": "  registerVoice(category, src)\n  src.start()\n}\n\n/** Route a three.js Audio/PositionalAudio's output through a bus. */\nexport function routeToBus(audio: THREE.Audio | THREE.PositionalAudio, bus: 'music' | 'world' | 'ui') {\n  const rt = audioRuntime\n  if (!rt.buses || !rt.listener) return\n  audio.gain.disconnect()\n  audio.gain.connect(rt.buses[bus])\n}\n\nconst _panPos = new THREE.Vector3()\n/** three's PositionalAudio only updates its panner while `isPlaying`"
             },
             {
               "symbol": "onAudioResume",
               "line": 259,
-              "code": "export function onAudioResume(h: (now: number) => void): () => void {\r\n  resumeHandlers.add(h)\r\n  return () => resumeHandlers.delete(h)\r\n}\r\n\r\nfunction handleVisibility() {\r\n  const rt = audioRuntime\r\n  if (!rt.ctx || !rt.listener) return\r\n  if (document.hidden) {\r\n    audioPause.hidden = true\r\n    // Hard-zero first (suspend() can lag a beat), then freeze the clock.\r\n    rt.listener.gain.gain.cancelScheduledValues(0)\r\n    rt.listener.gain.gain.value = 0\r\n    void rt.ctx.suspend()\r"
+              "code": "export function onAudioResume(h: (now: number) => void): () => void {\n  resumeHandlers.add(h)\n  return () => resumeHandlers.delete(h)\n}\n\nfunction handleVisibility() {\n  const rt = audioRuntime\n  if (!rt.ctx || !rt.listener) return\n  if (document.hidden) {\n    audioPause.hidden = true\n    // Hard-zero first (suspend() can lag a beat), then freeze the clock.\n    rt.listener.gain.gain.cancelScheduledValues(0)\n    rt.listener.gain.gain.value = 0\n    void rt.ctx.suspend()"
             }
           ]
         },
@@ -463,7 +463,7 @@
             {
               "symbol": "ShuffleBag",
               "line": 7,
-              "code": "export class ShuffleBag {\r\n  private history: number[] = []\r\n\r\n  constructor(\r\n    private size: number,\r\n    private rng: () => number = Math.random,\r\n  ) {}\r\n\r\n  /** Update the pool size (files can be hot-added in dev). */\r\n  resize(size: number) {\r\n    this.size = size\r\n    this.history = this.history.filter((i) => i < size)\r\n  }\r\n\r"
+              "code": "export class ShuffleBag {\n  private history: number[] = []\n\n  constructor(\n    private size: number,\n    private rng: () => number = Math.random,\n  ) {}\n\n  /** Update the pool size (files can be hot-added in dev). */\n  resize(size: number) {\n    this.size = size\n    this.history = this.history.filter((i) => i < size)\n  }\n"
             }
           ]
         },
@@ -477,12 +477,12 @@
             {
               "symbol": "stepSound",
               "line": 19,
-              "code": "export function stepSound(surface: Surface, sprint: boolean) {\r\n  // e2e cadence probe.\r\n  const w = window as unknown as { __stepLog?: Array<{ t: number; surface: string }> }\r\n  ;(w.__stepLog ??= []).push({ t: performance.now(), surface })\r\n  if (w.__stepLog.length > 64) w.__stepLog.shift()\r\n  void play2d(\r\n    surfaceToCategory(surface),\r\n    'world',\r\n    sprint ? FOOTSTEPS.stepGainSprint : FOOTSTEPS.stepGainWalk,\r\n  )\r\n}\r\n\r\n/** Takeoff/landing double-tap — two different picks ~90 ms apart;\r\n * landing slightly louder, never one heavy thud. */\r"
+              "code": "export function stepSound(surface: Surface, sprint: boolean) {\n  // e2e cadence probe.\n  const w = window as unknown as { __stepLog?: Array<{ t: number; surface: string }> }\n  ;(w.__stepLog ??= []).push({ t: performance.now(), surface })\n  if (w.__stepLog.length > 64) w.__stepLog.shift()\n  void play2d(\n    surfaceToCategory(surface),\n    'world',\n    sprint ? FOOTSTEPS.stepGainSprint : FOOTSTEPS.stepGainWalk,\n  )\n}\n\n/** Takeoff/landing double-tap — two different picks ~90 ms apart;\n * landing slightly louder, never one heavy thud. */"
             },
             {
               "symbol": "jumpTaps",
               "line": 33,
-              "code": "export function jumpTaps(surface: Surface, landing: boolean) {\r\n  const base = FOOTSTEPS.stepGainWalk * (landing ? 1.25 : 1.05)\r\n  void playDoubleTap(surfaceToCategory(surface), 'world', base, FOOTSTEPS.jumpTapGapMs)\r\n}\r\n"
+              "code": "export function jumpTaps(surface: Surface, landing: boolean) {\n  const base = FOOTSTEPS.stepGainWalk * (landing ? 1.25 : 1.05)\n  void playDoubleTap(surfaceToCategory(surface), 'world', base, FOOTSTEPS.jumpTapGapMs)\n}\n"
             }
           ]
         },
@@ -495,7 +495,7 @@
             {
               "symbol": "CrossfadeLoop",
               "line": 10,
-              "code": "export class CrossfadeLoop {\r\n  private out: GainNode | null = null\r\n  private endTime = 0\r\n  private pending = false\r\n\r\n  constructor(\r\n    private category: Category,\r\n    private fade = 0.5,\r\n  ) {}\r\n\r\n  /** The loop's level node (created lazily, connected to `target`). */\r\n  level(target: AudioNode): GainNode | null {\r\n    const ctx = audioRuntime.ctx\r\n    if (!ctx) return null\r"
+              "code": "export class CrossfadeLoop {\n  private out: GainNode | null = null\n  private endTime = 0\n  private pending = false\n\n  constructor(\n    private category: Category,\n    private fade = 0.5,\n  ) {}\n\n  /** The loop's level node (created lazily, connected to `target`). */\n  level(target: AudioNode): GainNode | null {\n    const ctx = audioRuntime.ctx\n    if (!ctx) return null"
             }
           ]
         },
@@ -510,17 +510,17 @@
             {
               "symbol": "musicTarget",
               "line": 37,
-              "code": "export function musicTarget(arcUkeM: number, arcFireM: number, modalOpen: boolean): number {\r\n  const ukeF = THREE.MathUtils.smoothstep(arcUkeM, 8, 20)\r\n  const fireF = THREE.MathUtils.lerp(0.6, 1, THREE.MathUtils.smoothstep(arcFireM, 4, 10))\r\n  return 0.35 * ukeF * fireF * (modalOpen ? 0.57 : 1)\r\n}\r\n\r\n/** Campfire crackle level — PURE proximity (audio finishing pass):\r\n * full at 3 m, silent past 12 m, and deliberately no nightMix term —\r\n * day/night has nothing to do with what a fire sounds like. */\r\nexport function crackleTarget(arcFireM: number): number {\r\n  return 0.875 * (1 - THREE.MathUtils.smoothstep(arcFireM, 3, 12))\r\n}\r\n\r\n/** Gull cry launch gain: a real gradient on top of the panner — full\r"
+              "code": "export function musicTarget(arcUkeM: number, arcFireM: number, modalOpen: boolean): number {\n  const ukeF = THREE.MathUtils.smoothstep(arcUkeM, 8, 20)\n  const fireF = THREE.MathUtils.lerp(0.6, 1, THREE.MathUtils.smoothstep(arcFireM, 4, 10))\n  return 0.35 * ukeF * fireF * (modalOpen ? 0.57 : 1)\n}\n\n/** Campfire crackle level — PURE proximity (audio finishing pass):\n * full at 3 m, silent past 12 m, and deliberately no nightMix term —\n * day/night has nothing to do with what a fire sounds like. */\nexport function crackleTarget(arcFireM: number): number {\n  return 0.875 * (1 - THREE.MathUtils.smoothstep(arcFireM, 3, 12))\n}\n\n/** Gull cry launch gain: a real gradient on top of the panner — full"
             },
             {
               "symbol": "crackleTarget",
               "line": 46,
-              "code": "export function crackleTarget(arcFireM: number): number {\r\n  return 0.875 * (1 - THREE.MathUtils.smoothstep(arcFireM, 3, 12))\r\n}\r\n\r\n/** Gull cry launch gain: a real gradient on top of the panner — full\r\n * voice inside ~10 m (gulls orbit at 10–13.5 m altitude, so \"standing\r\n * under one\" IS ~12 m), gone past 30 m, so flyovers breathe. */\r\nexport function cryGain(distM: number): number {\r\n  return 1.08 * (1 - THREE.MathUtils.smoothstep(distM, 10, 30))\r\n}\r\n\r\nexport function WorldEmitters() {\r\n  const fireAnchor = useRef<THREE.Group>(null)\r\n  const st = useRef({\r"
+              "code": "export function crackleTarget(arcFireM: number): number {\n  return 0.875 * (1 - THREE.MathUtils.smoothstep(arcFireM, 3, 12))\n}\n\n/** Gull cry launch gain: a real gradient on top of the panner — full\n * voice inside ~10 m (gulls orbit at 10–13.5 m altitude, so \"standing\n * under one\" IS ~12 m), gone past 30 m, so flyovers breathe. */\nexport function cryGain(distM: number): number {\n  return 1.08 * (1 - THREE.MathUtils.smoothstep(distM, 10, 30))\n}\n\nexport function WorldEmitters() {\n  const fireAnchor = useRef<THREE.Group>(null)\n  const st = useRef({"
             },
             {
               "symbol": "cryGain",
               "line": 53,
-              "code": "export function cryGain(distM: number): number {\r\n  return 1.08 * (1 - THREE.MathUtils.smoothstep(distM, 10, 30))\r\n}\r\n\r\nexport function WorldEmitters() {\r\n  const fireAnchor = useRef<THREE.Group>(null)\r\n  const st = useRef({\r\n    fire: new CrossfadeLoop('campfire', 0.6),\r\n    fireNode: null as THREE.PositionalAudio | null,\r\n    cryNode: null as THREE.PositionalAudio | null,\r\n    nextCry: 0,\r\n    fireUnit: latLongToUnit(MAP.campfire.lat, MAP.campfire.long),\r\n    pole: new THREE.Vector3(),\r\n  })\r"
+              "code": "export function cryGain(distM: number): number {\n  return 1.08 * (1 - THREE.MathUtils.smoothstep(distM, 10, 30))\n}\n\nexport function WorldEmitters() {\n  const fireAnchor = useRef<THREE.Group>(null)\n  const st = useRef({\n    fire: new CrossfadeLoop('campfire', 0.6),\n    fireNode: null as THREE.PositionalAudio | null,\n    cryNode: null as THREE.PositionalAudio | null,\n    nextCry: 0,\n    fireUnit: latLongToUnit(MAP.campfire.lat, MAP.campfire.long),\n    pole: new THREE.Vector3(),\n  })"
             }
           ]
         }
@@ -614,7 +614,7 @@
             {
               "symbol": "Photo",
               "line": 1,
-              "code": "export interface Photo {\r\n  id: string\r\n  /** Web-sized image (longest edge ~1800 px, WebP via the pipeline). */\r\n  full: string\r\n  /** Grid thumbnail (~480 px, cover-cropped by the tile). */\r\n  thumb: string\r\n  /** Intrinsic dimensions of `full` — layout never guesses ratios. */\r\n  width: number\r\n  height: number\r\n  alt: string\r\n  title: string\r\n  caption?: string\r\n}\r\n\r"
+              "code": "export interface Photo {\n  id: string\n  /** Web-sized image (longest edge ~1800 px, WebP via the pipeline). */\n  full: string\n  /** Grid thumbnail (~480 px, cover-cropped by the tile). */\n  thumb: string\n  /** Intrinsic dimensions of `full` — layout never guesses ratios. */\n  width: number\n  height: number\n  alt: string\n  title: string\n  caption?: string\n}\n"
             }
           ],
           "note": "the interface, curated order"
@@ -662,7 +662,7 @@
           "excerpts": [
             {
               "symbol": "buildHedgeStone",
-              "line": 971,
+              "line": 1017,
               "code": "export function buildHedgeStone(): PropPart[] {\r\n  const tinted = (g: THREE.BufferGeometry, color: string, pos: [number, number, number], rot: [number, number, number] = [0, 0, 0], scale: [number, number, number] = [1, 1, 1]) => {\r\n    const n = tintGeometry(normalizeForMerge(g), color)\r\n    g.dispose()\r\n    n.applyMatrix4(\r\n      new THREE.Matrix4().compose(\r\n        new THREE.Vector3(...pos),\r\n        new THREE.Quaternion().setFromEuler(new THREE.Euler(...rot)),\r\n        new THREE.Vector3(...scale),\r\n      ),\r\n    )\r\n    return n\r\n  }\r\n  const STONE = '#8a9484'\r"
             }
           ]
@@ -723,7 +723,7 @@
           "excerpts": [
             {
               "symbol": "buildBulletinBoard",
-              "line": 733,
+              "line": 779,
               "code": "export function buildBulletinBoard(): PropPart[] {\r\n  const tinted = (g: THREE.BufferGeometry, color: string, pos: [number, number, number], rot: [number, number, number] = [0, 0, 0], scale: [number, number, number] = [1, 1, 1]) => {\r\n    const n = tintGeometry(normalizeForMerge(g), color)\r\n    g.dispose()\r\n    n.applyMatrix4(\r\n      new THREE.Matrix4().compose(\r\n        new THREE.Vector3(...pos),\r\n        new THREE.Quaternion().setFromEuler(new THREE.Euler(...rot)),\r\n        new THREE.Vector3(...scale),\r\n      ),\r\n    )\r\n    return n\r\n  }\r\n  const FRAME = '#7f9578'\r"
             }
           ]
@@ -737,7 +737,7 @@
             {
               "symbol": "Paper",
               "line": 1,
-              "code": "export interface Paper {\r\n  id: string\r\n  title: string\r\n  blurb: string\r\n  /** Public path (files live in public/, e.g. '/aiden-hock-resume.pdf'). */\r\n  file: string\r\n  type: 'pdf'\r\n}\r\n\r\n/**\r\n * Documents pinned to the bulletin board (and mirrored on /classic).\r\n * NOTE: /aiden-hock-resume.pdf is currently a PLACEHOLDER — the real\r\n * resume's header contains a phone number, which must not ship\r\n * (CLAUDE.md privacy rule). Aiden: strip the phone from the docx (or\r"
+              "code": "export interface Paper {\n  id: string\n  title: string\n  blurb: string\n  /** Public path (files live in public/, e.g. '/aiden-hock-resume.pdf'). */\n  file: string\n  type: 'pdf'\n}\n\n/**\n * Documents pinned to the bulletin board (and mirrored on /classic).\n * NOTE: /aiden-hock-resume.pdf is currently a PLACEHOLDER — the real\n * resume's header contains a phone number, which must not ship\n * (CLAUDE.md privacy rule). Aiden: strip the phone from the docx (or"
             }
           ],
           "note": "the interface"
@@ -773,17 +773,17 @@
             {
               "symbol": "playerFrame",
               "line": 34,
-              "code": "export function playerFrame(quat: THREE.Quaternion, out?: LocalFrame): LocalFrame {\r\n  const frame = out ?? {\r\n    pole: new THREE.Vector3(),\r\n    north: new THREE.Vector3(),\r\n    east: new THREE.Vector3(),\r\n  }\r\n  poleInPlanetSpace(quat, frame.pole)\r\n  frame.pole.normalize()\r\n  // North = the tangent toward lat 90. Degenerate exactly at the pole,\r\n  // where any tangent is north; +Z keeps the map from flipping there.\r\n  const lat = Math.asin(THREE.MathUtils.clamp(frame.pole.y, -1, 1))\r\n  if (Math.abs(Math.cos(lat)) < 1e-6) {\r\n    frame.north.set(0, 0, 1)\r\n  } else {\r"
+              "code": "export function playerFrame(quat: THREE.Quaternion, out?: LocalFrame): LocalFrame {\n  const frame = out ?? {\n    pole: new THREE.Vector3(),\n    north: new THREE.Vector3(),\n    east: new THREE.Vector3(),\n  }\n  poleInPlanetSpace(quat, frame.pole)\n  frame.pole.normalize()\n  // North = the tangent toward lat 90. Degenerate exactly at the pole,\n  // where any tangent is north; +Z keeps the map from flipping there.\n  const lat = Math.asin(THREE.MathUtils.clamp(frame.pole.y, -1, 1))\n  if (Math.abs(Math.cos(lat)) < 1e-6) {\n    frame.north.set(0, 0, 1)\n  } else {"
             },
             {
               "symbol": "bearingTo",
               "line": 66,
-              "code": "export function bearingTo(frame: LocalFrame, unit: THREE.Vector3): number {\r\n  // Project the target onto the tangent plane at the player.\r\n  _u.copy(unit).addScaledVector(frame.pole, -frame.pole.dot(unit))\r\n  if (_u.lengthSq() < 1e-12) return 0\r\n  _u.normalize()\r\n  return Math.atan2(_u.dot(frame.east), _u.dot(frame.north))\r\n}\r\n\r\n/**\r\n * The camera's heading as a bearing from local north, so the map can be\r\n * rotated to put \"where I am looking\" at the top. `forwardWorld` is the\r\n * camera's forward direction in world space; `quat` the planet's.\r\n */\r\nexport function cameraHeading(\r"
+              "code": "export function bearingTo(frame: LocalFrame, unit: THREE.Vector3): number {\n  // Project the target onto the tangent plane at the player.\n  _u.copy(unit).addScaledVector(frame.pole, -frame.pole.dot(unit))\n  if (_u.lengthSq() < 1e-12) return 0\n  _u.normalize()\n  return Math.atan2(_u.dot(frame.east), _u.dot(frame.north))\n}\n\n/**\n * The camera's heading as a bearing from local north, so the map can be\n * rotated to put \"where I am looking\" at the top. `forwardWorld` is the\n * camera's forward direction in world space; `quat` the planet's.\n */\nexport function cameraHeading("
             },
             {
               "symbol": "toScreen",
               "line": 96,
-              "code": "export function toScreen(\r\n  range: number,\r\n  bearing: number,\r\n  heading: number,\r\n  pxPerM: number,\r\n  out: { x: number; y: number },\r\n): { x: number; y: number } {\r\n  const a = bearing - heading\r\n  const r = range * pxPerM\r\n  out.x = Math.sin(a) * r\r\n  out.y = -Math.cos(a) * r\r\n  return out\r\n}\r\n\r"
+              "code": "export function toScreen(\n  range: number,\n  bearing: number,\n  heading: number,\n  pxPerM: number,\n  out: { x: number; y: number },\n): { x: number; y: number } {\n  const a = bearing - heading\n  const r = range * pxPerM\n  out.x = Math.sin(a) * r\n  out.y = -Math.cos(a) * r\n  return out\n}\n"
             }
           ]
         },
@@ -856,12 +856,12 @@
           "excerpts": [
             {
               "symbol": "buildCemetery",
-              "line": 533,
+              "line": 579,
               "code": "export function buildCemetery(plot: {\r\n  lat: number\r\n  long: number\r\n  yawDeg: number\r\n  size?: { widthM: number; depthM: number }\r\n} = placement('cemetery')): PropPart[] {\r\n  const tinted = (g: THREE.BufferGeometry, color: string, pos: [number, number, number], rot: [number, number, number] = [0, 0, 0], scale: [number, number, number] = [1, 1, 1]) => {\r\n    const n = tintGeometry(normalizeForMerge(g), color)\r\n    g.dispose()\r\n    n.applyMatrix4(\r\n      new THREE.Matrix4().compose(\r\n        new THREE.Vector3(...pos),\r\n        new THREE.Quaternion().setFromEuler(new THREE.Euler(...rot)),\r\n        new THREE.Vector3(...scale),\r"
             },
             {
               "symbol": "buildHeadstone",
-              "line": 704,
+              "line": 750,
               "code": "export function buildHeadstone(): PropPart[] {\r\n  const tinted = (g: THREE.BufferGeometry, color: string, pos: [number, number, number], rot: [number, number, number] = [0, 0, 0]) => {\r\n    const n = tintGeometry(normalizeForMerge(g), color)\r\n    g.dispose()\r\n    n.applyMatrix4(\r\n      new THREE.Matrix4().compose(\r\n        new THREE.Vector3(...pos),\r\n        new THREE.Quaternion().setFromEuler(new THREE.Euler(...rot)),\r\n        new THREE.Vector3(1, 1, 1),\r\n      ),\r\n    )\r\n    return n\r\n  }\r\n  const parts = [\r"
             }
           ]
@@ -991,7 +991,7 @@
             {
               "symbol": "@font-face",
               "line": 4,
-              "code": "@font-face {\r\n  font-family: 'Atkinson Hyperlegible';\r\n  font-style: normal;\r\n  font-weight: 400;\r\n  font-display: swap;\r\n  src: url('/fonts/atkinson-hyperlegible-400.woff2') format('woff2');\r\n  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;\r\n}\r\n\r\n@font-face {\r\n  font-family: 'Atkinson Hyperlegible';\r\n  font-style: normal;\r\n  font-weight: 700;\r\n  font-display: swap;\r"
+              "code": "@font-face {\n  font-family: 'Atkinson Hyperlegible';\n  font-style: normal;\n  font-weight: 400;\n  font-display: swap;\n  src: url('/fonts/atkinson-hyperlegible-400.woff2') format('woff2');\n  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;\n}\n\n@font-face {\n  font-family: 'Atkinson Hyperlegible';\n  font-style: normal;\n  font-weight: 700;\n  font-display: swap;"
             }
           ],
           "note": "generated rules"
@@ -1054,7 +1054,7 @@
           "excerpts": [
             {
               "symbol": "MAP",
-              "line": 272,
+              "line": 300,
               "code": "export const MAP = {\r\n  tripod: placementPos('photos'), // Photos — on the dock end, over water\r\n  mailbox: placementPos('contact'), // Contact — dock entrance\r\n  // NPC — seat ON the dock's west edge (cross-track ~0.87 m < the 1 m\r\n  // half-width, so his butt overlaps the deck), legs over the surf.\r\n  ukulelePlayer: placementPos('koa'),\r\n  palapa: placementPos('projects'), // Projects — day-leaning side\r\n  bulletinBoard: placementPos('papers'), // Papers — grass, sunset side\r\n  matrixPortal: placementPos('rift'), // Build-log room — night-leaning side\r\n  cemetery: placementPos('cemetery'), // Memorial garden\r\n  hedgeStone: placementPos('about'), // About — the moai, dusk boundary west\r\n  campfire: placementPos('campfire'), // night beach\r\n  // Log circle: three sittable logs ~3.2 m from the fire on the landward\r\n  // arc, opening toward the sea. Yaw comes from each log's facingDeg.\r"
             }
           ]
@@ -1180,12 +1180,12 @@
             {
               "symbol": "project",
               "line": 28,
-              "code": "export function project(view: MapView, lat: number, long: number): { x: number; y: number } {\r\n  const r = (90 - lat) * view.scale\r\n  const a = long * DEG\r\n  return {\r\n    x: view.cx + view.panX + Math.sin(a) * r,\r\n    y: view.cy + view.panY - Math.cos(a) * r,\r\n  }\r\n}\r\n\r\nexport function unproject(view: MapView, x: number, y: number): { lat: number; long: number } {\r\n  const dx = x - view.cx - view.panX\r\n  const dy = y - view.cy - view.panY\r\n  const r = Math.hypot(dx, dy)\r\n  return {\r"
+              "code": "export function project(view: MapView, lat: number, long: number): { x: number; y: number } {\n  const r = (90 - lat) * view.scale\n  const a = long * DEG\n  return {\n    x: view.cx + view.panX + Math.sin(a) * r,\n    y: view.cy + view.panY - Math.cos(a) * r,\n  }\n}\n\nexport function unproject(view: MapView, x: number, y: number): { lat: number; long: number } {\n  const dx = x - view.cx - view.panX\n  const dy = y - view.cy - view.panY\n  const r = Math.hypot(dx, dy)\n  return {"
             },
             {
               "symbol": "unproject",
               "line": 37,
-              "code": "export function unproject(view: MapView, x: number, y: number): { lat: number; long: number } {\r\n  const dx = x - view.cx - view.panX\r\n  const dy = y - view.cy - view.panY\r\n  const r = Math.hypot(dx, dy)\r\n  return {\r\n    lat: 90 - r / view.scale,\r\n    long: ((Math.atan2(dx, -dy) / DEG) % 360 + 360) % 360,\r\n  }\r\n}\r\n\r\n/** Metres → pixels, for drawing blocker radii at their true size. */\r\nexport const metresPerDegree = (Math.PI * PLANET_RADIUS) / 180\r\nexport const pxPerMetre = (view: MapView) => view.scale / metresPerDegree\r\n"
+              "code": "export function unproject(view: MapView, x: number, y: number): { lat: number; long: number } {\n  const dx = x - view.cx - view.panX\n  const dy = y - view.cy - view.panY\n  const r = Math.hypot(dx, dy)\n  return {\n    lat: 90 - r / view.scale,\n    long: ((Math.atan2(dx, -dy) / DEG) % 360 + 360) % 360,\n  }\n}\n\n/** Metres → pixels, for drawing blocker radii at their true size. */\nexport const metresPerDegree = (Math.PI * PLANET_RADIUS) / 180\nexport const pxPerMetre = (view: MapView) => view.scale / metresPerDegree\n"
             }
           ]
         },
@@ -1227,7 +1227,7 @@
             {
               "symbol": "aidenStep",
               "line": 18,
-              "code": "const aidenStep = () => {\r\n  stepSound(\r\n    surfaceUnderfoot(controlsRuntime.surfPolarDeg, controlsRuntime.surfLongDeg, controlsRuntime.wet),\r\n    controlsRuntime.locomotion === 'run',\r\n  )\r\n  footprintQueue.press()\r\n}\r\n\r\n/** Jump apex (m) from the controller's ballistics: v0² / 2g. */\r\nconst JUMP_APEX_M = (4.5 * 4.5) / (2 * 12)\r\n\r\n/** Seated-at-the-fire pose (3C sit system): thighs swing forward like\r\n * Koa's dock dangle but higher (log seat), knees apart a touch, arms\r\n * resting toward the lap, elbows soft. Blended in ~0.15 s over whatever\r"
+              "code": "const aidenStep = () => {\r\n  stepSound(\r\n    surfaceUnderfoot(\r\n      controlsRuntime.surfPolarDeg,\r\n      controlsRuntime.surfLongDeg,\r\n      controlsRuntime.wet,\r\n      controlsRuntime.onBoatDeck,\r\n    ),\r\n    controlsRuntime.locomotion === 'run',\r\n  )\r\n  footprintQueue.press()\r\n}\r\n\r\n/** Jump apex (m) from the controller's ballistics: v0² / 2g. */\r"
             }
           ],
           "note": "where a step becomes a print"
@@ -1334,7 +1334,7 @@
           "excerpts": [
             {
               "symbol": "buildTelescope",
-              "line": 441,
+              "line": 487,
               "code": "export function buildTelescope(): PropPart[] {\r\n  const METAL = '#3a4048'\r\n  const METAL_LIGHT = '#5a626e'\r\n  const BRASS = '#b8894a'\r\n  const GLASS = '#1b2740'\r\n\r\n  const tinted = (\r\n    g: THREE.BufferGeometry,\r\n    color: string,\r\n    pos: [number, number, number],\r\n    rot: [number, number, number] = [0, 0, 0],\r\n  ) => {\r\n    const n = tintGeometry(normalizeForMerge(g), color)\r\n    g.dispose()\r"
             }
           ]
@@ -1380,52 +1380,52 @@
             {
               "symbol": "WIND_AXIS",
               "line": 11,
-              "code": "export const WIND_AXIS = new THREE.Vector3(0.35, 0.8, 0.49).normalize()\r\n\r\n/** Palm crown lean tuning, in radians. Kept subtle by design — a palm\r\n * must never look like it is being blown over. */\r\nexport const WIND = {\r\n  axis: WIND_AXIS,\r\n  baseRad: 0.045,\r\n  gustRad: 0.035,\r\n  breatheHz: 0.18,\r\n  flutterHz: 1.1,\r\n} as const\r\n\r\nconst _fallbackA = new THREE.Vector3(1, 0, 0)\r\nconst _fallbackB = new THREE.Vector3(0, 1, 0)\r"
+              "code": "export const WIND_AXIS = new THREE.Vector3(0.35, 0.8, 0.49).normalize()\n\n/** Palm crown lean tuning, in radians. Kept subtle by design — a palm\n * must never look like it is being blown over. */\nexport const WIND = {\n  axis: WIND_AXIS,\n  baseRad: 0.045,\n  gustRad: 0.035,\n  breatheHz: 0.18,\n  flutterHz: 1.1,\n} as const\n\nconst _fallbackA = new THREE.Vector3(1, 0, 0)\nconst _fallbackB = new THREE.Vector3(0, 1, 0)"
             },
             {
               "symbol": "WIND",
               "line": 15,
-              "code": "export const WIND = {\r\n  axis: WIND_AXIS,\r\n  baseRad: 0.045,\r\n  gustRad: 0.035,\r\n  breatheHz: 0.18,\r\n  flutterHz: 1.1,\r\n} as const\r\n\r\nconst _fallbackA = new THREE.Vector3(1, 0, 0)\r\nconst _fallbackB = new THREE.Vector3(0, 1, 0)\r\n\r\n/**\r\n * The tangent wind direction at a planet-local unit position — the same\r\n * great-circle drift direction the clouds use: `normalize(cross(WIND_AXIS,\r"
+              "code": "export const WIND = {\n  axis: WIND_AXIS,\n  baseRad: 0.045,\n  gustRad: 0.035,\n  breatheHz: 0.18,\n  flutterHz: 1.1,\n} as const\n\nconst _fallbackA = new THREE.Vector3(1, 0, 0)\nconst _fallbackB = new THREE.Vector3(0, 1, 0)\n\n/**\n * The tangent wind direction at a planet-local unit position — the same\n * great-circle drift direction the clouds use: `normalize(cross(WIND_AXIS,"
             },
             {
               "symbol": "windDirAt",
               "line": 32,
-              "code": "export function windDirAt(unit: THREE.Vector3, out: THREE.Vector3): THREE.Vector3 {\r\n  out.crossVectors(WIND_AXIS, unit)\r\n  if (out.lengthSq() < 1e-10) {\r\n    out.crossVectors(WIND_AXIS, _fallbackA)\r\n    if (out.lengthSq() < 1e-10) out.crossVectors(WIND_AXIS, _fallbackB)\r\n  }\r\n  return out.normalize()\r\n}\r\n\r\n/**\r\n * The crown lean angle (radians) at time `t` for a palm with phase\r\n * `phase` — a slow breathing lean with a small faster flutter riding on\r\n * top, so no two palms move in unison. Pure, deterministic.\r\n */\r"
+              "code": "export function windDirAt(unit: THREE.Vector3, out: THREE.Vector3): THREE.Vector3 {\n  out.crossVectors(WIND_AXIS, unit)\n  if (out.lengthSq() < 1e-10) {\n    out.crossVectors(WIND_AXIS, _fallbackA)\n    if (out.lengthSq() < 1e-10) out.crossVectors(WIND_AXIS, _fallbackB)\n  }\n  return out.normalize()\n}\n\n/**\n * The crown lean angle (radians) at time `t` for a palm with phase\n * `phase` — a slow breathing lean with a small faster flutter riding on\n * top, so no two palms move in unison. Pure, deterministic.\n */"
             },
             {
               "symbol": "windLean",
               "line": 46,
-              "code": "export function windLean(t: number, phase: number): number {\r\n  const breathe = 0.5 + 0.5 * Math.sin(2 * Math.PI * WIND.breatheHz * t + phase)\r\n  const flutter =\r\n    Math.sin(2 * Math.PI * WIND.flutterHz * t + phase * 1.7) +\r\n    0.6 * Math.sin(2 * Math.PI * WIND.flutterHz * 0.37 * t + phase * 2.3)\r\n  return WIND.baseRad * breathe + WIND.gustRad * 0.5 * flutter * 0.5\r\n}\r\n\r\n/**\r\n * The groove (Palms groove). The wind above is weather; this is MUSIC — a\r\n * slow hip-hop head-nod the whole tree rides on. One lean left-and-right\r\n * every two beats, a squash-and-stretch bounce on every beat, and a crown\r\n * that whips a fraction behind the trunk.\r\n *\r"
+              "code": "export function windLean(t: number, phase: number): number {\n  const breathe = 0.5 + 0.5 * Math.sin(2 * Math.PI * WIND.breatheHz * t + phase)\n  const flutter =\n    Math.sin(2 * Math.PI * WIND.flutterHz * t + phase * 1.7) +\n    0.6 * Math.sin(2 * Math.PI * WIND.flutterHz * 0.37 * t + phase * 2.3)\n  return WIND.baseRad * breathe + WIND.gustRad * 0.5 * flutter * 0.5\n}\n\n/**\n * The groove (Palms groove). The wind above is weather; this is MUSIC — a\n * slow hip-hop head-nod the whole tree rides on. One lean left-and-right\n * every two beats, a squash-and-stretch bounce on every beat, and a crown\n * that whips a fraction behind the trunk.\n *"
             },
             {
               "symbol": "GROOVE",
               "line": 64,
-              "code": "export const GROOVE = {\r\n  /** Tempo of the island. */\r\n  bpm: 92,\r\n  /** Trunk lean amplitude (radians), left-right across the wind. */\r\n  leanRad: 0.07,\r\n  /** Extra crown lean amplitude (radians) about the crown pivot. */\r\n  crownRad: 0.09,\r\n  /** Crown phase lag behind the trunk (radians) — the whip. */\r\n  crownLag: 0.6,\r\n  /** Peak vertical stretch on the beat (scale = 1 + bounce). */\r\n  bounce: 0.045,\r\n  /** Peak x/z counter-squash at full stretch (fraction). */\r\n  squash: 0.015,\r\n  /** Per-palm tempo jitter (fraction of bpm) so the grove drifts in and\r"
+              "code": "export const GROOVE = {\n  /** Tempo of the island. */\n  bpm: 92,\n  /** Trunk lean amplitude (radians), left-right across the wind. */\n  leanRad: 0.1,\n  /** Extra crown lean amplitude (radians) about the crown pivot. */\n  crownRad: 0.11,\n  /** Crown phase lag behind the trunk (radians) — the whip. */\n  crownLag: 0.6,\n  /** Peak vertical stretch on the beat (scale = 1 + bounce). */\n  bounce: 0.07,\n  /** Peak x/z counter-squash at full stretch (fraction). */\n  squash: 0.02,\n  /** Per-palm tempo jitter (fraction of bpm) so the grove drifts in and"
             },
             {
               "symbol": "grooveLean",
               "line": 96,
-              "code": "export function grooveLean(t: number, phase: number, bpm: number = GROOVE.bpm): number {\r\n  return GROOVE.leanRad * Math.sin(leanOmega(bpm) * t + phase)\r\n}\r\n\r\n/**\r\n * The crown's extra groove lean (radians) — the same nod, `GROOVE.crownLag`\r\n * radians behind the trunk, so the fronds whip after the trunk has moved.\r\n */\r\nexport function grooveCrownLean(t: number, phase: number, bpm: number = GROOVE.bpm): number {\r\n  return GROOVE.crownRad * Math.sin(leanOmega(bpm) * t + phase + GROOVE.crownLag)\r\n}\r\n\r\n/**\r\n * The vertical bounce scale at time `t`: `1 + bounce · max(0, sin(beat))²`.\r"
+              "code": "export function grooveLean(t: number, phase: number, bpm: number = GROOVE.bpm): number {\n  return GROOVE.leanRad * Math.sin(leanOmega(bpm) * t + phase)\n}\n\n/**\n * The crown's extra groove lean (radians) — the same nod, `GROOVE.crownLag`\n * radians behind the trunk, so the fronds whip after the trunk has moved.\n */\nexport function grooveCrownLean(t: number, phase: number, bpm: number = GROOVE.bpm): number {\n  return GROOVE.crownRad * Math.sin(leanOmega(bpm) * t + phase + GROOVE.crownLag)\n}\n\n/**\n * The vertical bounce scale at time `t`: `1 + bounce · max(0, sin(beat))²`."
             },
             {
               "symbol": "grooveCrownLean",
               "line": 104,
-              "code": "export function grooveCrownLean(t: number, phase: number, bpm: number = GROOVE.bpm): number {\r\n  return GROOVE.crownRad * Math.sin(leanOmega(bpm) * t + phase + GROOVE.crownLag)\r\n}\r\n\r\n/**\r\n * The vertical bounce scale at time `t`: `1 + bounce · max(0, sin(beat))²`.\r\n * Always ≥ 1 (a palm never sinks into the ground) and ≤ 1 + bounce; the\r\n * squared half-wave gives a pop ON the beat with rest between, rather than\r\n * a smooth wobble.\r\n */\r\nexport function grooveBounce(t: number, phase: number, bpm: number = GROOVE.bpm): number {\r\n  const half = Math.max(0, Math.sin(beatOmega(bpm) * t + phase))\r\n  return 1 + GROOVE.bounce * half * half\r\n}\r"
+              "code": "export function grooveCrownLean(t: number, phase: number, bpm: number = GROOVE.bpm): number {\n  return GROOVE.crownRad * Math.sin(leanOmega(bpm) * t + phase + GROOVE.crownLag)\n}\n\n/**\n * The vertical bounce scale at time `t`: `1 + bounce · max(0, sin(beat))²`.\n * Always ≥ 1 (a palm never sinks into the ground) and ≤ 1 + bounce; the\n * squared half-wave gives a pop ON the beat with rest between, rather than\n * a smooth wobble.\n */\nexport function grooveBounce(t: number, phase: number, bpm: number = GROOVE.bpm): number {\n  const half = Math.max(0, Math.sin(beatOmega(bpm) * t + phase))\n  return 1 + GROOVE.bounce * half * half\n}"
             },
             {
               "symbol": "grooveBounce",
               "line": 114,
-              "code": "export function grooveBounce(t: number, phase: number, bpm: number = GROOVE.bpm): number {\r\n  const half = Math.max(0, Math.sin(beatOmega(bpm) * t + phase))\r\n  return 1 + GROOVE.bounce * half * half\r\n}\r\n\r\n/**\r\n * The x/z counter-squash that goes with a bounce scale `s` — thinner as the\r\n * tree stretches, the cartoon volume cue. 1 at rest, 1 − `GROOVE.squash` at\r\n * full stretch.\r\n */\r\nexport function grooveSquash(s: number): number {\r\n  return 1 - (GROOVE.squash * (s - 1)) / GROOVE.bounce\r\n}\r\n\r"
+              "code": "export function grooveBounce(t: number, phase: number, bpm: number = GROOVE.bpm): number {\n  const half = Math.max(0, Math.sin(beatOmega(bpm) * t + phase))\n  return 1 + GROOVE.bounce * half * half\n}\n\n/**\n * The x/z counter-squash that goes with a bounce scale `s` — thinner as the\n * tree stretches, the cartoon volume cue. 1 at rest, 1 − `GROOVE.squash` at\n * full stretch.\n */\nexport function grooveSquash(s: number): number {\n  return 1 - (GROOVE.squash * (s - 1)) / GROOVE.bounce\n}\n"
             },
             {
               "symbol": "grooveSquash",
               "line": 124,
-              "code": "export function grooveSquash(s: number): number {\r\n  return 1 - (GROOVE.squash * (s - 1)) / GROOVE.bounce\r\n}\r\n\r\n/**\r\n * The tempo of one palm — the island's BPM with a deterministic ±\r\n * `GROOVE.bpmJitter` wobble by instance index, so neighbouring palms drift\r\n * in and out of phase instead of locking into a chorus line.\r\n */\r\nexport function grooveBpm(index: number): number {\r\n  const h = Math.sin((index + 1) * 12.9898) * 43758.5453\r\n  const frac = h - Math.floor(h) // [0, 1)\r\n  return GROOVE.bpm * (1 + GROOVE.bpmJitter * (frac * 2 - 1))\r\n}\r"
+              "code": "export function grooveSquash(s: number): number {\n  return 1 - (GROOVE.squash * (s - 1)) / GROOVE.bounce\n}\n\n/**\n * The tempo of one palm — the island's BPM with a deterministic ±\n * `GROOVE.bpmJitter` wobble by instance index, so neighbouring palms drift\n * in and out of phase instead of locking into a chorus line.\n */\nexport function grooveBpm(index: number): number {\n  const h = Math.sin((index + 1) * 12.9898) * 43758.5453\n  const frac = h - Math.floor(h) // [0, 1)\n  return GROOVE.bpm * (1 + GROOVE.bpmJitter * (frac * 2 - 1))\n}"
             },
             {
               "symbol": "grooveBpm",
               "line": 133,
-              "code": "export function grooveBpm(index: number): number {\r\n  const h = Math.sin((index + 1) * 12.9898) * 43758.5453\r\n  const frac = h - Math.floor(h) // [0, 1)\r\n  return GROOVE.bpm * (1 + GROOVE.bpmJitter * (frac * 2 - 1))\r\n}\r\n"
+              "code": "export function grooveBpm(index: number): number {\n  const h = Math.sin((index + 1) * 12.9898) * 43758.5453\n  const frac = h - Math.floor(h) // [0, 1)\n  return GROOVE.bpm * (1 + GROOVE.bpmJitter * (frac * 2 - 1))\n}\n"
             }
           ]
         },
@@ -1671,7 +1671,7 @@
             },
             {
               "symbol": "surfShoreWeight",
-              "line": 312,
+              "line": 340,
               "code": "    surfShoreWeight(THREE.MathUtils.radToDeg(polarRad))\r\n  )\r\n}\r\n\r\n/** Antarctica's beach band: the shore weighting ramps in over the 7°\r\n *  above its waterline, mirroring SURF.startDeg → SURF.endDeg. */\r\nexport const SURF_SOUTH_START_DEG = 180 - SOUTH.waterlineDeg - 7\r\nexport const SURF_SOUTH_END_DEG = 180 - SOUTH.waterlineDeg\r\n\r\n/** Shore weighting of the surf cycle — ramps in across EITHER beach\r\n *  band. The water shader ports this expression verbatim; if the two\r\n *  ever disagree the foam and the wade ripple part company. */\r\nexport function surfShoreWeight(polarDeg: number): number {\r\n  return Math.max(\r"
             }
           ]
@@ -1686,18 +1686,18 @@
           "excerpts": [
             {
               "symbol": "onDockStrip",
-              "line": 33,
-              "code": "export function onDockStrip(latDeg: number, longDeg: number): boolean {\r\n  return onStrip(DOCK, latDeg, longDeg) || onStrip(SOUTH_DOCK, latDeg, longDeg)\r\n}\r\n\r\n/** The dock whose strip (lat, long) sits on, or null. */\r\nexport function dockStripAt(latDeg: number, longDeg: number): DockStrip | null {\r\n  if (onStrip(DOCK, latDeg, longDeg)) return DOCK\r\n  if (onStrip(SOUTH_DOCK, latDeg, longDeg)) return SOUTH_DOCK\r\n  return null\r\n}\r\n\r\n/**\r\n * Ground altitude above sea level at (lat, long). The dock deck rides\r\n * deckHeightM above its local band (surface-snapped segments), so the same\r"
+              "line": 41,
+              "code": "export function onDockStrip(latDeg: number, longDeg: number): boolean {\r\n  return onStrip(DOCK, latDeg, longDeg) || onStrip(SOUTH_DOCK, latDeg, longDeg)\r\n}\r\n\r\n/** The dock whose strip (lat, long) sits on, or null. */\r\nexport function dockStripAt(latDeg: number, longDeg: number): DockStrip | null {\r\n  if (onStrip(DOCK, latDeg, longDeg)) return DOCK\r\n  if (onStrip(SOUTH_DOCK, latDeg, longDeg)) return SOUTH_DOCK\r\n  return null\r\n}\r\n\r\n/** Metres of arc per degree of latitude — the scaling the dock strip\r\n *  and the blockers both measure in. */\r\nconst M_PER_DEG_LAT = (PLANET_RADIUS * Math.PI) / 180\r"
             },
             {
               "symbol": "dockStripAt",
-              "line": 38,
-              "code": "export function dockStripAt(latDeg: number, longDeg: number): DockStrip | null {\r\n  if (onStrip(DOCK, latDeg, longDeg)) return DOCK\r\n  if (onStrip(SOUTH_DOCK, latDeg, longDeg)) return SOUTH_DOCK\r\n  return null\r\n}\r\n\r\n/**\r\n * Ground altitude above sea level at (lat, long). The dock deck rides\r\n * deckHeightM above its local band (surface-snapped segments), so the same\r\n * function drives the deck visuals and the walkable height.\r\n */\r\nexport function groundAltitudeAt(latDeg: number, longDeg: number): number {\r\n  const band = bandAltitudeAt(latDeg)\r\n  const dock = dockStripAt(latDeg, longDeg)\r"
+              "line": 46,
+              "code": "export function dockStripAt(latDeg: number, longDeg: number): DockStrip | null {\r\n  if (onStrip(DOCK, latDeg, longDeg)) return DOCK\r\n  if (onStrip(SOUTH_DOCK, latDeg, longDeg)) return SOUTH_DOCK\r\n  return null\r\n}\r\n\r\n/** Metres of arc per degree of latitude — the scaling the dock strip\r\n *  and the blockers both measure in. */\r\nconst M_PER_DEG_LAT = (PLANET_RADIUS * Math.PI) / 180\r\n\r\n/**\r\n * True when (lat, long) lies on the MOORED boat's deck — a\r\n * hullLengthM x hullWidthM rectangle centred on the current mooring,\r\n * its long axis along the mooring's meridian (the moored bow points\r"
             },
             {
               "symbol": "groundAltitudeAt",
-              "line": 49,
-              "code": "export function groundAltitudeAt(latDeg: number, longDeg: number): number {\r\n  const band = bandAltitudeAt(latDeg)\r\n  const dock = dockStripAt(latDeg, longDeg)\r\n  if (dock) return band + dock.deckHeightM\r\n  return band\r\n}\r\n\r\n/** World-space ground height under the avatar (avatar y-position).\r\n *  Called every frame — no object allocation (lat/long computed inline). */\r\nexport function groundHeightAt(poleLocal: THREE.Vector3): number {\r\n  const polar = Math.acos(THREE.MathUtils.clamp(poleLocal.y, -1, 1))\r\n  const lat = 90 - THREE.MathUtils.radToDeg(polar)\r\n  const long = THREE.MathUtils.radToDeg(Math.atan2(poleLocal.x, poleLocal.z))\r\n  return PLANET_RADIUS + groundAltitudeAt(lat, long)\r"
+              "line": 90,
+              "code": "export function groundAltitudeAt(latDeg: number, longDeg: number): number {\r\n  const band = bandAltitudeAt(latDeg)\r\n  if (onBoatDeck(latDeg, longDeg)) return Math.max(band, 0) + BOAT_DECK_M\r\n  const dock = dockStripAt(latDeg, longDeg)\r\n  if (dock) return band + dock.deckHeightM\r\n  return band\r\n}\r\n\r\n/** World-space ground height under the avatar (avatar y-position).\r\n *  Called every frame — no object allocation (lat/long computed inline). */\r\nexport function groundHeightAt(poleLocal: THREE.Vector3): number {\r\n  const polar = Math.acos(THREE.MathUtils.clamp(poleLocal.y, -1, 1))\r\n  const lat = 90 - THREE.MathUtils.radToDeg(polar)\r\n  const long = THREE.MathUtils.radToDeg(Math.atan2(poleLocal.x, poleLocal.z))\r"
             }
           ]
         },
@@ -1787,8 +1787,8 @@
       "step": 25,
       "title": "The boat",
       "hook": "The dock finally goes somewhere.",
-      "plain": "There is a small wooden boat tied up at the end of the dock,\r just past the camera tripod, riding the swell on the east side where Koa\r isn't dangling his legs. Walk out to the end and it says **E — Board the\r boat**.\r \r Step in and you are sitting on the bench with the water right there at\r your elbow. Now push forward. The bow swings around, the hull gathers\r speed, and the island starts sliding away behind you — sand, then the\r shallows, then nothing but open water in every direction. Look back and\r there is a line of foam on the sea marking exactly where you have been.\r \r Keep going south and the light leaves. The sun drops into the water\r astern, the sea turns from lagoon green to something much colder, the\r stars come out, and after about eight seconds of open ocean a white edge\r appears ahead: Antarctica's ice shelf, with its own little dock reaching\r out to meet you. Pull alongside and the prompt changes to **E — Tie\r up**. Press it and you step out onto the deck at the bottom of the\r world.\r \r The boat stays where you left it. Walk the ice, come back, and it is\r still tied to the southern dock — which means the way home is to get\r back in and drive north.",
-      "technical": "The boat never moves. Nothing in this world does except\r the world: driving is the SAME `rotationStep`/`applyStep` composition\r the walk uses, stepped along the boat's own heading rather than the raw\r input, so the hull carries its momentum through a turn instead of\r sliding sideways with the stick.\r \r Everything about where the boat lives is DERIVED. There is no boat row\r in `placements.json` and no editor handle for it, because a mooring is a\r property of a dock: `mooringUnit(dock)` takes the far-end plank\r segment's centre latitude, steps `BOAT.mooringSideM` (1.7 m) sideways in\r the same `surfacePartMatrix` frame the planks themselves are placed\r with, and normalises. Move a dock and the boat moves with it. That frame\r is worth a note — `surfacePartMatrix` builds +Y up and +Z north, which\r makes local +X **west**, and Koa sits on the north dock's west edge with\r his legs over the surf. The boat moors at local −x.\r \r `advanceBoat` is pure and lives in `scene/boat.ts` with the geometry:\r the heading eases toward the requested yaw the short way round at\r `turnRateRadPerS`, the speed climbs toward `maxSpeedMps × mag` at\r `accelMps2` and falls to zero at `decelMps2` when you let go, and it\r returns the arc angle to travel this frame. `boatStepBlocked` replaces\r the walk's landmass clamp: it cancels a step that carries the boat\r inside either waterline plus `shoreMarginM` AND closer than it already\r was, so a boat nudged onto a shoal can always reverse off. The prop\r blocker list shrinks to every plank centre of both docks at\r `halfWidthM + 0.9` — you cannot drive through a pier, and nothing on\r land is reachable anyway.\r \r Boarding and tying up are the sit tween's twins: a quaternion delta\r `setFromUnitVectors(worldMooringDir → pole)` premultiplied onto the live\r orientation and slerped over `BOAT.tweenS` with a smoothstep. A tween,\r never a step, so blockers do not apply — which is the only way the\r mooring is reachable at all, since it sits 1.7 m inside the far plank's\r own 1.9 m blocker. Leaving is free, because blockers only ever cancel\r steps that move you CLOSER. Tying up runs the tween twice: leg one\r carries the mooring under the pole (the boat is now exactly where it\r belongs), leg two carries the dock end under the pole (the player is now\r standing on the deck).\r \r The hull is drawn twice from one geometry. Moored it is planet-local,\r bobbing on the live `surfOffset` beside its dock. Driving it is\r world-fixed at `(0, PLANET_RADIUS + bob, 0)` outside the planet group, a\r sibling of the avatar, rolling and pitching on two slow sines. The\r hand-off happens on the tween boundaries — the one moment the two poses\r coincide — so it never visibly jumps. The wake is 24 pooled instanced\r discs stamped every 0.25 s at the pole's PLANET-LOCAL direction, so each\r puff of foam stays on the water you left it on while the ocean turns\r beneath you; they fade by lerping their instance colour toward the sea,\r the same trick the footprints use in the sand.\r \r One thing the boat broke immediately was the camera. The follow camera\r floors itself against `groundHeightAt` under its own footprint — and out\r at sea that analytic ground is the SEABED, metres down, so any downward\r pitch parked the camera underwater looking up at the hull. Afloat, the\r floor becomes `max(groundHeightAt, PLANET_RADIUS + 0.35)`: the sea\r surface is the ground when you are on it.",
+      "plain": "There is a small wooden boat tied up at the end of the dock,\r just past the camera tripod, riding the swell on the east side where Koa\r isn't dangling his legs. Walk out to the end and it says **E — Board the\r boat**.\r \r Step in and you are sitting on the bench with the water right there at\r your elbow. Now push forward. The bow swings around, the hull gathers\r speed, and the island starts sliding away behind you — sand, then the\r shallows, then nothing but open water in every direction. Look back and\r there is a line of foam on the sea marking exactly where you have been.\r \r Keep going south and the light leaves. The sun drops into the water\r astern, the sea turns from lagoon green to something much colder, the\r stars come out, and after about eight seconds of open ocean a white edge\r appears ahead: Antarctica's ice shelf, with its own little dock reaching\r out to meet you. Pull alongside and the prompt changes to **E — Tie\r up**. Press it and you step out onto the deck at the bottom of the\r world.\r \r The boat stays where you left it. Walk the ice, come back, and it is\r still tied to the southern dock — which means the way home is to get\r back in and drive north.\r \r And you can just stand in it. Walk off the end of the dock and you step\r down onto the boat's floor instead of through it — it is a surface like\r the deck is, hollow wood underfoot, rocking very slightly on the swell.\r Step off the side and you are back in the shallows.",
+      "technical": "The boat never moves. Nothing in this world does except\r the world: driving is the SAME `rotationStep`/`applyStep` composition\r the walk uses, stepped along the boat's own heading rather than the raw\r input, so the hull carries its momentum through a turn instead of\r sliding sideways with the stick.\r \r Everything about where the boat lives is DERIVED. There is no boat row\r in `placements.json` and no editor handle for it, because a mooring is a\r property of a dock: `mooringUnit(dock)` takes the far-end plank\r segment's centre latitude, steps `BOAT.mooringSideM` (1.7 m) sideways in\r the same `surfacePartMatrix` frame the planks themselves are placed\r with, and normalises. Move a dock and the boat moves with it. That frame\r is worth a note — `surfacePartMatrix` builds +Y up and +Z north, which\r makes local +X **west**, and Koa sits on the north dock's west edge with\r his legs over the surf. The boat moors at local −x.\r \r `advanceBoat` is pure and lives in `scene/boat.ts` with the geometry:\r the heading eases toward the requested yaw the short way round at\r `turnRateRadPerS`, the speed climbs toward `maxSpeedMps × mag` at\r `accelMps2` and falls to zero at `decelMps2` when you let go, and it\r returns the arc angle to travel this frame. `boatStepBlocked` replaces\r the walk's landmass clamp: it cancels a step that carries the boat\r inside either waterline plus `shoreMarginM` AND closer than it already\r was, so a boat nudged onto a shoal can always reverse off. The prop\r blocker list shrinks to every plank centre of both docks at\r `halfWidthM + 0.9` — you cannot drive through a pier, and nothing on\r land is reachable anyway.\r \r Boarding and tying up are the sit tween's twins: a quaternion delta\r `setFromUnitVectors(worldMooringDir → pole)` premultiplied onto the live\r orientation and slerped over `BOAT.tweenS` with a smoothstep. A tween,\r never a step, so blockers do not apply — which is the only way the\r mooring is reachable at all, since it sits 1.7 m inside the far plank's\r own 1.9 m blocker. Leaving is free, because blockers only ever cancel\r steps that move you CLOSER. Tying up runs the tween twice: leg one\r carries the mooring under the pole (the boat is now exactly where it\r belongs), leg two carries the dock end under the pole (the player is now\r standing on the deck).\r \r The hull is drawn twice from one geometry. Moored it is planet-local,\r bobbing on the live `surfOffset` beside its dock. Driving it is\r world-fixed at `(0, PLANET_RADIUS + bob, 0)` outside the planet group, a\r sibling of the avatar, rolling and pitching on two slow sines. The\r hand-off happens on the tween boundaries — the one moment the two poses\r coincide — so it never visibly jumps. The wake is 24 pooled instanced\r discs stamped every 0.25 s at the pole's PLANET-LOCAL direction, so each\r puff of foam stays on the water you left it on while the ocean turns\r beneath you; they fade by lerping their instance colour toward the sea,\r the same trick the footprints use in the sand.",
       "files": [
         {
           "path": "src/scene/boat.ts",
@@ -1797,7 +1797,9 @@
             "dockEndUnit",
             "advanceBoat",
             "boatStepBlocked",
-            "BOAT_BLOCKERS"
+            "BOAT_BLOCKERS",
+            "MOORING_LATLONG",
+            "setMooredBoat"
           ],
           "excerpts": [
             {
@@ -1808,35 +1810,82 @@
             {
               "symbol": "dockEndUnit",
               "line": 93,
-              "code": "export function dockEndUnit(dock: DockName): THREE.Vector3 {\r\n  return latLongToUnit(END_LAT[dock], DOCKS[dock].longDeg)\r\n}\r\n\r\nexport function stepOffUnit(dock: DockName): THREE.Vector3 {\r\n  return dockEndUnit(dock)\r\n}\r\n\r\n/** Derived once at module load — the frame loop never builds these. */\r\nexport const MOORING_UNITS: Record<DockName, THREE.Vector3> = {\r\n  north: mooringUnit('north'),\r\n  south: mooringUnit('south'),\r\n}\r\nexport const DOCK_END_UNITS: Record<DockName, THREE.Vector3> = {\r"
+              "code": "export function dockEndUnit(dock: DockName): THREE.Vector3 {\r\n  return latLongToUnit(END_LAT[dock], DOCKS[dock].longDeg)\r\n}\r\n\r\nexport function stepOffUnit(dock: DockName): THREE.Vector3 {\r\n  return dockEndUnit(dock)\r\n}\r\n\r\n/** Derived once at module load — the frame loop never builds these. */\r\nexport const MOORING_UNITS: Record<DockName, THREE.Vector3> = {\r\n  north: mooringUnit('north'),\r\n  south: mooringUnit('south'),\r\n}\r\n\r"
             },
             {
               "symbol": "advanceBoat",
-              "line": 185,
+              "line": 213,
               "code": "export function advanceBoat(\r\n  m: BoatMotion,\r\n  input: BoatInput,\r\n  dt: number,\r\n  cfg: BoatTuning,\r\n): number {\r\n  const mag = Math.min(1, Math.max(0, input.mag))\r\n  if (input.dirYaw !== null && mag > 0) {\r\n    const d = wrapAngle(input.dirYaw - m.heading)\r\n    const maxTurn = cfg.turnRateRadPerS * dt\r\n    m.heading = wrapAngle(m.heading + THREE.MathUtils.clamp(d, -maxTurn, maxTurn))\r\n    const target = cfg.maxSpeedMps * mag\r\n    m.speed =\r\n      m.speed < target\r"
             },
             {
               "symbol": "boatStepBlocked",
-              "line": 145,
+              "line": 173,
               "code": "export function boatStepBlocked(polarBefore: number, polarAfter: number): boolean {\r\n  const before = polarFromOwnPole(polarBefore)\r\n  const after = polarFromOwnPole(polarAfter)\r\n  return after < shoreLimitRad(landmassAt(polarAfter)) && after < before\r\n}\r\n\r\nexport interface BoatMotion {\r\n  /** World yaw the bow points along (radians, atan2(x, z)). */\r\n  heading: number\r\n  /** Metres per second along that heading. */\r\n  speed: number\r\n}\r\n\r\nexport interface BoatInput {\r"
             },
             {
               "symbol": "BOAT_BLOCKERS",
-              "line": 119,
+              "line": 147,
               "code": "export const BOAT_BLOCKERS: Blocker[] = DOCK_NAMES.flatMap((name) => {\r\n  const d = DOCKS[name]\r\n  const span = (d.latMaxDeg - d.latMinDeg) / d.segmentCount\r\n  return Array.from({ length: d.segmentCount }, (_, i) => ({\r\n    unit: latLongToUnit(d.latMaxDeg - span * (i + 0.5), d.longDeg),\r\n    // + 0.6: the mooring (1.7 m off the centreline) must sit OUTSIDE\r\n    // this radius or the boat starts inside its own blocker and a\r\n    // heading toward the pier can never leave; the hull (half-width\r\n    // ~0.55) still clears the deck edge (1.0) at 1.6 m.\r\n    radius: d.halfWidthM + 0.6,\r\n  }))\r\n})\r\n\r\n/** How close to its own pole a landmass lets the boat come: its\r"
+            },
+            {
+              "symbol": "MOORING_LATLONG",
+              "line": 112,
+              "code": "export const MOORING_LATLONG: Record<DockName, { lat: number; long: number }> = {\r\n  north: mooringLatLong('north'),\r\n  south: mooringLatLong('south'),\r\n}\r\n\r\n/**\r\n * Which mooring currently holds the boat, or null while it is being\r\n * boarded, driven or tied up (then the hull is at the pole under the\r\n * player, not out here on the water). Terrain asks this to decide\r\n * whether the deck is walkable; the store pushes every change in (see\r\n * useStore's syncMooredBoat) so the two can never drift. The initial\r\n * value mirrors the store's initial boat state.\r\n */\r\nlet mooredDock: DockName | null = 'north'\r"
+            },
+            {
+              "symbol": "setMooredBoat",
+              "line": 127,
+              "code": "export function setMooredBoat(dock: DockName | null): void {\r\n  mooredDock = dock\r\n}\r\n\r\nexport function mooredBoatDock(): DockName | null {\r\n  return mooredDock\r\n}\r\nexport const DOCK_END_UNITS: Record<DockName, THREE.Vector3> = {\r\n  north: dockEndUnit('north'),\r\n  south: dockEndUnit('south'),\r\n}\r\nexport const DOCK_NAMES: readonly DockName[] = ['north', 'south']\r\n\r\n/**\r"
+            }
+          ]
+        },
+        {
+          "path": "src/controls/terrain.ts",
+          "symbols": [
+            "onBoatDeck",
+            "groundAltitudeAt"
+          ],
+          "excerpts": [
+            {
+              "symbol": "onBoatDeck",
+              "line": 68,
+              "code": "export function onBoatDeck(latDeg: number, longDeg: number): boolean {\r\n  const dock = mooredBoatDock()\r\n  if (dock === null) return false\r\n  const m = MOORING_LATLONG[dock]\r\n  const alongM = (latDeg - m.lat) * M_PER_DEG_LAT\r\n  if (Math.abs(alongM) > BOAT.hullLengthM / 2) return false\r\n  const dLong = ((longDeg - m.long + 540) % 360) - 180\r\n  const crossM = dLong * M_PER_DEG_LAT * Math.cos(THREE.MathUtils.degToRad(latDeg))\r\n  return Math.abs(crossM) <= BOAT.hullWidthM / 2\r\n}\r\n\r\n/**\r\n * Ground altitude above sea level at (lat, long). The dock deck rides\r\n * deckHeightM above its local band (surface-snapped segments), so the same\r"
+            },
+            {
+              "symbol": "groundAltitudeAt",
+              "line": 90,
+              "code": "export function groundAltitudeAt(latDeg: number, longDeg: number): number {\r\n  const band = bandAltitudeAt(latDeg)\r\n  if (onBoatDeck(latDeg, longDeg)) return Math.max(band, 0) + BOAT_DECK_M\r\n  const dock = dockStripAt(latDeg, longDeg)\r\n  if (dock) return band + dock.deckHeightM\r\n  return band\r\n}\r\n\r\n/** World-space ground height under the avatar (avatar y-position).\r\n *  Called every frame — no object allocation (lat/long computed inline). */\r\nexport function groundHeightAt(poleLocal: THREE.Vector3): number {\r\n  const polar = Math.acos(THREE.MathUtils.clamp(poleLocal.y, -1, 1))\r\n  const lat = 90 - THREE.MathUtils.radToDeg(polar)\r\n  const long = THREE.MathUtils.radToDeg(Math.atan2(poleLocal.x, poleLocal.z))\r"
             }
           ]
         },
         {
           "path": "src/scene/planetConfig.ts",
           "symbols": [
-            "BOAT"
+            "BOAT",
+            "BOAT_DECK_M",
+            "BOAT_SEAT_M",
+            "surfaceUnderfoot"
           ],
           "excerpts": [
             {
               "symbol": "BOAT",
               "line": 211,
-              "code": "export const BOAT = {\r\n  maxSpeedMps: 11,\r\n  accelMps2: 5,\r\n  decelMps2: 4,\r\n  turnRateRadPerS: 1.7,\r\n  /** How far off the dock meridian the boat moors (metres of arc). */\r\n  mooringSideM: 1.7,\r\n  /** \"E — Board the boat\" enters here, leaves at the exit radius. */\r\n  boardArcM: 2.6,\r\n  boardExitArcM: 3.1,\r\n  /** \"E — Tie up\" shows within this arc of a dock's far end. */\r\n  dockArcM: 4.5,\r\n  /** Clearance the hull keeps outside either waterline. */\r\n  shoreMarginM: 0.6,\r"
+              "code": "export const BOAT = {\r\n  maxSpeedMps: 11,\r\n  accelMps2: 5,\r\n  decelMps2: 4,\r\n  turnRateRadPerS: 1.7,\r\n  /** How far off the dock meridian the boat moors (metres of arc). */\r\n  mooringSideM: 1.7,\r\n  /** The moored hull's walkable FOOTPRINT (metres): a rectangle centred\r\n   *  on the mooring, the long axis along the mooring's meridian. Slightly\r\n   *  inside the gunwale trim, so you stand on the boat and not on air. */\r\n  hullLengthM: 3,\r\n  hullWidthM: 1.1,\r\n  /** \"E — Board the boat\" enters here, leaves at the exit radius. */\r\n  boardArcM: 2.6,\r"
+            },
+            {
+              "symbol": "BOAT_DECK_M",
+              "line": 245,
+              "code": "export const BOAT_DECK_M = 0.24\r\n/** Bench / stern-seat top, same frame — where the driver sits. */\r\nexport const BOAT_SEAT_M = 0.52\r\n\r\n/** Footstep tuning (3C): gains, foot-plant phases in the swing cycle,\r\n * and the jump double-tap gap. */\r\nexport const FOOTSTEPS = {\r\n  stepGainWalk: 0.5,\r\n  stepGainSprint: 0.72,\r\n  /** Swing-cycle phase offsets (rad) where each foot plants. */\r\n  plantPhases: [Math.PI / 2, (3 * Math.PI) / 2],\r\n  /** Gap between the two taps of Aiden's jump/landing double-tap. */\r\n  jumpTapGapMs: 90,\r\n} as const\r"
+            },
+            {
+              "symbol": "BOAT_SEAT_M",
+              "line": 247,
+              "code": "export const BOAT_SEAT_M = 0.52\r\n\r\n/** Footstep tuning (3C): gains, foot-plant phases in the swing cycle,\r\n * and the jump double-tap gap. */\r\nexport const FOOTSTEPS = {\r\n  stepGainWalk: 0.5,\r\n  stepGainSprint: 0.72,\r\n  /** Swing-cycle phase offsets (rad) where each foot plants. */\r\n  plantPhases: [Math.PI / 2, (3 * Math.PI) / 2],\r\n  /** Gap between the two taps of Aiden's jump/landing double-tap. */\r\n  jumpTapGapMs: 90,\r\n} as const\r\n\r\nexport type Surface = 'grass' | 'sand' | 'dock' | 'wade'\r"
+            },
+            {
+              "symbol": "surfaceUnderfoot",
+              "line": 266,
+              "code": "export function surfaceUnderfoot(\r\n  polarDeg: number,\r\n  longDeg: number,\r\n  wet: boolean,\r\n  onBoatDeck = false,\r\n): Surface {\r\n  if (wet) return 'wade'\r\n  // Standing in the moored boat: hollow wood, the same as the dock —\r\n  // the hull IS a deck (terrain.ts onBoatDeck; no new audio category).\r\n  if (onBoatDeck) return 'dock'\r\n  const lat = 90 - polarDeg\r\n  for (const dock of [DOCK, SOUTH_DOCK]) {\r\n    if (lat < dock.latMinDeg || lat > dock.latMaxDeg) continue\r\n    const dLongRad = THREE_DEG * Math.abs(((longDeg - dock.longDeg + 540) % 360) - 180)\r"
             }
           ]
         },
@@ -1874,13 +1923,13 @@
           "excerpts": [
             {
               "symbol": "controlsRuntime",
-              "line": 52,
+              "line": 53,
               "code": "export const controlsRuntime = {\r\n  joyX: 0,\r\n  joyY: 0,\r\n  azimuth: Math.PI,\r\n  /** Set to snap the camera heading next frame (consumed once) — used by the\r\n   * e2e suites and, later, the intro swoop. */\r\n  azimuthOverride: null as number | null,\r\n  /** Teleport: put this lat/long under the avatar next frame (consumed once). */\r\n  poseOverride: null as { lat: number; long: number } | null,\r\n  wadeRippleTime: 0,\r\n  /** Written every frame for the animated avatar's clip selection. */\r\n  locomotion: 'idle' as 'idle' | 'walk' | 'run',\r\n  airborne: false,\r\n  /** Body world yaw + camera pitch, published for the head look-at (v3.3). */\r"
             },
             {
               "symbol": "BOAT_SEAT_M",
-              "line": 123,
-              "code": "const BOAT_SEAT_M = 0.38 - 0.12\r\n\r\n// Frame-loop scratch — the controller allocates nothing per frame.\r\nconst _poleBefore = new THREE.Vector3()\r\nconst _poleCand = new THREE.Vector3()\r\nconst _poleAfter = new THREE.Vector3()\r\nconst _moveDir = new THREE.Vector3()\r\nconst _stepQ = new THREE.Quaternion()\r\nconst _candQ = new THREE.Quaternion()\r\nconst _teleportUnit = new THREE.Vector3()\r\nconst _seatWorldDir = new THREE.Vector3()\r\nconst _fireWorld = new THREE.Vector3()\r\nconst _sitDelta = new THREE.Quaternion()\r\nconst _boatDir = new THREE.Vector3()\r"
+              "line": 23,
+              "code": "  BOAT_SEAT_M,\r\n  INTERACT_ARC_M,\r\n  INTERACT_EXIT_ARC_M,\r\n  MOVE_SPEED,\r\n  PLANET_RADIUS,\r\n  SPRINT_JOY_THRESHOLD,\r\n  SPRINT_SPEED,\r\n  stepLeavesLandmass,\r\n  surfaceUnderfoot,\r\n  surfOffset,\r\n} from '../scene/planetConfig'\r\nimport { FIRE_UNIT, LOG_UNITS, seatUnit, standUnit, type SeatSpot } from '../scene/seats'\r\nimport { useStore } from '../store/useStore'\r\nimport {\r"
             }
           ]
         },
@@ -1908,17 +1957,17 @@
           "excerpts": [
             {
               "symbol": "MooredBoat",
-              "line": 42,
+              "line": 49,
               "code": "export function MooredBoat() {\r\n  const at = useStore((s) => s.boat.at)\r\n  const meshRef = useRef<THREE.Mesh>(null)\r\n  const parts = boatParts()\r\n\r\n  // Place once per dock, not per frame: decompose the usual meridian-\r\n  // aligned surface matrix and keep the unit + rotation.\r\n  const spot = useMemo(() => {\r\n    const { lat, long } = mooringLatLong(at)\r\n    const m = surfacePartMatrix(\r\n      lat,\r\n      long,\r\n      0,\r\n      mooringYaw(at),\r"
             },
             {
               "symbol": "DrivingBoat",
-              "line": 89,
+              "line": 96,
               "code": "export function DrivingBoat() {\r\n  const meshRef = useRef<THREE.Mesh>(null)\r\n  const parts = boatParts()\r\n\r\n  useFrame(() => {\r\n    const mesh = meshRef.current\r\n    if (!mesh) return\r\n    mesh.visible = controlsRuntime.boating\r\n    if (!mesh.visible) return\r\n    mesh.position.set(0, PLANET_RADIUS + controlsRuntime.boatBob, 0)\r\n    mesh.rotation.set(controlsRuntime.boatPitch, controlsRuntime.boatHeading, controlsRuntime.boatRoll)\r\n  })\r\n\r\n  return <mesh ref={meshRef} visible={false} geometry={parts[0].geometry} material={parts[0].material} />\r"
             },
             {
               "symbol": "BoatWake",
-              "line": 125,
+              "line": 132,
               "code": "export function BoatWake() {\r\n  const tier = useStore((s) => s.qualityTier)\r\n  const meshRef = useRef<THREE.InstancedMesh>(null)\r\n  const ages = useRef<number[]>(Array.from({ length: WAKE_POOL }, () => Infinity))\r\n  const mats = useRef<THREE.Matrix4[]>(\r\n    Array.from({ length: WAKE_POOL }, () => new THREE.Matrix4()),\r\n  )\r\n  const next = useRef(0)\r\n  const stampT = useRef(0)\r\n  // Driving splashes are bag-timed; a tab that comes back re-baselines\r\n  // instead of owing a backlog (CLAUDE.md tab-hidden rules).\r\n  const nextSplash = useRef(0)\r\n  const rebase = useRef(true)\r\n  useEffect(() => onAudioResume(() => { rebase.current = true }), [])\r"
             }
           ]
@@ -1931,7 +1980,7 @@
           "excerpts": [
             {
               "symbol": "buildBoat",
-              "line": 294,
+              "line": 326,
               "code": "export function buildBoat(): PropPart[] {\r\n  const piece = (\r\n    g: THREE.BufferGeometry,\r\n    color: string,\r\n    pos: [number, number, number],\r\n    rot: [number, number, number] = [0, 0, 0],\r\n  ) => {\r\n    const n = tintGeometry(normalizeForMerge(g), color)\r\n    g.dispose()\r\n    n.applyMatrix4(\r\n      new THREE.Matrix4().compose(\r\n        new THREE.Vector3(...pos),\r\n        new THREE.Quaternion().setFromEuler(new THREE.Euler(...rot)),\r\n        new THREE.Vector3(1, 1, 1),\r"
             }
           ]
@@ -1945,7 +1994,7 @@
             {
               "symbol": "BoatPrompt",
               "line": 56,
-              "code": "function BoatPrompt({ mode, isTouch }: { mode: 'board' | 'tie'; isTouch: boolean }) {\r\n  const label = mode === 'board' ? 'Board the boat' : 'Tie up'\r\n  const act = () => {\r\n    const s = useStore.getState()\r\n    if (mode === 'board') s.boardBoat()\r\n    else if (s.nearbyDockFromBoat) s.tieUp(s.nearbyDockFromBoat)\r\n  }\r\n  if (isTouch) {\r\n    return (\r\n      <button\r\n        type=\"button\"\r\n        onClick={act}\r\n        className=\"pointer-events-auto fixed right-6 bottom-8 z-40 flex h-20 w-20 touch-manipulation items-center justify-center rounded-full bg-lagoon px-2 text-center font-display text-sm font-bold text-ink shadow-lg active:scale-95\"\r\n      >\r"
+              "code": "function BoatPrompt({ mode, isTouch }: { mode: 'board' | 'tie'; isTouch: boolean }) {\n  const label = mode === 'board' ? 'Board the boat' : 'Tie up'\n  const act = () => {\n    const s = useStore.getState()\n    if (mode === 'board') s.boardBoat()\n    else if (s.nearbyDockFromBoat) s.tieUp(s.nearbyDockFromBoat)\n  }\n  if (isTouch) {\n    return (\n      <button\n        type=\"button\"\n        onClick={act}\n        className=\"pointer-events-auto fixed right-6 bottom-8 z-40 flex h-20 w-20 touch-manipulation items-center justify-center rounded-full bg-lagoon px-2 text-center font-display text-sm font-bold text-ink shadow-lg active:scale-95\"\n      >"
             }
           ]
         },
@@ -1966,6 +2015,9 @@
         "The mooring is derived, not placed. The obvious move was a placement row with a `blockerRadiusM` like every other prop, and it was wrong on two counts: a boat dragged in the editor would detach from the dock it belongs to, and its altitude would come from `groundAltitudeAt` minus the sink — which over water is the seabed, not the waterline. Deriving it from the dock's own segment matrix means the two can never disagree and the hull always sits at y = 0 = sea level.",
         "Stepping along the heading, not the input. The first pass reused the walk's step direction (the camera-relative move dir) verbatim, and the boat crabbed sideways the instant you turned the camera — a canoe that strafes. Input now only asks for a heading; the step always follows the bow.",
         "The boat's blocker list is a boat-only list. Running the full prop blocker set while driving does nothing useful (every palm and headstone is inland, unreachable from the water) and costs a loop over a hundred and fifty entries a frame. Two docks' plank centres is the whole hazard map out there.",
+        "The moored deck is analytic, not a collider. There is no physics engine here and there never will be one, so \"you can stand on the boat\" had to be the same kind of answer the dock already gives: a pure function of (lat, long) that `groundAltitudeAt` consults. That buys the whole feature for one rectangle test — feet, the blob shadow, the camera floor, the wet test and the footstep pool all follow for free, because every one of them already reads that function.",
+        "The hull floats higher than it used to. The owner's second complaint was water poking up through the floor, and the old hull invited it: the bottom slab was 0.16 m thick sitting ON the waterline, so its top was at 0.16 while the live sea reaches 0.18. Raising the floor to 0.24 clears the water's maximum by 0.06, and thickening the slab down to −0.30 means there is no thin plate for a wave to cross at all. The above-water silhouette barely changed (gunwale 0.58 → 0.62); what changed is how much hull is under the sea.",
+        "The analytic deck is the hull's MEAN height, and the mesh bobs past it. Pinning the walkable height to the live bob would mean terrain asking the clock, which no other band does. Instead the moored swing was halved (0.05 → 0.03, the surf term kept) so the residual float is a couple of centimetres and reads as a boat rocking under your feet.",
         "The seated rig's root is at its FEET, and parking it on the bench top floated the player a head above the thwart. The log seat had already solved this — root 0.30 against a 0.42 log top — so the boat borrows the same 0.12 m drop rather than inventing a second seat convention.",
         "Cream thwarts were a mistake. The first hull had the bench and the stern seat in the same cream as the gunwale trim, and from above it read as a rope ladder lying in the boat. Only the rail is cream now; the seats are planks, like seats.",
         "`Boat.tsx` could not exist. The physics lives in `scene/boat.ts` and TypeScript refuses a program containing both names on a case-insensitive filesystem, so the component is `BoatScene.tsx`."
@@ -1990,22 +2042,22 @@
           "excerpts": [
             {
               "symbol": "buildIgloo",
-              "line": 1093,
+              "line": 1139,
               "code": "export function buildIgloo(): PropPart[] {\r\n  const parts: THREE.BufferGeometry[] = [\r\n    // The dome: a faceted icosahedron, squashed and sunk.\r\n    snowPiece(\r\n      new THREE.IcosahedronGeometry(IGLOO_R, 1),\r\n      SNOW_COLORS.block,\r\n      [0, IGLOO_CY, 0],\r\n      [0, 0, 0],\r\n      [1, IGLOO_SQUASH, 1],\r\n    ),\r\n  ]\r\n\r\n  // Three horizontal block courses so the dome reads as stacked snow\r\n  // blocks rather than one smooth shell. Each band's radius comes from\r"
             },
             {
               "symbol": "buildIceblock",
-              "line": 1154,
+              "line": 1200,
               "code": "export function buildIceblock(): PropPart[] {\r\n  const parts = [\r\n    snowPiece(new THREE.IcosahedronGeometry(0.5, 0), SNOW_COLORS.ice, [0, 0.3, 0], [0, 0.5, 0], [1.3, 0.8, 1.0]),\r\n    snowPiece(\r\n      new THREE.IcosahedronGeometry(0.28, 0),\r\n      SNOW_COLORS.iceDeep,\r\n      [0.42, 0.17, -0.14],\r\n      [0, 1.2, 0],\r\n      [1.1, 0.8, 1],\r\n    ),\r\n  ]\r\n  const merged = mergeGeometries(parts)\r\n  for (const p of parts) p.dispose()\r\n  return [\r"
             },
             {
               "symbol": "buildSnowmound",
-              "line": 1173,
+              "line": 1219,
               "code": "export function buildSnowmound(): PropPart[] {\r\n  const geo = normalizeForMerge(new THREE.SphereGeometry(0.9, 10, 6))\r\n  geo.applyMatrix4(new THREE.Matrix4().makeScale(1, 0.35, 1))\r\n  return [{ geometry: geo, material: paletteMaterial(SNOW_COLORS.mound) }]\r\n}\r\n"
             },
             {
               "symbol": "IGLOO_MOUTH",
-              "line": 1062,
+              "line": 1108,
               "code": "export const IGLOO_MOUTH = { y: 0.34, z: 2.48, radius: 0.68, length: 1.1 } as const\r\n\r\n/** Shared tinted-piece helper for the snow props: normalize → tint →\r\n *  bake the transform, ready for ONE merge (the crate/telescope pattern). */\r\nfunction snowPiece(\r\n  g: THREE.BufferGeometry,\r\n  color: string,\r\n  pos: [number, number, number] = [0, 0, 0],\r\n  rot: [number, number, number] = [0, 0, 0],\r\n  scale: [number, number, number] = [1, 1, 1],\r\n): THREE.BufferGeometry {\r\n  const n = tintGeometry(normalizeForMerge(g), color)\r\n  g.dispose()\r\n  n.applyMatrix4(\r"
             }
           ]

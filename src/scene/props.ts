@@ -4,7 +4,7 @@ import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeom
 import { tintGeometry, wrapToSphere } from './geometryUtils'
 import { placement } from '../content/placements'
 import { groundAltitudeAt } from '../controls/terrain'
-import { PLANET_RADIUS, SINK_M } from './planetConfig'
+import { BOAT_DECK_M, BOAT_SEAT_M, PLANET_RADIUS, SINK_M } from './planetConfig'
 
 /**
  * Chunky primitive props — the style bible's hand-built replacements for the
@@ -281,16 +281,48 @@ export function buildRowboat(): PropPart[] {
 }
 
 /**
+ * A box pinched along +z: the far face narrowed to `tipWidth`. The bow
+ * floor needs a wedge, and a wedge is a box with its nose pulled in —
+ * cheaper than a custom geometry and it keeps the chunky facet read.
+ */
+function taperedSlab(
+  width: number,
+  height: number,
+  depth: number,
+  tipWidth: number,
+): THREE.BufferGeometry {
+  const g = new THREE.BoxGeometry(width, height, depth)
+  const pos = g.attributes.position
+  const k = tipWidth / width
+  for (let i = 0; i < pos.count; i++) {
+    if (pos.getZ(i) > 0) pos.setX(i, pos.getX(i) * k)
+  }
+  pos.needsUpdate = true
+  return g
+}
+
+/**
  * The boat you can actually drive: a chunky wooden dinghy ~3.0 m long
  * (bow toward +z) by ~1.1 m across, flared hull sides, a mid bench and a
  * stern seat, cream gunwale trim. ONE vertex-tinted merge (buildCrate's
  * trick) so the whole hull is a single draw call in both of the places
  * it is drawn — moored on the water and fixed under the player.
  *
- * y = 0 is the WATERLINE: the hull bottom starts there and the bench top
- * lands at ≈ 0.38 m, which is the seat height the controller parks the
- * avatar at (BOAT_SEAT_M).
+ * y = 0 is the WATERLINE. The hull floats HIGH: its walls run from
+ * HULL_BOTTOM_M (below the waterline, so it still sits IN the water) up
+ * to the gunwale at GUNWALE_M, and the interior floor slab's top lands
+ * at BOAT_DECK_M — above the water's maximum live height (0.12 of wave
+ * plus 0.06 of surf) — with the slab running solid all the way down to
+ * the hull bottom, so no wave can ever poke up through the floor. The
+ * bench and stern seat top out at BOAT_SEAT_M, the height the controller
+ * parks the driving avatar on and the height you sit at.
  */
+/** Hull bottom: below the waterline, so the boat sits IN the sea. */
+const HULL_BOTTOM_M = -0.3
+/** Top of the flared sides — the rail you look over. */
+const GUNWALE_M = 0.62
+/** Bench/seat plank thickness (its TOP is BOAT_SEAT_M). */
+const SEAT_THICK_M = 0.09
 export function buildBoat(): PropPart[] {
   const piece = (
     g: THREE.BufferGeometry,
@@ -312,26 +344,40 @@ export function buildBoat(): PropPart[] {
   const hull = PROP_COLORS.woodLight
   const dark = PROP_COLORS.woodDark
   const trim = PROP_COLORS.cream
+  // Wall span and its centre, so the sides, bow and transom all share
+  // one height — raise the gunwale and the whole hull follows.
+  const wallH = GUNWALE_M - HULL_BOTTOM_M
+  const wallY = (GUNWALE_M + HULL_BOTTOM_M) / 2
+  // The floor: top at the deck height, bottom at the hull bottom. Thick
+  // ON PURPOSE — a thin slab lets the wave surface inside the hull.
+  const floorH = BOAT_DECK_M - HULL_BOTTOM_M
+  const floorY = (BOAT_DECK_M + HULL_BOTTOM_M) / 2
+  const seatY = BOAT_SEAT_M - SEAT_THICK_M / 2
   const parts: THREE.BufferGeometry[] = [
-    // Flat bottom, sitting on the water.
-    piece(new THREE.BoxGeometry(0.86, 0.16, 2.5), dark, [0, 0.08, 0]),
+    // The floor slab — solid from the deck down to the hull bottom, long
+    // enough to meet the transom so there is no slot to see the sea
+    // through, and a tapered nose piece that seals the bow triangle.
+    piece(new THREE.BoxGeometry(0.86, floorH, 2.56), dark, [0, floorY, 0]),
+    piece(taperedSlab(0.78, floorH, 0.6, 0.26), dark, [0, floorY, 1.52]),
     // Flared sides — the lean is what stops it reading as a crate.
-    piece(new THREE.BoxGeometry(0.14, 0.5, 2.5), hull, [0.48, 0.33, 0], [0, 0, -0.18]),
-    piece(new THREE.BoxGeometry(0.14, 0.5, 2.5), hull, [-0.48, 0.33, 0], [0, 0, 0.18]),
+    piece(new THREE.BoxGeometry(0.14, wallH, 2.5), hull, [0.48, wallY, 0], [0, 0, -0.18]),
+    piece(new THREE.BoxGeometry(0.14, wallH, 2.5), hull, [-0.48, wallY, 0], [0, 0, 0.18]),
     // Bow: two yawed planks meeting in a point at +z.
-    piece(new THREE.BoxGeometry(0.14, 0.5, 0.85), hull, [0.24, 0.33, 1.5], [0, -0.45, -0.18]),
-    piece(new THREE.BoxGeometry(0.14, 0.5, 0.85), hull, [-0.24, 0.33, 1.5], [0, 0.45, 0.18]),
-    piece(new THREE.BoxGeometry(0.3, 0.5, 0.18), hull, [0, 0.33, 1.82]),
+    piece(new THREE.BoxGeometry(0.14, wallH, 0.85), hull, [0.24, wallY, 1.5], [0, -0.45, -0.18]),
+    piece(new THREE.BoxGeometry(0.14, wallH, 0.85), hull, [-0.24, wallY, 1.5], [0, 0.45, 0.18]),
+    piece(new THREE.BoxGeometry(0.3, wallH, 0.18), hull, [0, wallY, 1.82]),
     // Transom.
-    piece(new THREE.BoxGeometry(0.98, 0.5, 0.16), hull, [0, 0.33, -1.3]),
+    piece(new THREE.BoxGeometry(0.98, wallH, 0.16), hull, [0, wallY, -1.3]),
     // Bench (you sit here) and the stern seat — planks, not trim: cream
     // thwarts read as a rope ladder lying in the hull.
-    piece(new THREE.BoxGeometry(0.92, 0.09, 0.34), dark, [0, 0.335, 0.12]),
-    piece(new THREE.BoxGeometry(0.92, 0.09, 0.3), dark, [0, 0.335, -1.05]),
+    piece(new THREE.BoxGeometry(0.92, SEAT_THICK_M, 0.34), dark, [0, seatY, 0.12]),
+    piece(new THREE.BoxGeometry(0.92, SEAT_THICK_M, 0.3), dark, [0, seatY, -1.05]),
     // Gunwale trim along the tops of the flared sides — a rail, not a rim.
-    piece(new THREE.BoxGeometry(0.12, 0.08, 2.5), trim, [0.505, 0.59, 0], [0, 0, -0.18]),
-    piece(new THREE.BoxGeometry(0.12, 0.08, 2.5), trim, [-0.505, 0.59, 0], [0, 0, 0.18]),
-    piece(new THREE.BoxGeometry(0.98, 0.08, 0.14), trim, [0, 0.59, -1.3]),
+    // The lean carries the top of a taller wall further out, so the trim
+    // rides wider than it used to.
+    piece(new THREE.BoxGeometry(0.12, 0.08, 2.5), trim, [0.545, GUNWALE_M, 0], [0, 0, -0.18]),
+    piece(new THREE.BoxGeometry(0.12, 0.08, 2.5), trim, [-0.545, GUNWALE_M, 0], [0, 0, 0.18]),
+    piece(new THREE.BoxGeometry(0.98, 0.08, 0.14), trim, [0, GUNWALE_M, -1.3]),
   ]
   const merged = mergeGeometries(parts)
   parts.forEach((g) => g.dispose())
