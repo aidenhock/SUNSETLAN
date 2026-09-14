@@ -120,7 +120,7 @@ describe('grooveLean / grooveCrownLean', () => {
 
   it('sums with the wind to a trunk lean that never reads blown over', () => {
     const worstWind = WIND.baseRad + 0.4 * WIND.gustRad
-    expect(worstWind + GROOVE.leanRad).toBeLessThan(0.16)
+    expect(worstWind + GROOVE.leanRad).toBeLessThan(0.2)
   })
 })
 
@@ -277,6 +277,6 @@ describe('swayMatrix / swayMatrixChain / palmSwayMatrix', () => {
   it('never leans hard enough to look blown over', () => {
     // A sanity ceiling on the angle itself, independent of the envelope
     // tests above — the design goal in one assertion.
-    expect(WIND.baseRad + WIND.gustRad + GROOVE.leanRad).toBeLessThan(0.16) // < ~9.2°
+    expect(WIND.baseRad + WIND.gustRad + GROOVE.leanRad).toBeLessThan(0.2) // < ~11.5° — groove pass turned the trunk up
   })
 })

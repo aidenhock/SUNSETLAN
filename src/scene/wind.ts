@@ -65,15 +65,15 @@ export const GROOVE = {
   /** Tempo of the island. */
   bpm: 92,
   /** Trunk lean amplitude (radians), left-right across the wind. */
-  leanRad: 0.07,
+  leanRad: 0.1,
   /** Extra crown lean amplitude (radians) about the crown pivot. */
-  crownRad: 0.09,
+  crownRad: 0.11,
   /** Crown phase lag behind the trunk (radians) — the whip. */
   crownLag: 0.6,
   /** Peak vertical stretch on the beat (scale = 1 + bounce). */
-  bounce: 0.045,
+  bounce: 0.07,
   /** Peak x/z counter-squash at full stretch (fraction). */
-  squash: 0.015,
+  squash: 0.02,
   /** Per-palm tempo jitter (fraction of bpm) so the grove drifts in and
    * out of sync rather than marching. */
   bpmJitter: 0.04,
